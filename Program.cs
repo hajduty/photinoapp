@@ -1,7 +1,14 @@
+using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.RPC;
+using JobTracker.Application.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Photino.NET;
 using Photino.NET.Server;
 using System.Drawing;
 using System.Text;
+using System.Text.Json;
 
 namespace Photino.HelloPhotino.React;
 //NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
@@ -18,13 +25,30 @@ class Program
             .CreateStaticFileServer(args, out string baseUrl)
             .RunAsync();
 
+        // Add services
+        var services = new ServiceCollection();
+
+        services.AddDbContextFactory<AppDbContext>(options =>
+        {
+            var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
+            options.UseSqlite($"Data Source={dbPath}");
+        });
+
+        services.AddDbContextFactory<AppDbContext>();
+        services.AddSingleton<GetJobs>();
+        services.AddSingleton<IRpcHandler, GetJobsHandler>();
+        services.AddSingleton<RpcDispatcher>();
+
+        // Build the provider
+        var serviceProvider = services.BuildServiceProvider();
+
         // The appUrl is set to the local development server when in debug mode.
         // This helps with hot reloading and debugging.
         string appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
         Console.WriteLine($"Serving React app at {appUrl}");
 
         // Window title declared here for visibility
-        string windowTitle = "Photino.React Demo App";
+        string windowTitle = "JobTracker V1";
 
         // Creating a new PhotinoWindow instance with the fluent API
         var window = new PhotinoWindow()
@@ -40,6 +64,7 @@ class Program
             // Users can resize windows by default.
             // Let's make this one fixed instead.
             .SetResizable(true)
+            .SetWebSecurityEnabled(true)
             .RegisterCustomSchemeHandler("app", (object sender, string scheme, string url, out string contentType) =>
             {
                 contentType = "text/javascript";
@@ -55,20 +80,30 @@ class Program
             // PhotinoWindow was instantiated by calling a registration 
             // method like the following RegisterWebMessageReceivedHandler.
             // This could be added in the PhotinoWindowOptions if preferred.
-            .RegisterWebMessageReceivedHandler((object sender, string message) =>
+            .RegisterWebMessageReceivedHandler(async (object sender, string message) =>
             {
                 var window = (PhotinoWindow)sender;
 
-                // The message argument is coming in from sendMessage.
-                // "window.external.sendMessage(message: string)"
-                string response = $"Received message: \"{message}\"";
+                try
+                {
+                    var dispatcher = serviceProvider.GetRequiredService<RpcDispatcher>();
 
-                // Send a message back the to JavaScript event handler.
-                // "window.external.receiveMessage(callback: Function)"
-                window.SendWebMessage(response);
+                    var responseJson = await dispatcher.DispatchAsync(message);
+
+                    window.SendWebMessage(responseJson);
+                }
+                catch (Exception ex)
+                {
+                    // Last-resort error (dispatcher should usually handle errors itself)
+                    window.SendWebMessage(JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        error = ex.Message
+                    }));
+                }
             })
-            .Load(appUrl); // Can be used with relative path strings or "new URI()" instance to load a website.
-
+            .Load(appUrl);
+        
         window.WaitForClose(); // Starts the application event loop
     }
 }

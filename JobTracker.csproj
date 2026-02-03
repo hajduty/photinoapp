@@ -29,8 +29,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Application\Models\" />
-	  <Folder Include="Application\Services\" />
+	  <Folder Include="Application\Contracts\" />
+	  <Folder Include="Application\Features\Settings\" />
 	</ItemGroup>
 
 </Project>
