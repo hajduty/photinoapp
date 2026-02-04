@@ -2,7 +2,7 @@
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.JobSearch;
+namespace JobTracker.Application.Features.JobSearch.GetJobs;
 
 public record GetJobsRequest(string Keyword, int Limit = 10, int Offset = 0);
 public record GetJobsResponse(int TotalCount,  List<Posting> Jobs);

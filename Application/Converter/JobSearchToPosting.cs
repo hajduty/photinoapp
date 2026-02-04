@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Features.JobSearch;
+﻿using JobTracker.Application.Features.JobSearch.GetJobs;
 using JobTracker.Application.Features.Postings;
 using System.Text.Json;
 
