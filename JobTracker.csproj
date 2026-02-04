@@ -22,6 +22,7 @@
 		<PackageReference Include="Photino.NET" Version="3.2.3" />
 		<PackageReference Include="Photino.NET.Server" Version="3.0.11" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+		<PackageReference Include="TypeGen" Version="6.0.4" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -29,7 +30,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Application\Contracts\" />
 	  <Folder Include="Application\Features\Settings\" />
 	</ItemGroup>
 

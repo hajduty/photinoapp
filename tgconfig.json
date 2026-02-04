@@ -1,0 +1,6 @@
+﻿{
+  "outputPath": "./UserInterface/app/types",
+  "assemblies": [
+    "bin/Debug/net8.0/JobTracker.dll"
+  ]
+}

@@ -1,7 +1,5 @@
-using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
-using JobTracker.Application.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Photino.NET;
@@ -9,6 +7,7 @@ using Photino.NET.Server;
 using System.Drawing;
 using System.Text;
 using System.Text.Json;
+using TypeGen.Core.Generator;
 
 namespace Photino.HelloPhotino.React;
 //NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
@@ -35,8 +34,9 @@ class Program
         });
 
         services.AddDbContextFactory<AppDbContext>();
-        services.AddSingleton<GetJobs>();
-        services.AddSingleton<IRpcHandler, GetJobsHandler>();
+
+        services.AddRpcSystem();
+
         services.AddSingleton<RpcDispatcher>();
 
         // Build the provider
