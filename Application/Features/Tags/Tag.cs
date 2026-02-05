@@ -1,5 +1,8 @@
-﻿namespace JobTracker.Application.Features.Tags;
+﻿using Microsoft.EntityFrameworkCore;
 
+namespace JobTracker.Application.Features.Tags;
+
+[Index(nameof(Name), IsUnique = true)]
 public class Tag
 {
     public int Id { get; set; }

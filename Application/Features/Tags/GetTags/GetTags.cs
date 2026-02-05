@@ -15,7 +15,6 @@ public class GetTags
     public async Task<List<Tag>> ExecuteAsync()
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
-        var tags = await dbContext.Tags.ToListAsync();
-        return tags;
+        return await dbContext.Tags.ToListAsync();
     }
 }

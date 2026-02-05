@@ -1,5 +1,6 @@
 ﻿using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.CreateTag;
@@ -27,8 +28,18 @@ public class CreateTag
             Name = request.Name,
             Color = request.Color,
         };
+
+        Debug.WriteLine(request.Name);
         dbContext.Tags.Add(tag);
-        await dbContext.SaveChangesAsync();
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            throw;
+        }
 
         return new CreateTagResponse(tag);
     }

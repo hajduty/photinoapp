@@ -33,14 +33,24 @@ class Program
             options.UseSqlite($"Data Source={dbPath}");
         });
 
-        services.AddDbContextFactory<AppDbContext>();
-
         services.AddRpcSystem();
 
         services.AddSingleton<RpcDispatcher>();
 
         // Build the provider
         var serviceProvider = services.BuildServiceProvider();
+
+        using (var scope = serviceProvider.CreateScope())
+        {
+            var factory = scope.ServiceProvider
+                .GetRequiredService<IDbContextFactory<AppDbContext>>();
+
+            using var db = factory.CreateDbContext();
+
+            db.Database.EnsureCreated();
+            SeedData.Initialize(factory);
+        }
+
 
         // The appUrl is set to the local development server when in debug mode.
         // This helps with hot reloading and debugging.

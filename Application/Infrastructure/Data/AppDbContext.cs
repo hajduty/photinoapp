@@ -11,8 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<JobAlert> JobAlerts { get; set; } = null!;
     public DbSet<Tag> Tags { get; set; } = null!;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
     {
-        Database.EnsureCreated();
     }
-}
+} 
