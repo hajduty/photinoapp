@@ -363,8 +363,9 @@ MigrationBackup/
 FodyWeavers.xsd
 
 **/node_modules/
-UserInterface/.next/
-UserInterface/build/
-wwwroot
-UserInterface/build/*
-Resources/wwwroot/
+**/UserInterface/.next/
+**/UserInterface/build/
+**/wwwroot
+**/UserInterface/build/*
+**/JobTracker/Resources/wwwroot/
+**/bin/Debug/*
