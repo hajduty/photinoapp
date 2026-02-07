@@ -7,7 +7,6 @@ using Photino.NET.Server;
 using System.Drawing;
 using System.Text;
 using System.Text.Json;
-using TypeGen.Core.Generator;
 
 namespace Photino.HelloPhotino.React;
 //NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.

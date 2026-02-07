@@ -1,8 +1,8 @@
-﻿/*using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.RPC;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 
-public sealed class GetJobsHandler
+public class GetJobsHandler
     : RpcHandler<GetJobsRequest, GetJobsResponse>
 {
     private readonly GetJobs _feature;
@@ -18,4 +18,3 @@ public sealed class GetJobsHandler
         return await _feature.ExecuteAsync(request);
     }
 }
-*/

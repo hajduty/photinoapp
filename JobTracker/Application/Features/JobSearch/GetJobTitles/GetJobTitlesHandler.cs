@@ -1,5 +1,4 @@
-﻿using JobTracker.Application.Features.JobSearch.GetJobs;
-using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.RPC;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobTitles;
 

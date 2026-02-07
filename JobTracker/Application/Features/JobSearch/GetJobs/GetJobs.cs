@@ -1,214 +1,102 @@
-﻿/* using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
-using LinqKit;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
-using System.Diagnostics;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
+[ExportTsInterface]
+public record GetJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds);
+[ExportTsInterface]
+public record GetJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
 
-public record GetJobsRequest(
-    string Keyword,
-    string? Source = null,
-    string? DateFilter = null,
-    string? Tags = null,
-    int Page = 1,
-    int PageSize = 20
-);
-
-public record GetJobsResponse(
-    List<Posting> Jobs,
-    int Page,
-    int PageSize,
-    int TotalCount,
-    int TotalPages,
-    bool HasPreviousPage,
-    bool HasNextPage
-);
-
-public record PostingWithTags
+[ExportTsInterface]
+public record ExtendedPosting
 {
-    public List<Tag> Tags { get; set; } = new();
-    public Posting Posting { get; set; } = null!;
+    public Posting Posting { get; init; }
+    public List<Tag> Tags { get; init; }
 }
 
 public class GetJobs
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly HttpClient _httpClient;
-    private readonly string apiUrl = "https://jobsearch.api.jobtechdev.se/";
-
-    private static readonly ConcurrentDictionary<string, Task> _activeBackfills = new();
-
     public GetJobs(IDbContextFactory<AppDbContext> dbFactory)
     {
         _dbFactory = dbFactory;
-        _httpClient = new HttpClient();
     }
 
-    public async Task<GetJobsResponse> ExecuteAsync(GetJobsRequest request)
+    // Fetch jobs from db with pagination and filtering by tags
+    public async Task<GetJobsResponse> ExecuteAsync(GetJobsRequest req)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        // Trigger backfill in background (fire-and-forget)
-        _ = BackfillForKeyword(request.Keyword);
+        var escapedKeyword = req.Keyword
+            .Replace("[", "[[]")
+            .Replace("%", "[%]")
+            .Replace("_", "[_]");
 
-        // Query from database with proper filtering
-        var query = db.Postings.AsQueryable();
+        var pattern = $"%{escapedKeyword}%";
 
-        // Apply keyword search (full-text search if available)
-        if (!string.IsNullOrWhiteSpace(request.Keyword))
-        {
-            query = query.Where(p =>
-                p.Title.Contains(request.Keyword) ||
-                p.Description.Contains(request.Keyword));
-        }
+        var query = db.Postings
+            .AsNoTracking()
+            .Where(p =>
+                EF.Functions.Like(p.Title, pattern) ||
+                EF.Functions.Like(p.Company, pattern) ||
+                EF.Functions.Like(p.Description, pattern));
 
-        // Apply date filter
-        if (!string.IsNullOrWhiteSpace(request.DateFilter))
-        {
-            if (DateTime.TryParse(request.DateFilter, out var filterDate))
-            {
-                query = query.Where(p => p.PostedDate >= filterDate);
-            }
-        }
-
-        // Apply tag filtering
-        if (!string.IsNullOrWhiteSpace(request.Tags))
-        {
-            query = ApplyTagFilter(query, request.Tags);
-        }
-
-        // Apply source filter
-        if (!string.IsNullOrWhiteSpace(request.Source))
-        {
-            query = query.Where(p => p.Source == request.Source);
-        }
-
-        // Get total count for pagination
-        var totalCount = await query.CountAsync();
-
-        // Apply pagination
-        var items = await query
-            .OrderByDescending(p => p.PostedDate)
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
+        // Get all our tags from db
+        var allTags = await db.Tags
+            .AsNoTracking()
             .ToListAsync();
 
-        Debug.WriteLine(request.Tags);
+        // Get only the tags we want to filter by
+        var wantedTags = allTags.Where(t => req.ActiveTagIds.Contains(t.Id)).ToList();
+        var tagNames = wantedTags.Select(t => t.Name).ToList();
 
-        // Calculate pagination metadata
-        var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+        // Filter postings by wanted tags using EF.Functions.Like for case-insensitive matching
+        var tagFilteredQuery = query;
+        foreach (var tagName in tagNames)
+        {
+            var tagPattern = $"%{tagName}%";
+            tagFilteredQuery = tagFilteredQuery.Where(p =>
+                EF.Functions.Like(p.Title, tagPattern) ||
+                EF.Functions.Like(p.Description, tagPattern)
+            );
+        }
 
-        return new GetJobsResponse(
-            Jobs: items,
-            Page: request.Page,
-            PageSize: request.PageSize,
-            TotalCount: totalCount,
-            TotalPages: totalPages,
-            HasPreviousPage: request.Page > 1,
-            HasNextPage: request.Page < totalPages
+        var totalResults = await tagFilteredQuery.CountAsync();
+
+        int page = Math.Max(req.Page, 1);
+        int pageSize = Math.Clamp(req.PageSize, 1, 100);
+
+        // Pagination
+        var postings = await tagFilteredQuery
+            .OrderByDescending(p => p.PostedDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var extendedPostings = postings.Select(p => new ExtendedPosting
+        {
+            Posting = p,
+            Tags = allTags.Where(t =>
+                p.Title.Contains(t.Name, StringComparison.OrdinalIgnoreCase) ||
+                p.Description.Contains(t.Name, StringComparison.OrdinalIgnoreCase)
+            ).ToList()
+        }).ToList();
+
+        var totalPages = (int)Math.Ceiling((double)totalResults / pageSize);
+
+        var response = new GetJobsResponse(
+            extendedPostings,
+            page,
+            pageSize,
+            totalResults,
+            totalPages,
+            page > 1,
+            page < totalPages
         );
-    }
 
-    private async Task BackfillForKeyword(string keyword)
-    {
-        // Ensure only one backfill per keyword runs at a time
-        var backfillKey = $"backfill:{keyword}";
-
-        if (_activeBackfills.ContainsKey(backfillKey))
-            return;
-
-        var backfillTask = BackfillInternal(keyword);
-        _activeBackfills[backfillKey] = backfillTask;
-
-        try
-        {
-            await backfillTask;
-        }
-        finally
-        {
-            _activeBackfills.TryRemove(backfillKey, out _);
-        }
-    }
-
-    private async Task BackfillInternal(string keyword)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync();
-
-        int apiOffset = 0;
-        const int pageSize = 100; // Max allowed by API
-        bool foundExisting = false;
-
-        while (!foundExisting)
-        {
-            var query = $"search?q={keyword}&offset={apiOffset}&limit={pageSize}&sort=pubdate-desc";
-            var responseString = await _httpClient.GetStringAsync(apiUrl + query);
-
-            var apiResponse = JobSearchToPosting.Convert(responseString);
-
-            if (!apiResponse.Jobs.Any())
-                break;
-
-            foreach (var posting in apiResponse.Jobs)
-            {
-                // Check if posting already exists in DB
-                var exists = await db.Postings.AnyAsync(p => p.Id == posting.Id);
-
-                if (exists)
-                {
-                    foundExisting = true;
-                    break; // Stop when we reach already-synced content
-                }
-
-                // Add to database
-                db.Postings.Add(posting);
-            }
-
-            await db.SaveChangesAsync();
-
-            // Stop if we found existing items or reached end
-            if (foundExisting || apiResponse.Jobs.Count < pageSize)
-                break;
-
-            apiOffset += pageSize;
-
-            // Rate limiting
-            await Task.Delay(100);
-        }
-    }
-
-
-    // Helpers
-    private IQueryable<Posting> ApplyTagFilter(IQueryable<Posting> query, string tags)
-    {
-        if (string.IsNullOrWhiteSpace(tags))
-            return query;
-
-        var tagList = tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        // For OR logic (job contains ANY of the tags)
-        // This is translatable to SQL: WHERE Description LIKE '%tag1%' OR Description LIKE '%tag2%'
-
-        // Start with a false predicate and build OR conditions
-        var predicate = PredicateBuilder.False<Posting>();
-        foreach (var tag in tagList)
-        {
-            var localTag = tag; // Capture variable for closure
-            predicate = predicate.Or(p => p.Description != null && p.Description.Contains(localTag));
-        }
-
-        return query.Where(predicate);
-    }
-
-    // Apply general tags
-    private bool MatchesDate(Posting p, string dateStr)
-    {
-        if (string.IsNullOrEmpty(dateStr)) return true;
-        if (!DateTime.TryParse(dateStr, out var date)) return true;
-        return p.PostedDate >= date;
+        return response;
     }
 }
-
-*/
