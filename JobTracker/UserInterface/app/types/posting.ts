@@ -1,29 +1,19 @@
-export interface Posting {
-    Id: number,
-    Title: string,
-    Description: string,
-    Company: string,
-    Location: string,
-    PostedDate: Date,
-    Url: string,
-    OriginUrl: string,
-    CompanyImage: string,
-    CreatedAt: Date,
-    LastApplicationDate: Date
-}
-
-/* public class Posting
-{
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string Company { get; set; } = string.Empty;
-    public string Location { get; set; } = string.Empty;
-    public DateTime PostedDate { get; set; } = DateTime.UtcNow;
-    public string Url { get; set; } = string.Empty;
-    public string OriginUrl { get; set; } = string.Empty;
-    public string CompanyImage { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime LastApplicationDate { get; set; } = DateTime.UtcNow;
-}
+/**
+ * This is a TypeGen auto-generated file.
+ * Any changes made to this file can be lost when this file is regenerated.
  */
+
+export interface Posting {
+    Id: number;
+    Title: string;
+    Description: string;
+    Company: string;
+    Location: string;
+    PostedDate: Date;
+    Url: string;
+    OriginUrl: string;
+    CompanyImage: string;
+    CreatedAt: Date;
+    LastApplicationDate: Date;
+    Source: string;
+}

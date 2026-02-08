@@ -5,5 +5,5 @@ namespace JobTracker.Application.Infrastructure.RPC;
 public interface IRpcHandler
 {
     string Command { get; }
-    Task<object?> HandleAsync(JsonElement payload);
+    Task<object?> HandleAsync(JsonElement payload, string id);
 }

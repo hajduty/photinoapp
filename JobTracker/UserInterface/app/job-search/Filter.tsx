@@ -6,24 +6,24 @@ import { TagsCombobox } from './TagsCombobox'
 
 interface FilterProps {
   onFilterChange: (filters: {
-    source: string
-    date: string
-    location: string
-    tags: string // serialized
+    source: string,
+    date: Date | null,
+    location: string,
+    tags: number[]
   }) => void
 }
 
 type Filters = {
-  source: string
-  date: string
-  location: string
+  source: string,
+  date: Date | null,
+  location: string,
   tags: Tag[]
 }
 
 export default function Filter({ onFilterChange }: FilterProps) {
   const [filters, setFilters] = useState<Filters>({
     source: '',
-    date: '',
+    date: null as unknown as Date,
     location: '',
     tags: [],
   })
@@ -40,6 +40,7 @@ export default function Filter({ onFilterChange }: FilterProps) {
         'tags.getTags',
         { test: 'anything' }
       )
+      console.log("fetched");
       setTags(response)
     } catch (err) {
       console.error('Failed to fetch tags:', err)
@@ -55,7 +56,7 @@ export default function Filter({ onFilterChange }: FilterProps) {
 
     onFilterChange({
       ...newFilters,
-      tags: newFilters.tags.map(t => t.Id).join(','), // FIX
+      tags: newFilters.tags.map((t: Tag) => t.Id),
     })
   }
 
@@ -65,9 +66,39 @@ export default function Filter({ onFilterChange }: FilterProps) {
 
     onFilterChange({
       ...newFilters,
-      tags: value.map(t => t.Name).join(','), // FIX
+      tags: value.map(t => t.Id)
     })
   }
+
+  const handleDateFilterChange = (value: string) => {
+    // Convert string to Date | null
+    const convertDateFilter = (value: string): Date | null => {
+      const now = new Date();
+      switch (value) {
+        case 'today':
+          return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        case 'week':
+          const weekAgo = new Date(now);
+          weekAgo.setDate(now.getDate() - 7);
+          return weekAgo;
+        case 'month':
+          const monthAgo = new Date(now);
+          monthAgo.setMonth(now.getMonth() - 1);
+          return monthAgo;
+        default:
+          return null;
+      }
+    };
+
+    const newFilters = { ...filters, date: convertDateFilter(value) };
+    setFilters(newFilters);
+
+    onFilterChange({
+      ...newFilters,
+      tags: newFilters.tags.map((t: Tag) => t.Id),
+    });
+  };
+
 
   return (
     <div className="border-neutral-700">
@@ -96,10 +127,8 @@ export default function Filter({ onFilterChange }: FilterProps) {
             { value: 'week', label: 'Past Week' },
             { value: 'month', label: 'Past Month' },
           ]}
-          value={filters.date}
-          onChange={(value) =>
-            handleStringFilterChange('date', value || '')
-          }
+          value={filters.date ? 'custom' : ""}
+          onChange={(value) => handleDateFilterChange(value || '')}
         />
 
         <Select

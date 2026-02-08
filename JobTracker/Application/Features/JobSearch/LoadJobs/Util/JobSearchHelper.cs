@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace JobTracker.Application.Features.JobSearch.LoadJobs;
+namespace JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
 
 public static class JobSearchHelper
 {

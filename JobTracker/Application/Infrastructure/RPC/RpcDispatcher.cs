@@ -28,13 +28,18 @@ public sealed class RpcDispatcher
         var command = commandProp.GetString()
             ?? throw new InvalidOperationException("Invalid command");
 
+        var id = root.TryGetProperty("id", out var idProp)
+            ? idProp.GetString() ?? ""
+            : "";
+
         if (!_handlers.TryGetValue(command, out var handler))
             throw new InvalidOperationException($"Unknown command: {command}");
 
-        var result = await handler.HandleAsync(payloadProp);
+        var result = await handler.HandleAsync(payloadProp, id);
 
         return JsonSerializer.Serialize(new
         {
+            id = id,
             success = true,
             data = result
         });

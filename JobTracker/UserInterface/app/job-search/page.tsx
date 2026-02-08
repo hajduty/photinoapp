@@ -1,25 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import JobPosting from './JobPosting';
 import { sendPhotinoRequest } from '../utils/photino';
-import { JobSearchResponse } from '../types/jobsearch';
 import { SearchAutocomplete } from './SearchAutocomplete';
 import Filter from './Filter';
 import { Pagination, Text, Group, Box } from '@mantine/core';
+import { GetJobsRequest } from '../types/get-jobs-request';
+import { GetJobsResponse } from '../types/get-jobs-response';
+
+interface ParentFilters {
+  source: string;
+  date: Date | null;
+  location: string;
+  tags: number[];
+}
 
 export default function JobSearch() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [jobPostings, setJobPostings] = useState<JobSearchResponse | null>(null);
+  const [jobPostings, setJobPostings] = useState<GetJobsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<ParentFilters>({
     source: '',
-    date: '',
+    date: null,
     location: '',
-    tags: ''
+    tags: [],
   });
+
   const ITEMS_PER_PAGE = 20;
 
   const searchJobs = async (e?: React.FormEvent, page: number = 0, keyword?: string) => {
@@ -27,36 +36,33 @@ export default function JobSearch() {
 
     const term = (keyword ?? searchTerm).trim();
 
-/*     if (keyword.length < 3) {
-      setJobPostings(null);
-      setHasMore(false);
-      setCurrentPage(0);
-      return;
-    } */
-
     setLoading(true);
     setError(null);
 
     try {
       console.log(filters.tags);
 
-      const response = await sendPhotinoRequest("jobSearch.getJobs", {
-        keyword: term,
-        source: filters.source,
-        date: filters.date,
-        tags: filters.tags,
-        page,
-        pageSize: ITEMS_PER_PAGE
-      });
+      const request: GetJobsRequest = {
+        Keyword: term,
+        Page: page,
+        PageSize: ITEMS_PER_PAGE,
+        ActiveTagIds: filters.tags,
+        TimeSinceUpload: filters.date
+      };
+
+      //const loadData = await sendPhotinoRequest('jobSearch.loadJobs', { keyword: term });
+
+      console.log('Search Request:', request);
+
+      const response = await sendPhotinoRequest("jobSearch.getJobs", request);
+
+      console.log('Search Response:', response);
 
       const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const jobSearchResponse: JobSearchResponse = data;
+      const jobSearchResponse: GetJobsResponse = data;
 
       // No slicing needed — backend already returns exactly the requested page
-      setJobPostings({
-        TotalCount: jobSearchResponse.TotalCount,
-        Jobs: jobSearchResponse.Jobs || []
-      });
+      setJobPostings({ ...jobSearchResponse });
 
       setCurrentPage(page);
     } catch (err) {
@@ -68,6 +74,10 @@ export default function JobSearch() {
     }
   };
 
+  useEffect(() => {
+    searchJobs(undefined, 0, searchTerm);
+  }, [filters]);
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -78,40 +88,8 @@ export default function JobSearch() {
               <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB SEARCH</h1>
               <p className="text-neutral-400">Find current job postings on LinkedIn, Arbetsförmedlingen & Indeed</p>
             </div>
-            {/*<div className="relative w-1/2">
-             <form onSubmit={searchJobs}>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search for jobs..."
-                disabled={loading}
-                className="w-full h-11 rounded-sm bg-neutral-900 border border-neutral-800 pl-4 pr-11 text-neutral-200 placeholder-neutral-500 
-                focus:outline-none focus:ring-0 focus:border-neutral-700 disabled:opacity-60"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="absolute right-1 top-1 bottom-1 flex items-center justify-center w-9 rounded-md text-neutral-400 hover:text-white
-                  transition disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-              </form>
-            </div> */}
-            <SearchAutocomplete onChange={(val) => {setSearchTerm(val); searchJobs(undefined, 0, val)} }/>
+
+            <SearchAutocomplete onChange={(val) => { setSearchTerm(val); searchJobs(undefined, 0, val) }} />
           </div>
         </div>
 
@@ -119,9 +97,9 @@ export default function JobSearch() {
         <Filter onFilterChange={setFilters} />
 
         {/* Results Header */}
-        {!loading && jobPostings && jobPostings.Jobs.length > 0 && (
+        {!loading && jobPostings && jobPostings.TotalResults > 0 && (
           <div className="text-white font-semibold mb-2">
-            {jobPostings.TotalCount} job{jobPostings.TotalCount !== 1 ? 's' : ''} found
+            {jobPostings.TotalResults} job{jobPostings.TotalResults !== 1 ? 's' : ''} found
           </div>
         )}
 
@@ -144,11 +122,11 @@ export default function JobSearch() {
 
         {/* Loading State */}
         {loading && (
-            <h3 className="text-white font-medium">Searching for jobs...</h3>
+          <h3 className="text-white font-medium">Searching for jobs...</h3>
         )}
 
         {/* No Results State */}
-        {!loading && !error && jobPostings && jobPostings.Jobs.length === 0 && searchTerm.trim().length >= 3 && (
+        {!loading && !error && jobPostings && jobPostings.Postings?.length === 0 && searchTerm.trim().length >= 3 && (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,10 +138,10 @@ export default function JobSearch() {
               No job postings match your search for "{searchTerm}". Try adjusting your search terms or broaden your criteria.
             </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => {setSearchTerm('developer'); searchJobs(); }} className="btn-secondary">
+              <button onClick={() => { setSearchTerm('developer'); searchJobs(); }} className="btn-secondary">
                 Try "developer"
               </button>
-              <button onClick={() => {setSearchTerm('manager'); searchJobs(); }} className="btn-secondary">
+              <button onClick={() => { setSearchTerm('manager'); searchJobs(); }} className="btn-secondary">
                 Try "manager"
               </button>
             </div>
@@ -171,23 +149,23 @@ export default function JobSearch() {
         )}
 
         {/* Job Results */}
-        {!loading && jobPostings && jobPostings.Jobs.length > 0 && (
+        {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
           <div className="space-y-4">
-            {jobPostings.Jobs.map((posting, index) => (
-              <JobPosting key={posting.Id || `${posting.Id}-${index}`} posting={posting} />
+            {jobPostings.Postings.map((posting, index) => (
+              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} />
             ))}
           </div>
         )}
 
         {/* Pagination */}
-        {!loading && jobPostings && jobPostings.Jobs.length > 0 && (
+        {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
           <Box className="p-6 w-full">
             <Group justify="space-between" align="center">
               <Text size="sm" c="dimmed">
-                Page {currentPage + 1} • {jobPostings.TotalCount} job{jobPostings.TotalCount !== 1 ? 's' : ''} found
+                Page {currentPage + 1} • {jobPostings.TotalResults} job{jobPostings.TotalResults !== 1 ? 's' : ''} found
               </Text>
               <Pagination
-                total={Math.ceil(jobPostings.TotalCount / ITEMS_PER_PAGE)}
+                total={Math.ceil(jobPostings.TotalResults / ITEMS_PER_PAGE)}
                 value={currentPage + 1}
                 onChange={(page) => {
                   searchJobs(undefined, page - 1);

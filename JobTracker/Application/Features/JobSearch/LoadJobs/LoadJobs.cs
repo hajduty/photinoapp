@@ -1,4 +1,5 @@
-﻿using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
+using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -79,7 +80,7 @@ public class LoadJobs
             }
 
             apiOffset += LIMIT;
-            await Task.Delay(100);
+            await Task.Delay(300); // be nice to the api
         }
 
         return result;

@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace JobTracker.Application.Features.JobAlerts.Create;
 
 
-public record CreateJobAlertRequest(string keyword, string location);
-public record CreateJobAlertResponse(int alertId);
+public record CreateJobAlertRequest(string Keyword);
+public record CreateJobAlertResponse(int AlertId);
 
 public class CreateJobAlert
 {
@@ -19,11 +19,8 @@ public class CreateJobAlert
     public async Task<CreateJobAlertResponse> ExecuteAsync(CreateJobAlertRequest request)
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
-        var jobAlert = new JobAlert
-        {
-            Keyword = request.keyword,
-            Location = request.location,
-        };
+        var jobAlert = new JobAlert { Keyword = request.Keyword };
+
         dbContext.JobAlerts.Add(jobAlert);
 
         await dbContext.SaveChangesAsync();

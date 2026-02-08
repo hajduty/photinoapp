@@ -2,11 +2,12 @@
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 [ExportTsInterface]
-public record GetJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds);
+public record GetJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload);
 [ExportTsInterface]
 public record GetJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
 
@@ -44,6 +45,11 @@ public class GetJobs
                 EF.Functions.Like(p.Company, pattern) ||
                 EF.Functions.Like(p.Description, pattern));
 
+        if (req.TimeSinceUpload.HasValue)
+        {
+            query = query.Where(p => p.PostedDate >= req.TimeSinceUpload.Value);
+        }
+
         // Get all our tags from db
         var allTags = await db.Tags
             .AsNoTracking()
@@ -53,36 +59,41 @@ public class GetJobs
         var wantedTags = allTags.Where(t => req.ActiveTagIds.Contains(t.Id)).ToList();
         var tagNames = wantedTags.Select(t => t.Name).ToList();
 
+        var postings = await query.ToListAsync();
+
         // Filter postings by wanted tags using EF.Functions.Like for case-insensitive matching
-        var tagFilteredQuery = query;
         foreach (var tagName in tagNames)
         {
-            var tagPattern = $"%{tagName}%";
-            tagFilteredQuery = tagFilteredQuery.Where(p =>
-                EF.Functions.Like(p.Title, tagPattern) ||
-                EF.Functions.Like(p.Description, tagPattern)
-            );
+            var patterns = CreateTagPattern(tagName);
+            var regex = new Regex(patterns, RegexOptions.IgnoreCase);
+            postings = postings.Where(p =>
+                (p.Title != null && regex.IsMatch(p.Title)) ||
+                (p.Description != null && regex.IsMatch(p.Description))
+            ).ToList();
         }
 
-        var totalResults = await tagFilteredQuery.CountAsync();
+        var totalResults = postings.Count;
 
         int page = Math.Max(req.Page, 1);
         int pageSize = Math.Clamp(req.PageSize, 1, 100);
 
         // Pagination
-        var postings = await tagFilteredQuery
+        postings = postings
             .OrderByDescending(p => p.PostedDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToList();
 
         var extendedPostings = postings.Select(p => new ExtendedPosting
         {
             Posting = p,
             Tags = allTags.Where(t =>
-                p.Title.Contains(t.Name, StringComparison.OrdinalIgnoreCase) ||
-                p.Description.Contains(t.Name, StringComparison.OrdinalIgnoreCase)
-            ).ToList()
+            {
+                var pattern = CreateTagPattern(t.Name);
+                var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                return (p.Title != null && regex.IsMatch(p.Title)) ||
+                       (p.Description != null && regex.IsMatch(p.Description));
+            }).ToList()
         }).ToList();
 
         var totalPages = (int)Math.Ceiling((double)totalResults / pageSize);
@@ -98,5 +109,11 @@ public class GetJobs
         );
 
         return response;
+    }
+
+    string CreateTagPattern(string tagName)
+    {
+        var escaped = Regex.Escape(tagName);
+        return $@"(?:^|[\s,;.!?()\[\]{{}}""])({escaped})(?:$|[\s,;.!?()\[\]{{}}""])";
     }
 }
