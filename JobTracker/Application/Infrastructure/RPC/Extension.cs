@@ -26,6 +26,9 @@ public static class ServiceCollectionExtensions
                 // Skip if already registered
                 if (services.Any(sd => sd.ServiceType == paramType)) continue;
 
+                // Skip framework services that are provided by the DI container
+                if (paramType == typeof(IServiceProvider)) continue;
+
                 // Register HttpClient types via typed client
                 if (paramType == typeof(HttpClient))
                 {

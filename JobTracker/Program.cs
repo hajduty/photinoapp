@@ -1,3 +1,4 @@
+using JobTracker.Application.Infrastructure.BackgroundJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,9 @@ class Program
         services.AddRpcSystem();
 
         services.AddSingleton<RpcDispatcher>();
+
+        // Register background workers
+        services.AddHostedService<JobAlertWorker>();
 
         // Build the provider
         var serviceProvider = services.BuildServiceProvider();
