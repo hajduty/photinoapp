@@ -1,9 +1,28 @@
-﻿using System.Text.Json;
+﻿using JobTracker.Application.Features.Postings;
+using System.Text.Json;
 
 namespace JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
 
 public static class JobSearchHelper
 {
+    public static Posting MapPosting(JsonElement hit)
+    {
+        return new Posting
+        {
+            Id = JobSearchHelper.ParseId(hit.GetProperty("id").GetString()),
+            Title = hit.GetProperty("headline").GetString() ?? "",
+            Description = JobSearchHelper.GetDescription(hit),
+            Company = hit.GetProperty("employer").GetProperty("name").GetString() ?? "",
+            Location = JobSearchHelper.GetLocation(hit),
+            PostedDate = DateTime.Parse(hit.GetProperty("publication_date").GetString()),
+            Url = JobSearchHelper.GetUrl(hit),
+            OriginUrl = JobSearchHelper.GetOriginUrl(hit),
+            CompanyImage = hit.GetProperty("logo_url").GetString() ?? "",
+            CreatedAt = DateTime.UtcNow,
+            LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString())
+        };
+    }
+
     public static int ParseId(string id) =>
     int.TryParse(id, out int num) ? num : Math.Abs(id.GetHashCode());
 

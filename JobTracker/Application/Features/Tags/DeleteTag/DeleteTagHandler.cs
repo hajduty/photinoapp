@@ -1,19 +1,38 @@
-﻿using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.RPC;
+using Microsoft.EntityFrameworkCore;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.DeleteTag;
 
-public sealed class DeleteTagHandler
-    : RpcHandler<DeleteTagRequest, DeleteTagResponse>
+[ExportTsInterface]
+public record DeleteTagRequest(int TagId);
+
+[ExportTsInterface]
+public record DeleteTagResponse(bool Success);
+
+public sealed class DeleteTagHandler : RpcHandler<DeleteTagRequest, DeleteTagResponse>
 {
-    private readonly DeleteTag _deleteTag;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
     public override string Command => "tags.deleteTag";
-    public DeleteTagHandler(DeleteTag deleteTag)
+
+    public DeleteTagHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
-        _deleteTag = deleteTag;
+        _dbFactory = dbFactory;
     }
 
     protected override async Task<DeleteTagResponse> HandleAsync(DeleteTagRequest request)
     {
-        return await _deleteTag.ExecuteAsync(request);
+        await using var dbContext = await _dbFactory.CreateDbContextAsync();
+
+        var tag = await dbContext.Tags.FindAsync(request.TagId);
+        if (tag == null)
+        {
+            return new DeleteTagResponse(false);
+        }
+
+        dbContext.Tags.Remove(tag);
+        await dbContext.SaveChangesAsync();
+        return new DeleteTagResponse(true);
     }
 }

@@ -1,21 +1,22 @@
-﻿using JobTracker.Application.Infrastructure.RPC;
-using System.Diagnostics;
+﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.RPC;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.Tags.GetTags;
 
-public sealed class GetTagsHandler
-    : RpcHandler<object?, List<Tag>>
+public sealed class GetTagsHandler : RpcHandler<object?, List<Tag>>
 {
-    private readonly GetTags _getTags;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
     public override string Command => "tags.getTags";
 
-    public GetTagsHandler(GetTags getTags)
+    public GetTagsHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
-        _getTags = getTags;
+        _dbFactory = dbFactory;
     }
 
     protected override async Task<List<Tag>> HandleAsync(object? request)
     {
-        return await _getTags.ExecuteAsync();
+        await using var dbContext = await _dbFactory.CreateDbContextAsync();
+        return await dbContext.Tags.ToListAsync();
     }
 }

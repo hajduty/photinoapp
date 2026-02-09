@@ -1,20 +1,50 @@
-﻿using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.RPC;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.CreateTag;
+
+[ExportTsInterface]
+public record CreateTagRequest(string Name, string Color);
+
+[ExportTsInterface]
+public record CreateTagResponse(Tag CreatedTag);
 
 public sealed class CreateTagHandler
     : RpcHandler<CreateTagRequest, CreateTagResponse>
 {
-    private readonly CreateTag _createTag;
     public override string Command => "tags.createTag";
 
-    public CreateTagHandler(CreateTag createTag)
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
+
+    public CreateTagHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
-        _createTag = createTag;
+        _dbFactory = dbFactory;
     }
 
     protected override async Task<CreateTagResponse> HandleAsync(CreateTagRequest request)
     {
-        return await _createTag.ExecuteAsync(request);
+        await using var dbContext = await _dbFactory.CreateDbContextAsync();
+        var tag = new Tag
+        {
+            Name = request.Name,
+            Color = request.Color,
+        };
+
+        Debug.WriteLine(request.Name);
+        dbContext.Tags.Add(tag);
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+            throw;
+        }
+
+        return new CreateTagResponse(tag);
     }
 }

@@ -1,20 +1,38 @@
-﻿using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.RPC;
+using Microsoft.EntityFrameworkCore;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.UpdateTag;
 
-public sealed class UpdateTagHandler
-    : RpcHandler<UpdateTagRequest, UpdateTagResponse>
+[ExportTsInterface]
+public record UpdateTagRequest(int TagId, string NewName, string NewColor);
+
+[ExportTsInterface]
+public record UpdateTagResponse(Tag UpdatedTag);
+
+public sealed class UpdateTagHandler : RpcHandler<UpdateTagRequest, UpdateTagResponse>
 {
-    private readonly UpdateTag _updateTag;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
     public override string Command => "tags.updateTag";
 
-    public UpdateTagHandler(UpdateTag updateTag)
+    public UpdateTagHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
-        _updateTag = updateTag;
+        _dbFactory = dbFactory;
     }
 
     protected override async Task<UpdateTagResponse> HandleAsync(UpdateTagRequest request)
     {
-        return await _updateTag.ExecuteAsync(request);
+        await using var dbContext = await _dbFactory.CreateDbContextAsync();
+        var tag = await dbContext.Tags.FindAsync(request.TagId);
+        if (tag == null)
+        {
+            throw new KeyNotFoundException($"Tag with ID {request.TagId} not found.");
+        }
+        tag.Name = request.NewName;
+        tag.Color = request.NewColor;
+        dbContext.Tags.Update(tag);
+        await dbContext.SaveChangesAsync();
+        return new UpdateTagResponse(tag);
     }
 }
