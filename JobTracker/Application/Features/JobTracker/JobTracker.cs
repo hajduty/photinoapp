@@ -3,7 +3,6 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker;
 
-[ExportTsInterface]
 public class JobTracker
 {
     public int Id { get; set; }

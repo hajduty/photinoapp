@@ -5,10 +5,8 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker.Delete;
 
-[ExportTsInterface]
 public record DeleteJobTrackerRequest(int TrackerId);
 
-[ExportTsInterface]
 public record DeleteJobTrackerResponse(bool Success);
 
 public sealed class DeleteJobTrackerHandler : RpcHandler<DeleteJobTrackerRequest, DeleteJobTrackerResponse>

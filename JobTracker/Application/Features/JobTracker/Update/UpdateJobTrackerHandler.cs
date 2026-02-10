@@ -6,10 +6,7 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker.Update;
 
-[ExportTsInterface]
 public record UpdateJobTrackerRequest(int TrackerId, string Keyword, string Source, string Location, bool IsActive, List<Tag> Tags, DateTime LastCheckedAt, int CheckIntervalHours = 1);
-
-[ExportTsInterface]
 public record UpdateJobTrackerResponse(JobTracker UpdatedAlert);
 
 public sealed class UpdateJobTrackerHandler : RpcHandler<UpdateJobTrackerRequest, UpdateJobTrackerResponse>

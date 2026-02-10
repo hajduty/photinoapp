@@ -6,10 +6,8 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker.Create;
 
-[ExportTsInterface]
 public record CreateJobTrackerRequest(string Keyword, string Source, string Location, bool IsActive, List<Tag> Tags, DateTime LastCheckedAt, int CheckIntervalHours = 1);
 
-[ExportTsInterface]
 public record CreateJobTrackerResponse(JobTracker jobAlert);
 
 public class CreateJobTrackerHandler : RpcHandler<CreateJobTrackerRequest, CreateJobTrackerResponse>

@@ -120,6 +120,8 @@ public class ProcessJobTrackerHandler
                     Jobs = postings.Select(p => new { p.Id, p.Title, p.Company })
                 });
             }
+
+            // 
         }
 
         dbContext.SaveChanges();
