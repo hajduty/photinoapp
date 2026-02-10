@@ -2,22 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Button,
   TextInput,
-  Select,
   Table,
   ActionIcon,
   Group,
   Modal,
   Text,
   Badge,
-  Title,
-  Container,
-  Flex,
   rem,
-  Divider,
-  Alert,
   Loader,
   ColorPicker
 } from '@mantine/core';
@@ -30,16 +22,15 @@ import {
   IconCheck,
   IconX
 } from '@tabler/icons-react';
-import { sendPhotinoRequest } from '../utils/photino';
-import { Tag } from '../types/tag';
-import { CreateTagRequest } from '../types/create-tag-request';
-import { CreateTagResponse } from '../types/create-tag-response';
-import { UpdateTagRequest } from '../types/update-tag-request';
-import { UpdateTagResponse } from '../types/update-tag-response';
-import { DeleteTagRequest } from '../types/delete-tag-request';
-import { DeleteTagResponse } from '../types/delete-tag-response';
-import { get } from 'http';
-import { getContrastColor } from '../utils/getContrastColor';
+import { sendPhotinoRequest } from '../../utils/photino';
+import { Tag } from '../../types/tag/tag';
+import { CreateTagRequest } from '../../types/tag/create-tag-request';
+import { CreateTagResponse } from '../../types/tag/create-tag-response';
+import { UpdateTagRequest } from '../../types/tag/update-tag-request';
+import { UpdateTagResponse } from '../../types/tag/update-tag-response';
+import { DeleteTagRequest } from '../../types/tag/delete-tag-request';
+import { DeleteTagResponse } from '../../types/tag/delete-tag-response';
+import { getContrastColor } from '../../utils/getContrastColor';
 
 interface TagManagementProps {
   className?: string;

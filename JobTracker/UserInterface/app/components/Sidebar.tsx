@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { IconSettings, IconHome, IconSearch, IconBellPlus } from '@tabler/icons-react'
 
-export default function Dashboard() {
+export default function Sidebar() {
   const router = useRouter()
   return (
     <div className="min-w-48 bg-neutral-950 text-white border-r border-neutral-700 fixed left-0 top-0 bottom-0 z-50">
@@ -27,15 +27,15 @@ export default function Dashboard() {
             </button>
           </li>
           <li>
-            <button onClick={() => router.push('/job-search')} className="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:bg-neutral-800 transition-colors">
+            <button onClick={() => router.push('/search')} className="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:bg-neutral-800 transition-colors">
               <IconSearch size={20} />
               <span>Job Search</span>
             </button>
           </li>
           <li>
-            <button onClick={() => {}} className="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:bg-neutral-800 transition-colors">
+            <button onClick={() => router.push('/tracked-searches')} className="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:bg-neutral-800 transition-colors">
               <IconBellPlus size={20} />
-              <span>Alerts</span>
+              <span>Trackers</span>
             </button>
           </li>
           <li>

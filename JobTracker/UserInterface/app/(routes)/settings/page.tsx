@@ -5,15 +5,10 @@ import {
   Box,
   Title,
   Text,
-  Container,
-  ScrollArea,
   Space,
-  Flex,
-  rem
-} from '@mantine/core'
-import { IconSettings } from '@tabler/icons-react'
-import TagManagement from './TagManagement'
-import ApiManagement from './ApiManagement'
+  Flex} from '@mantine/core'
+import TagManagement from '../../features/settings/TagManagement'
+import ApiManagement from '../../features/settings/ApiManagement'
 
 export default function SettingsPage() {
   return (

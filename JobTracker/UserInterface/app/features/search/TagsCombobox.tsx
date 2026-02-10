@@ -5,7 +5,7 @@ import {
   useCombobox,
   CheckIcon,
 } from '@mantine/core';
-import { getContrastColor } from '../utils/getContrastColor';
+import { getContrastColor } from '../../utils/getContrastColor';
 
 export interface Tag {
   Id: number;

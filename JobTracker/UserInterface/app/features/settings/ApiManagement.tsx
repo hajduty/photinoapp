@@ -3,10 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   TextInput,
-  Group,
-  Title,
-  Text,
-  Flex,
   Space,
   Alert,
   Loader,
@@ -14,7 +10,6 @@ import {
   Select
 } from '@mantine/core';
 import {
-  IconMail,
   IconMessage,
   IconCheck,
   IconX,
@@ -23,7 +18,6 @@ import {
   IconTestPipe
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { AnyTxtRecord } from 'dns';
 
 interface ApiManagementProps {
   className?: string;

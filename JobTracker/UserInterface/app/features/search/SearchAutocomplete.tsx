@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Autocomplete, Loader } from '@mantine/core';
-import { sendPhotinoRequest } from '../utils/photino';
+import { sendPhotinoRequest } from '../../utils/photino';
 
 interface SearchAutocompleteProps {
   onChange: (value: string) => void;

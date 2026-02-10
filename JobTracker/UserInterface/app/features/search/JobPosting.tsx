@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getContrastColor } from '../utils/getContrastColor';
-import { ExtendedPosting } from '../types/extended-posting';
+import React, {  } from 'react';
+import { getContrastColor } from '../../utils/getContrastColor';
+import { ExtendedPosting } from '../../types/jobs/extended-posting';
+import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom } from '@tabler/icons-react';
 
 export default function JobPosting({ Posting, Tags }: ExtendedPosting) {  
   return (
@@ -31,24 +32,17 @@ export default function JobPosting({ Posting, Tags }: ExtendedPosting) {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm text-neutral-400">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <IconLocation size={16}/>
                 <span>{Posting.Location}</span>
               </div>
               
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <IconCalendarTime size={16}/>
                 <span>Posted: {new Date(Posting.PostedDate).toLocaleDateString()}</span>
               </div>
               
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <IconClock size={16}/>
                 <span>Last app: {new Date(Posting.LastApplicationDate).toLocaleDateString()}</span>
               </div>
             </div>
@@ -61,7 +55,6 @@ export default function JobPosting({ Posting, Tags }: ExtendedPosting) {
             {(() => {
               if (Tags.length === 0) return null;
               
-              // Limit to first 6 tags to avoid overwhelming the UI
               const limitedTags = Tags.slice(0, 6);
               const hasMore = Tags.length > 6;
               
@@ -94,22 +87,17 @@ export default function JobPosting({ Posting, Tags }: ExtendedPosting) {
         <div className="flex flex-col gap-3 ml-6">
             <div className="flex gap-2 justify-center align-middle">
             <button 
-              onClick={() => window.open(Posting.Url, '_blank', 'noopener,noreferrer')}
-              className="btn-secondary text-sm flex justify-center items-center"
+              onClick={() => window.open(Posting.OriginUrl, '_blank', 'noopener,noreferrer')}
+              className="btn-secondary text-xs flex justify-center items-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              <IconZoom size={16}/>
               View Details
             </button>
             <button
-              onClick={() => window.open(Posting.OriginUrl, '_blank', 'noopener,noreferrer')}
-              className="btn-primary text-sm flex justify-center items-center"
+              onClick={() => window.open(Posting.Url, '_blank', 'noopener,noreferrer')}
+              className="btn-primary text-xs flex justify-center items-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+              <IconBolt size={16}/>
               Apply Now
             </button>
           </div>

@@ -1,7 +1,7 @@
 import { Select } from '@mantine/core'
 import { useEffect, useState } from 'react'
-import { Tag } from '../types/tag'
-import { sendPhotinoRequest } from '../utils/photino'
+import { Tag } from '../../types/tag/tag'
+import { sendPhotinoRequest } from '../../utils/photino'
 import { TagsCombobox } from './TagsCombobox'
 
 interface FilterProps {

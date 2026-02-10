@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Dashboard from "./components/dashboard";
 import { ColorSchemeScript, MantineProvider, } from "@mantine/core";
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { Notifications } from '@mantine/notifications';
 import { useState } from "react";
+import Sidebar from "./components/Sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,7 +27,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen bg-neutral-950`}>
         <div className="flex min-h-screen relative">
-          <Dashboard />
+          <Sidebar />
           <main className="flex-1 overflow-y-auto pl-48">
             <MantineProvider defaultColorScheme="dark">
               <Notifications />

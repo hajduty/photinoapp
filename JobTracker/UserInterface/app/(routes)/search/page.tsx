@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import JobPosting from './JobPosting';
-import { sendPhotinoRequest } from '../utils/photino';
-import { SearchAutocomplete } from './SearchAutocomplete';
-import Filter from './Filter';
+import JobPosting from '../../features/search/JobPosting';
+import { sendPhotinoRequest } from '../../utils/photino';
+import { SearchAutocomplete } from '../../features/search/SearchAutocomplete';
+import Filter from '../../features/search/Filter';
 import { Pagination, Text, Group, Box } from '@mantine/core';
-import { GetJobsRequest } from '../types/get-jobs-request';
-import { GetJobsResponse } from '../types/get-jobs-response';
+import { GetJobsRequest } from '../../types/jobs/get-jobs-request';
+import { GetJobsResponse } from '../../types/jobs/get-jobs-response';
+import { IconAlertCircle, IconUserSearch } from '@tabler/icons-react';
 
 interface ParentFilters {
   source: string;
@@ -61,10 +62,9 @@ export default function JobSearch() {
       const data = typeof response === 'string' ? JSON.parse(response) : response;
       const jobSearchResponse: GetJobsResponse = data;
 
-      // No slicing needed — backend already returns exactly the requested page
       setJobPostings({ ...jobSearchResponse });
 
-      setCurrentPage(page);
+      setCurrentPage(page - 1);
     } catch (err) {
       console.error('Search error:', err);
       setError('Failed to search. Please try again.');
@@ -75,7 +75,7 @@ export default function JobSearch() {
   };
 
   useEffect(() => {
-    searchJobs(undefined, 0, searchTerm);
+    searchJobs(undefined, 1, searchTerm);
   }, [filters]);
 
   return (
@@ -86,10 +86,10 @@ export default function JobSearch() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB SEARCH</h1>
-              <p className="text-neutral-400">Find current job postings on LinkedIn, Arbetsförmedlingen & Indeed</p>
+              <p className="text-neutral-400">Explore all available jobs instantly, results come from your tracked searches.</p>
             </div>
 
-            <SearchAutocomplete onChange={(val) => { setSearchTerm(val); searchJobs(undefined, 0, val) }} />
+            <SearchAutocomplete onChange={(val) => { setSearchTerm(val); searchJobs(undefined, 1, val) }} />
           </div>
         </div>
 
@@ -108,9 +108,7 @@ export default function JobSearch() {
           <div className="card p-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <IconAlertCircle className="w-4 h-4 text-red-400" />
               </div>
               <div>
                 <h3 className="text-red-400 font-medium">Search Error</h3>
@@ -129,9 +127,7 @@ export default function JobSearch() {
         {!loading && !error && jobPostings && jobPostings.Postings?.length === 0 && searchTerm.trim().length >= 3 && (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.291-1.1-5.291-2.709M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
+              <IconUserSearch className="w-8 h-8 text-neutral-400" />
             </div>
             <h3 className="text-white text-lg font-semibold mb-2">No Jobs Found</h3>
             <p className="text-neutral-400 mb-4">
@@ -168,7 +164,7 @@ export default function JobSearch() {
                 total={Math.ceil(jobPostings.TotalResults / ITEMS_PER_PAGE)}
                 value={currentPage + 1}
                 onChange={(page) => {
-                  searchJobs(undefined, page - 1);
+                  searchJobs(undefined, page);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 disabled={loading}
