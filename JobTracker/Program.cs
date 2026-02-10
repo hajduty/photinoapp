@@ -1,8 +1,11 @@
 using JobTracker.Application.Infrastructure.BackgroundJobs;
 using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.Discord;
+using JobTracker.Application.Infrastructure.Events;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Photino.NET;
 using Photino.NET.Server;
 using System.Drawing;
@@ -25,34 +28,41 @@ class Program
             .RunAsync();
 
         // Add services
-        var services = new ServiceCollection();
+        var host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services =>
+            {
+                services.AddDbContextFactory<AppDbContext>(options =>
+                {
+                    var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
+                    options.UseSqlite($"Data Source={dbPath}");
+                });
 
-        services.AddDbContextFactory<AppDbContext>(options =>
-        {
-            var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
-            options.UseSqlite($"Data Source={dbPath}");
-        });
+                services.AddRpcSystem();
+                services.AddSingleton<RpcDispatcher>();
 
-        services.AddRpcSystem();
+                services.AddHostedService<JobTrackerWorker>();
 
-        services.AddSingleton<RpcDispatcher>();
+                // Register event emitter after AddRpcSystem to avoid conflicts
+                services.AddSingleton<IEventEmitter, EventEmitter>();
 
-        // Register background workers
-        services.AddHostedService<JobAlertWorker>();
+                // Register Discord webhook service
+                services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
+            })
+            .Build();
 
-        // Build the provider
-        var serviceProvider = services.BuildServiceProvider();
-
-        using (var scope = serviceProvider.CreateScope())
+        // DB init + seeding using HOST services
+        using (var scope = host.Services.CreateScope())
         {
             var factory = scope.ServiceProvider
                 .GetRequiredService<IDbContextFactory<AppDbContext>>();
 
             using var db = factory.CreateDbContext();
-
             db.Database.EnsureCreated();
             SeedData.Initialize(factory);
         }
+
+        // Start background workers (non-blocking)
+        _ = host.StartAsync();
 
         // The appUrl is set to the local development server when in debug mode.
         // This helps with hot reloading and debugging.
@@ -98,7 +108,7 @@ class Program
 
                 try
                 {
-                    var dispatcher = serviceProvider.GetRequiredService<RpcDispatcher>();
+                    var dispatcher = host.Services.GetRequiredService<RpcDispatcher>();
 
                     var responseJson = await dispatcher.DispatchAsync(message);
 
@@ -116,6 +126,10 @@ class Program
             })
             .Load(appUrl);
         
+        var eventEmitter = host.Services.GetRequiredService<IEventEmitter>();
+        eventEmitter.RegisterWindow(window);
+
         window.WaitForClose(); // Starts the application event loop
+        host.StopAsync();
     }
 }
