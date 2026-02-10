@@ -8,13 +8,10 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 
-[ExportTsInterface]
 public record GetJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload);
 
-[ExportTsInterface]
 public record GetJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
 
-[ExportTsInterface]
 public record ExtendedPosting
 {
     public Posting Posting { get; init; }

@@ -1,5 +1,7 @@
 ﻿using JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
 using JobTracker.Application.Features.Postings;
+using JobTracker.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
@@ -7,17 +9,23 @@ namespace JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 public class JobTechScraper
 {
     private readonly HttpClient _httpClient;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public JobTechScraper(HttpClient httpClient)
+    public JobTechScraper(HttpClient httpClient, IDbContextFactory<AppDbContext> dbFactory)
     {
         _httpClient = httpClient;
+        _dbFactory = dbFactory;
     }
 
     public async Task<List<Posting>> FetchJobsAsync(string keyword)
     {
         const int LIMIT = 100;
+        const int MAX_CONSECUTIVE_DUPLICATES = 5; // Stop after finding this many consecutive duplicates
+        const int MAX_RESULTS = 1000;
 
         var result = new List<Posting>();
+
+        await using var db = await _dbFactory.CreateDbContextAsync();
 
         var baseUrl =
             $"https://jobsearch.api.jobtechdev.se/search?q={Uri.EscapeDataString(keyword)}&limit={LIMIT}&sort=pubdate-desc";
@@ -28,13 +36,30 @@ public class JobTechScraper
         var total = doc.RootElement.GetProperty("total").GetProperty("value").GetInt32();
         var hits = doc.RootElement.GetProperty("hits").EnumerateArray();
 
+        int consecutiveDuplicates = 0;
+
         foreach (var hit in hits)
         {
-            result.Add(JobSearchHelper.MapPosting(hit));
+            var posting = JobSearchHelper.MapPosting(hit);
+
+            // Check if job already exists in database
+            var exists = await db.Postings.AnyAsync(p => p.OriginUrl == posting.OriginUrl);
+            if (exists)
+            {
+                consecutiveDuplicates++;
+                if (consecutiveDuplicates >= MAX_CONSECUTIVE_DUPLICATES)
+                {
+                    // Stop scraping - we've hit existing jobs
+                    return result;
+                }
+                continue;
+            }
+
+            consecutiveDuplicates = 0; // Reset on new job
+            result.Add(posting);
         }
 
         int apiOffset = LIMIT;
-        const int MAX_RESULTS = 1000;
 
         while (result.Count < total && result.Count < MAX_RESULTS)
         {
@@ -50,7 +75,29 @@ public class JobTechScraper
 
             foreach (var hit in pagedHits)
             {
-                result.Add(JobSearchHelper.MapPosting(hit));
+                var posting = JobSearchHelper.MapPosting(hit);
+
+                // Check if job already exists in database
+                var exists = await db.Postings.AnyAsync(p => p.OriginUrl == posting.OriginUrl);
+                if (exists)
+                {
+                    consecutiveDuplicates++;
+                    if (consecutiveDuplicates >= MAX_CONSECUTIVE_DUPLICATES)
+                    {
+                        // Stop scraping - we've hit existing jobs
+                        return result;
+                    }
+                    continue;
+                }
+
+                consecutiveDuplicates = 0; // Reset on new job
+                result.Add(posting);
+            }
+
+            // If we found duplicates in this page, stop scraping
+            if (consecutiveDuplicates >= MAX_CONSECUTIVE_DUPLICATES)
+            {
+                return result;
             }
 
             apiOffset += LIMIT;

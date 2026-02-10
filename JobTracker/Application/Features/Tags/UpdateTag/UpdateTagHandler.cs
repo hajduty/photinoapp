@@ -5,10 +5,7 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.UpdateTag;
 
-[ExportTsInterface]
 public record UpdateTagRequest(int TagId, string NewName, string NewColor);
-
-[ExportTsInterface]
 public record UpdateTagResponse(Tag UpdatedTag);
 
 public sealed class UpdateTagHandler : RpcHandler<UpdateTagRequest, UpdateTagResponse>

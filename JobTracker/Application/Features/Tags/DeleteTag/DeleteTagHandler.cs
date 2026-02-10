@@ -5,10 +5,8 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.DeleteTag;
 
-[ExportTsInterface]
 public record DeleteTagRequest(int TagId);
 
-[ExportTsInterface]
 public record DeleteTagResponse(bool Success);
 
 public sealed class DeleteTagHandler : RpcHandler<DeleteTagRequest, DeleteTagResponse>

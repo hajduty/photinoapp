@@ -6,10 +6,7 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.CreateTag;
 
-[ExportTsInterface]
 public record CreateTagRequest(string Name, string Color);
-
-[ExportTsInterface]
 public record CreateTagResponse(Tag CreatedTag);
 
 public sealed class CreateTagHandler
