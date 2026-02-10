@@ -1,5 +1,6 @@
 ﻿using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JobTracker.Application.Infrastructure.Data;
@@ -9,6 +10,14 @@ public static class SeedData
     public static void Initialize(IDbContextFactory<AppDbContext> factory)
     {
         using var context = factory.CreateDbContext();
+
+        if (context.JobTrackers.Any())
+            return;
+
+        context.JobTrackers.AddRange(
+            new Features.JobTracker.JobTracker { Keyword = "utvecklare" },
+            new Features.JobTracker.JobTracker { Keyword = "developer"}
+        );
 
         if (context.Tags.Any())
             return;
