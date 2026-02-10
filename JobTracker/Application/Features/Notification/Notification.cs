@@ -1,5 +1,8 @@
-﻿namespace JobTracker.Application.Features.Notification;
+﻿using TypeGen.Core.TypeAnnotations;
 
+namespace JobTracker.Application.Features.Notification;
+
+[ExportTsEnum]
 public enum NotificationType
 {
     None = 0,
@@ -7,6 +10,7 @@ public enum NotificationType
     JobsAdded = 2
 }
 
+[ExportTsInterface]
 public class Notification
 {
     public int Id { get; set; }

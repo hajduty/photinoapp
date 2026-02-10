@@ -1,10 +1,13 @@
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Notification.DeleteNotification;
 
+[ExportTsInterface]
 public record DeleteNotificationRequest(int NotificationId);
+[ExportTsInterface]
 public record DeleteNotificationResponse(bool Success);
 
 public sealed class DeleteNotificationHandler : RpcHandler<DeleteNotificationRequest, DeleteNotificationResponse>
