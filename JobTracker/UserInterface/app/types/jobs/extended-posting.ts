@@ -4,7 +4,7 @@
  */
 
 import { Posting } from "./posting";
-import { Tag } from "./tag";
+import { Tag } from "../tag/tag";
 
 export interface ExtendedPosting {
     Posting: Posting;
