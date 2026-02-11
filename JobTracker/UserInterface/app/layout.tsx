@@ -27,13 +27,13 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen bg-neutral-950`}>
         <div className="flex min-h-screen relative">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto pl-48">
-            <MantineProvider defaultColorScheme="dark">
+          <MantineProvider defaultColorScheme="dark">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto pl-48">
               <Notifications />
               {children}
-            </MantineProvider>
-          </main>
+            </main>
+          </MantineProvider>
         </div>
       </body>
     </html>

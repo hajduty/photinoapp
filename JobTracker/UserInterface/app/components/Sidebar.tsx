@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { IconSettings, IconHome, IconSearch, IconBellPlus } from '@tabler/icons-react'
+import Notifications from '../features/notifications/Notifications'
 
 export default function Sidebar() {
   const router = useRouter()
@@ -10,10 +11,11 @@ export default function Sidebar() {
     <div className="min-w-48 bg-neutral-950 text-white border-r border-neutral-700 fixed left-0 top-0 bottom-0 z-50">
       {/* Header */}
       <div className="p-6 border-b border-neutral-700">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-white">JOBTRACKER</h2>
           </div>
+          <Notifications />
         </div>
       </div>
 

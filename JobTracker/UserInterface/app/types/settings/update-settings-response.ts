@@ -6,5 +6,5 @@
 import { Settings } from "./settings";
 
 export interface UpdateSettingsResponse {
-    settings: Settings;
+    Settings: Settings;
 }

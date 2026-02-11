@@ -19,6 +19,13 @@ public static class SeedData
             new Features.JobTracker.JobTracker { Keyword = "developer"}
         );
 
+        if (context.Notifications.Any())
+            return;
+
+        context.Notifications.Add(
+            new Features.Notification.Notification { Description = "Welcome", Title = "System notification", Type = Features.Notification.NotificationType.None }
+        );
+
         if (context.Tags.Any())
             return;
 

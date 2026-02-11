@@ -18,23 +18,28 @@ public class ProcessJobTrackerHandler
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEventEmitter _events;
+    private readonly IEventPublisher _eventPublisher;
 
     public override string Command => "jobTracker.process";
 
     public ProcessJobTrackerHandler(
         IDbContextFactory<AppDbContext> dbFactory, 
         IServiceProvider serviceProvider,
-        IEventEmitter events)
+        IEventEmitter events,
+        IEventPublisher eventPublisher)
     {
         _dbFactory = dbFactory;
         _serviceProvider = serviceProvider;
         _events = events;
+        _eventPublisher = eventPublisher;
     }
 
     protected async override Task<ProcessJobTrackerResponse> HandleAsync(object? request)
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
-        var alerts = await dbContext.JobTrackers.ToListAsync();
+        var alerts = await dbContext.JobTrackers
+            .Include(j => j.Tags)
+            .ToListAsync();
 
         var dispatcher = _serviceProvider.GetRequiredService<RpcDispatcher>();
         int totalJobsAdded = 0;
@@ -75,7 +80,7 @@ public class ProcessJobTrackerHandler
                 Debug.WriteLine($"Failed to fetch jobs for '{alert.Keyword}': {ex.Message}");
             }
 
-            // Jobs loaded to db, time to filter and notify user
+            // Only query jobs added since last check (truly new jobs)
             var escapedKeyword = alert.Keyword
                 .Replace("[", "[[]")
                 .Replace("%", "[%]")
@@ -85,6 +90,7 @@ public class ProcessJobTrackerHandler
 
             var query = dbContext.Postings
                 .AsNoTracking()
+                .Where(p => p.CreatedAt > alert.LastCheckedAt) // disable for now (testing)
                 .Where(p =>
                     EF.Functions.Like(p.Title, pattern) ||
                     EF.Functions.Like(p.Company, pattern) ||
@@ -96,42 +102,34 @@ public class ProcessJobTrackerHandler
 
             var tagNames = wantedTags.Select(t => t.Name).ToList();
 
-            var postings = await query.ToListAsync();
+            var newPostings = await query.ToListAsync();
 
             foreach (var tagName in tagNames)
             {
                 var patterns = CreateTagPattern(tagName);
                 var regex = new Regex(patterns, RegexOptions.IgnoreCase);
-                postings = postings.Where(p =>
+                newPostings = newPostings.Where(p =>
                     (p.Title != null && regex.IsMatch(p.Title)) ||
                     (p.Description != null && regex.IsMatch(p.Description))
                 ).ToList();
             }
-            alert.LastCheckedAt = DateTime.Now;
+            
+            alert.LastCheckedAt = DateTime.UtcNow;
 
-            // Emit event to frontend with found jobs data
-            if (postings.Any())
+            // Publish domain event only when NEW jobs are found
+            if (newPostings.Any())
             {
-                _events.Emit("jobTracker:jobsFound", new
-                {
-                    TrackerId = alert.Id,
-                    Keyword = alert.Keyword,
-                    Count = postings.Count,
-                    Jobs = postings.Select(p => new { p.Id, p.Title, p.Company })
-                });
+                var jobsInfo = newPostings.Select(p => new JobInfo(p.Id, p.Title, p.Company)).ToList();
+                await _eventPublisher.PublishAsync(new JobsFoundEvent(
+                    alert.Id,
+                    alert.Keyword,
+                    newPostings.Count,
+                    jobsInfo
+                ));
             }
-
-            // 
         }
 
-        dbContext.SaveChanges();
-
-        // Emit completion event
-        _events.Emit("jobTracker:completed", new
-        {
-            TotalJobsAdded = totalJobsAdded,
-            ProcessedAt = DateTime.UtcNow
-        });
+        await dbContext.SaveChangesAsync();
 
         return new ProcessJobTrackerResponse(totalJobsAdded);
     }

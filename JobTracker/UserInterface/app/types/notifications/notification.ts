@@ -6,8 +6,9 @@
 import { NotificationType } from "./notification-type";
 
 export interface Notification {
-    id: number;
-    title: string;
-    description: string;
-    type: NotificationType;
+    Id: number;
+    Title: string;
+    Description: string;
+    Type: NotificationType;
+    IsRead: boolean;
 }

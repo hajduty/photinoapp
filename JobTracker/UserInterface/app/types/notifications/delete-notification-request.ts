@@ -4,5 +4,5 @@
  */
 
 export interface DeleteNotificationRequest {
-    notificationId: number;
+    NotificationId: number;
 }

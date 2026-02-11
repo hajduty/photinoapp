@@ -1,3 +1,5 @@
+using JobTracker.Application.Features.JobTracker.Process;
+using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Infrastructure.BackgroundJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
@@ -47,6 +49,12 @@ class Program
 
                 // Register Discord webhook service
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
+
+                // Register domain event publisher
+                services.AddSingleton<IEventPublisher, DomainEventPublisher>();
+
+                // Register domain event handlers
+                services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
             })
             .Build();
 

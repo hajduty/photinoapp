@@ -4,6 +4,6 @@
  */
 
 export interface UpdateSettingsRequest {
-    discordWebhookUrl: string;
-    discordNotificationsEnabled: boolean;
+    DiscordWebhookUrl: string;
+    DiscordNotificationsEnabled: boolean;
 }

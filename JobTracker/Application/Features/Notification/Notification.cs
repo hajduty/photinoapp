@@ -17,4 +17,5 @@ public class Notification
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public NotificationType Type { get; set; } = NotificationType.None;
+    public bool IsRead { get; set; } = false;
 }

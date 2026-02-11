@@ -4,9 +4,9 @@
  */
 
 export interface Settings {
-    id: number;
-    discordWebhookUrl: string;
-    discordNotificationsEnabled: boolean;
-    appVersion: string;
-    lastUpdatedAt: Date;
+    Id: number;
+    DiscordWebhookUrl: string;
+    DiscordNotificationsEnabled: boolean;
+    AppVersion: string;
+    LastUpdatedAt: Date;
 }
