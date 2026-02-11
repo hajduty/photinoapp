@@ -10,17 +10,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Photino.NET;
 using Photino.NET.Server;
-using System.Drawing;
-using System.Text;
 using System.Text.Json;
 
 namespace Photino.HelloPhotino.React;
-//NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
-// Or edit the .csproj file and change the <OutputType> tag from "WinExe" to "Exe".
 
 class Program
 {
-    public static bool IsDebugMode = true;     //serve files from asp.net runtime
+    public static bool IsDebugMode = false;
+
+    private static bool _shouldExit = false;
+    private static bool _windowVisible = false;
+    private static NotifyIcon? _notifyIcon;
+    private static PhotinoWindow? _window;
+    private static IHost? _host;
+    private static string? _appUrl;
+    private static IEventEmitter? _eventEmitter;
+    private static RpcDispatcher? _dispatcher;
 
     [STAThread]
     static void Main(string[] args)
@@ -29,8 +34,7 @@ class Program
             .CreateStaticFileServer(args, out string baseUrl)
             .RunAsync();
 
-        // Add services
-        var host = Host.CreateDefaultBuilder(args)
+        _host = Host.CreateDefaultBuilder(args)
             .ConfigureServices(services =>
             {
                 services.AddDbContextFactory<AppDbContext>(options =>
@@ -41,103 +45,157 @@ class Program
 
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
-
                 services.AddHostedService<JobTrackerWorker>();
-
-                // Register event emitter after AddRpcSystem to avoid conflicts
                 services.AddSingleton<IEventEmitter, EventEmitter>();
-
-                // Register Discord webhook service
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
-
-                // Register domain event publisher
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
-
-                // Register domain event handlers
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
             })
             .Build();
 
-        // DB init + seeding using HOST services
-        using (var scope = host.Services.CreateScope())
+        using (var scope = _host.Services.CreateScope())
         {
-            var factory = scope.ServiceProvider
-                .GetRequiredService<IDbContextFactory<AppDbContext>>();
-
+            var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
             using var db = factory.CreateDbContext();
             db.Database.EnsureCreated();
             SeedData.Initialize(factory);
         }
 
-        // Start background workers (non-blocking)
-        _ = host.StartAsync();
+        _ = _host.StartAsync();
 
-        // The appUrl is set to the local development server when in debug mode.
-        // This helps with hot reloading and debugging.
-        string appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
-        Console.WriteLine($"Serving React app at {appUrl}");
+        _appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
+        //Console.WriteLine($"Serving React app at {_appUrl}");
 
-        // Window title declared here for visibility
-        string windowTitle = "JobTracker V1";
+        _eventEmitter = _host.Services.GetRequiredService<IEventEmitter>();
+        _dispatcher = _host.Services.GetRequiredService<RpcDispatcher>();
 
-        // Creating a new PhotinoWindow instance with the fluent API
-        var window = new PhotinoWindow()
-            .SetTitle(windowTitle)
+        SetupTrayIcon();
+
+        while (!_shouldExit)
+        {
+            if (!_windowVisible)
+            {
+                Thread.Sleep(100);
+                Application.DoEvents();
+                continue;
+            }
+
+            CreateAndShowWindow();
+            
+            _windowVisible = false;
+            _window = null;
+            //1WriteLine("Window closed, app running in tray");
+        }
+
+        _notifyIcon?.Dispose();
+        _host.StopAsync().Wait();
+    }
+
+    private static void CreateAndShowWindow()
+    {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+        var fullIconPath = Path.GetFullPath(iconPath);
+        var iconExists = File.Exists(fullIconPath);
+        
+        //Console.WriteLine($"Icon exists: {iconExists}, Path: {fullIconPath}");
+        
+        _window = new PhotinoWindow();
+        
+        if (iconExists)
+        {
+            _window.SetIconFile(fullIconPath);
+        }
+        
+        _window.SetTitle("JobTracker V1 (RELEASE)")
             .SetUseOsDefaultSize(false)
-            .SetSize(new Size(2048, 1024))
-            // Resize to a percentage of the main monitor work area
-            //.Resize(50, 50, "%")
-            .SetUseOsDefaultSize(false)
-            .SetSize(new Size(800, 600))
-            // Center window in the middle of the screen
+            .SetSize(new Size(1200, 800))
             .Center()
-            // Users can resize windows by default.
-            // Let's make this one fixed instead.
             .SetResizable(true)
             .SetWebSecurityEnabled(true)
-            .RegisterCustomSchemeHandler("app", (object sender, string scheme, string url, out string contentType) =>
+            .SetContextMenuEnabled(false)
+            .SetDevToolsEnabled(false)
+            .RegisterWebMessageReceivedHandler(async (sender, message) =>
             {
-                contentType = "text/javascript";
-                return new MemoryStream(Encoding.UTF8.GetBytes(@"
-                        (() =>{
-                            window.setTimeout(() => {
-                                alert(`🎉 Dynamically inserted JavaScript.`);
-                            }, 1000);
-                        })();
-                    "));
-            })
-            // Most event handlers can be registered after the
-            // PhotinoWindow was instantiated by calling a registration 
-            // method like the following RegisterWebMessageReceivedHandler.
-            // This could be added in the PhotinoWindowOptions if preferred.
-            .RegisterWebMessageReceivedHandler(async (object sender, string message) =>
-            {
-                var window = (PhotinoWindow)sender;
-
+                var win = (PhotinoWindow)sender;
                 try
                 {
-                    var dispatcher = host.Services.GetRequiredService<RpcDispatcher>();
-
-                    var responseJson = await dispatcher.DispatchAsync(message);
-
-                    window.SendWebMessage(responseJson);
+                    var responseJson = await _dispatcher!.DispatchAsync(message);
+                    win.SendWebMessage(responseJson);
                 }
                 catch (Exception ex)
                 {
-                    // Last-resort error (dispatcher should usually handle errors itself)
-                    window.SendWebMessage(JsonSerializer.Serialize(new
-                    {
-                        success = false,
-                        error = ex.Message
-                    }));
+                    win.SendWebMessage(JsonSerializer.Serialize(new { success = false, error = ex.Message }));
                 }
             })
-            .Load(appUrl);
-        
-        var eventEmitter = host.Services.GetRequiredService<IEventEmitter>();
-        eventEmitter.RegisterWindow(window);
+            .Load(_appUrl!);
 
-        window.WaitForClose(); // Starts the application event loop
-        host.StopAsync();
+        _eventEmitter?.RegisterWindow(_window);
+
+        _window.WaitForClose();
+    }
+
+    private static void SetupTrayIcon()
+    {
+        Icon trayIcon;
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+        if (File.Exists(iconPath))
+        {
+            trayIcon = new Icon(iconPath);
+        }
+        else
+        {
+            trayIcon = SystemIcons.Application;
+        }
+
+        _notifyIcon = new NotifyIcon
+        {
+            Icon = trayIcon,
+            Text = "JobTracker",
+            Visible = true
+        };
+
+        var contextMenu = new ContextMenuStrip();
+
+        var showItem = new ToolStripMenuItem("Show", null, (s, e) =>
+        {
+            if (!_windowVisible)
+            {
+                _windowVisible = true;
+            }
+            else if (_window != null)
+            {
+                _window.SetMinimized(false);
+            }
+        });
+
+        var exitItem = new ToolStripMenuItem("Exit", null, (s, e) => ExitApp());
+
+        contextMenu.Items.Add(showItem);
+        contextMenu.Items.Add(new ToolStripSeparator());
+        contextMenu.Items.Add(exitItem);
+
+        _notifyIcon.ContextMenuStrip = contextMenu;
+        _notifyIcon.DoubleClick += (s, e) =>
+        {
+            if (!_windowVisible)
+            {
+                _windowVisible = true;
+            }
+            else if (_window != null)
+            {
+                _window.SetMinimized(false);
+            }
+        };
+
+        // Start with window visible
+        _windowVisible = true;
+    }
+
+    private static void ExitApp()
+    {
+        //Console.WriteLine("Exit requested");
+        _shouldExit = true;
+        _notifyIcon?.Dispose();
+        try { _window?.Close(); } catch { }
     }
 }

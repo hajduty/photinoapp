@@ -76,6 +76,7 @@ export default function JobSearch() {
 
   useEffect(() => {
     searchJobs(undefined, 1, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   return (

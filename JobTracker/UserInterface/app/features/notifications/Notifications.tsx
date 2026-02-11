@@ -44,6 +44,7 @@ export default function Notifications() {
         markNotificationsAsRead(unreadNotifications);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
   // Listen for new notification events from Photino

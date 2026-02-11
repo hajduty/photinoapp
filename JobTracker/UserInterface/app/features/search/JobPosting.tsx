@@ -6,44 +6,45 @@ import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom } from '@
 export default function JobPosting({ Posting, Tags }: ExtendedPosting) {  
   return (
     <div className="card hover:bg-neutral-800 transition-all duration-300 border-neutral-700">
-      <div className="list-item">
-        <div className="flex items-start gap-4 flex-1">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border-b border-neutral-700 hover:bg-neutral-800/30 transition-colors duration-200 gap-4">
+        <div className="flex items-start gap-4 flex-1 min-w-0">
           {/* Logo */}
           {Posting.CompanyImage && (
             <div className="flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={Posting.CompanyImage} 
                 alt={`${Posting.Company} logo`}
-                className="w-14 h-14 object-contain bg-white rounded-sm"
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain bg-white rounded-sm"
               />
             </div>
           )}
           
           {/* Details */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-semibold text-white hover:text-neutral-300 cursor-pointer transition-colors truncate">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-white hover:text-neutral-300 cursor-pointer transition-colors truncate">
                 {Posting.Title}
               </h3>
-              <span className="badge badge-success">Active</span>
+              <span className="badge badge-success self-start sm:self-auto">Active</span>
             </div>
             
-            <p className="text-neutral-300 font-medium mb-3">{Posting.Company}</p>
+            <p className="text-neutral-300 font-medium mb-3 text-sm sm:text-base">{Posting.Company}</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm text-neutral-400">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 mb-4 text-sm text-neutral-400">
               <div className="flex items-center gap-2">
                 <IconLocation size={16}/>
-                <span>{Posting.Location}</span>
+                <span className="truncate">{Posting.Location}</span>
               </div>
               
               <div className="flex items-center gap-2">
                 <IconCalendarTime size={16}/>
-                <span>Posted: {new Date(Posting.PostedDate).toLocaleDateString()}</span>
+                <span className="truncate">Posted: {new Date(Posting.PostedDate).toLocaleDateString()}</span>
               </div>
               
               <div className="flex items-center gap-2">
                 <IconClock size={16}/>
-                <span>Last app: {new Date(Posting.LastApplicationDate).toLocaleDateString()}</span>
+                <span className="truncate">Last app: {new Date(Posting.LastApplicationDate).toLocaleDateString()}</span>
               </div>
             </div>
 
@@ -84,18 +85,18 @@ export default function JobPosting({ Posting, Tags }: ExtendedPosting) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 ml-6">
-            <div className="flex gap-2 justify-center align-middle">
+        <div className="flex flex-col gap-3 lg:ml-6 lg:flex-shrink-0">
+          <div className="flex gap-2 justify-start lg:justify-center">
             <button 
               onClick={() => window.open(Posting.OriginUrl, '_blank', 'noopener,noreferrer')}
-              className="btn-secondary text-xs flex justify-center items-center gap-2"
+              className="btn-secondary text-xs sm:text-sm flex-1 sm:flex-none flex justify-center items-center gap-2 py-2.5 sm:py-2"
             >
               <IconZoom size={16}/>
               View Details
             </button>
             <button
               onClick={() => window.open(Posting.Url, '_blank', 'noopener,noreferrer')}
-              className="btn-primary text-xs flex justify-center items-center gap-2"
+              className="btn-primary text-xs sm:text-sm flex-1 sm:flex-none flex justify-center items-center gap-2 py-2.5 sm:py-2"
             >
               <IconBolt size={16}/>
               Apply Now
