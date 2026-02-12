@@ -19,7 +19,8 @@ import {
   IconTrash,
   IconBell,
   IconCheck,
-  IconRefresh
+  IconRefresh,
+  IconX
 } from '@tabler/icons-react';
 import { sendPhotinoRequest } from '../../utils/photino';
 import { JobTracker } from '../../types/jobs/job-tracker';
@@ -168,13 +169,17 @@ export default function TrackersPage() {
       notifications.show({
         title: 'Synced jobs',
         message: "Added " + response.JobsAdded + " new jobs",
+        color: 'green',
+        icon: <IconCheck size={16} />
       });
       fetchTrackers();
     } catch (err) {
       console.error('Failed to sync jobs:', err);
       notifications.show({
         title: 'Failed to sync jobs',
-        message: '',
+        message: 'Could not sync jobs at this time',
+        color: 'red',
+        icon: <IconX size={16} />
       });
     }
   };

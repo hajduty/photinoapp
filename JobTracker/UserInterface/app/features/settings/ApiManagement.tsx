@@ -6,8 +6,7 @@ import {
   Space,
   Alert,
   Loader,
-  Switch,
-  Select
+  Switch
 } from '@mantine/core';
 import {
   IconMessage,
@@ -15,139 +14,57 @@ import {
   IconX,
   IconAlertCircle,
   IconKey,
-  IconTestPipe
+  IconTestPipe,
 } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { sendPhotinoRequest } from '@/app/utils/photino';
+import { Settings } from '@/app/types/settings/settings';
+import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request';
+import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response';
+import { TestConnectionResponse } from '@/app/types/settings/test-connection-response';
 
 interface ApiManagementProps {
   className?: string;
-}
-
-interface GmailConfig {
-  clientId: string;
-  clientSecret: string;
-  refreshToken: string;
-  enabled: boolean;
-}
-
-interface DiscordConfig {
-  webhookUrl: string;
-  enabled: boolean;
-  notificationTypes: string[];
 }
 
 export default function ApiManagement({ className }: ApiManagementProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Gmail API State
-  const [gmailConfig, setGmailConfig] = useState<GmailConfig>({
-    clientId: '',
-    clientSecret: '',
-    refreshToken: '',
-    enabled: false
-  });
-  const [gmailLoading, setGmailLoading] = useState(false);
-  const [gmailTesting, setGmailTesting] = useState(false);
-
-  // Discord API State
-  const [discordConfig, setDiscordConfig] = useState<DiscordConfig>({
-    webhookUrl: '',
-    enabled: false,
-    notificationTypes: []
-  });
+  // Discord State
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
+  const [discordNotificationsEnabled, setDiscordNotificationsEnabled] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
   const [discordTesting, setDiscordTesting] = useState(false);
 
   // Form validation
-  const [gmailErrors, setGmailErrors] = useState({
-    clientId: '',
-    clientSecret: '',
-    refreshToken: ''
-  });
-  const [discordErrors, setDiscordErrors] = useState({
-    webhookUrl: ''
-  });
+  const [discordWebhookUrlError, setDiscordWebhookUrlError] = useState('');
 
   useEffect(() => {
-    fetchConfigs();
+    fetchSettings();
   }, []);
 
-  const fetchConfigs = async () => {
+  const fetchSettings = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // TODO: Replace with actual API calls
-      // const gmailResponse = await sendPhotinoRequest<GmailConfig>('api.getGmailConfig', {});
-      // const discordResponse = await sendPhotinoRequest<DiscordConfig>('api.getDiscordConfig', {});
-      
-      // For now, using mock data
-      setGmailConfig({
-        clientId: 'mock_client_id',
-        clientSecret: 'mock_client_secret',
-        refreshToken: 'mock_refresh_token',
-        enabled: false
-      });
-      
-      setDiscordConfig({
-        webhookUrl: 'https://discord.com/api/webhooks/mock/webhook',
-        enabled: false,
-        notificationTypes: ['new_jobs', 'tag_updates']
-      });
+
+      const response = await sendPhotinoRequest<Settings>('settings.getSettings', {});
+
+      setDiscordWebhookUrl(response.DiscordWebhookUrl ?? '');
+      setDiscordNotificationsEnabled(response.DiscordNotificationsEnabled ?? false);
     } catch (err) {
-      console.error('Failed to fetch API configs:', err);
-      setError('Failed to load API configurations. Please try again.');
+      console.error('Failed to fetch settings:', err);
+      setError('Failed to load settings. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const validateGmailConfig = (): boolean => {
-    const errors = {
-      clientId: !gmailConfig.clientId.trim() ? 'Client ID is required' : '',
-      clientSecret: !gmailConfig.clientSecret.trim() ? 'Client Secret is required' : '',
-      refreshToken: !gmailConfig.refreshToken.trim() ? 'Refresh Token is required' : ''
-    };
-    
-    setGmailErrors(errors);
-    return !errors.clientId && !errors.clientSecret && !errors.refreshToken;
-  };
-
   const validateDiscordConfig = (): boolean => {
-    const errors = {
-      webhookUrl: !discordConfig.webhookUrl.trim() ? 'Webhook URL is required' : ''
-    };
-    
-    setDiscordErrors(errors);
-    return !errors.webhookUrl;
-  };
-
-  const handleSaveGmailConfig = async () => {
-    if (!validateGmailConfig()) return;
-
-    try {
-      setGmailLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await sendPhotinoRequest('api.saveGmailConfig', gmailConfig);
-      
-      notifications.show({
-        title: 'Success',
-        message: 'Gmail API configuration saved successfully',
-        color: 'green',
-        icon: <IconCheck size={16} />
-      });
-    } catch (err) {
-      console.error('Failed to save Gmail config:', err);
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to save Gmail API configuration',
-        color: 'red',
-        icon: <IconX size={16} />
-      });
-    } finally {
-      setGmailLoading(false);
-    }
+    const error = !discordWebhookUrl.trim() ? 'Webhook URL is required' : '';
+    setDiscordWebhookUrlError(error);
+    return !error;
   };
 
   const handleSaveDiscordConfig = async () => {
@@ -155,12 +72,18 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
     try {
       setDiscordLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await sendPhotinoRequest('api.saveDiscordConfig', discordConfig);
-      
+
+      const request: UpdateSettingsRequest = {
+        DiscordWebhookUrl: discordWebhookUrl,
+        DiscordNotificationsEnabled: discordNotificationsEnabled
+      };
+
+      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
+      console.log("sent1");
+
       notifications.show({
         title: 'Success',
-        message: 'Discord API configuration saved successfully',
+        message: 'Discord configuration saved successfully',
         color: 'green',
         icon: <IconCheck size={16} />
       });
@@ -168,7 +91,7 @@ export default function ApiManagement({ className }: ApiManagementProps) {
       console.error('Failed to save Discord config:', err);
       notifications.show({
         title: 'Error',
-        message: 'Failed to save Discord API configuration',
+        message: 'Failed to save Discord configuration',
         color: 'red',
         icon: <IconX size={16} />
       });
@@ -177,43 +100,31 @@ export default function ApiManagement({ className }: ApiManagementProps) {
     }
   };
 
-  const handleTestGmail = async () => {
-    try {
-      setGmailTesting(true);
-      // TODO: Replace with actual API call
-      // const response = await sendPhotinoRequest('api.testGmailConnection', {});
-      
-      notifications.show({
-        title: 'Test Result',
-        message: 'Gmail API connection test completed successfully',
-        color: 'green',
-        icon: <IconCheck size={16} />
-      });
-    } catch (err) {
-      console.error('Failed to test Gmail connection:', err);
-      notifications.show({
-        title: 'Test Failed',
-        message: 'Gmail API connection test failed',
-        color: 'red',
-        icon: <IconX size={16} />
-      });
-    } finally {
-      setGmailTesting(false);
-    }
-  };
-
   const handleTestDiscord = async () => {
     try {
       setDiscordTesting(true);
-      // TODO: Replace with actual API call
-      // const response = await sendPhotinoRequest('api.testDiscordConnection', {});
-      
-      notifications.show({
-        title: 'Test Result',
-        message: 'Discord webhook test completed successfully',
-        color: 'green',
-        icon: <IconCheck size={16} />
-      });
+
+      const request = {
+        WebhookUrl: discordWebhookUrl
+      };
+
+      var response = await sendPhotinoRequest<TestConnectionResponse>('settings.testConnection', request);
+
+      if (response.Success) {
+        notifications.show({
+          title: 'Test Result',
+          message: 'Discord webhook test completed successfully',
+          color: 'green',
+          icon: <IconCheck size={16} />
+        });
+      } else {
+        notifications.show({
+          title: 'Test Result',
+          message: 'Discord webhook test failed',
+          color: 'red',
+          icon: <IconX size={16} />
+        });
+      }
     } catch (err) {
       console.error('Failed to test Discord connection:', err);
       notifications.show({
@@ -249,10 +160,10 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
       {/* Error State */}
       {error && (
-        <Alert 
-          icon={<IconAlertCircle size={16} />} 
-          title="Error" 
-          color="red" 
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Error"
+          color="red"
           mb="md"
         >
           {error}
@@ -261,96 +172,7 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
       <Space h="md" />
 
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text font-semibold text-neutral-200 flex items-center gap-2">
-              Gmail API Integration
-            </h2>
-            <p className="text-neutral-400 text-sm">
-              Configure Gmail API for email notifications and job application tracking
-            </p>
-          </div>
-          <Switch
-            label="Enable Gmail Integration"
-            checked={gmailConfig.enabled}
-            onChange={(event) => setGmailConfig(prev => ({ ...prev, enabled: event.currentTarget.checked }))}
-            size="sm"
-            classNames={{
-              label: 'text-neutral-300',
-              track: 'bg-neutral-700'
-            }}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <TextInput
-            label="Client ID"
-            placeholder="Enter your Gmail API Client ID"
-            value={gmailConfig.clientId}
-            onChange={(event) => setGmailConfig(prev => ({ ...prev, clientId: event.currentTarget.value }))}
-            error={gmailErrors.clientId}
-            disabled={!gmailConfig.enabled}
-            leftSection={<IconKey size={16} />}
-            classNames={{
-              input: 'bg-neutral-800 border-neutral-600 text-neutral-200 placeholder-neutral-500',
-              label: 'text-neutral-300',
-              error: 'text-red-400'
-            }}
-          />
-          
-          <TextInput
-            label="Client Secret"
-            placeholder="Enter your Gmail API Client Secret"
-            value={gmailConfig.clientSecret}
-            onChange={(event) => setGmailConfig(prev => ({ ...prev, clientSecret: event.currentTarget.value }))}
-            error={gmailErrors.clientSecret}
-            disabled={!gmailConfig.enabled}
-            leftSection={<IconKey size={16} />}
-            classNames={{
-              input: 'bg-neutral-800 border-neutral-600 text-neutral-200 placeholder-neutral-500',
-              label: 'text-neutral-300',
-              error: 'text-red-400'
-            }}
-          />
-        </div>
-
-        <TextInput
-          label="Refresh Token"
-          placeholder="Enter your Gmail API Refresh Token"
-          value={gmailConfig.refreshToken}
-          onChange={(event) => setGmailConfig(prev => ({ ...prev, refreshToken: event.currentTarget.value }))}
-          error={gmailErrors.refreshToken}
-          disabled={!gmailConfig.enabled}
-          leftSection={<IconKey size={16} />}
-          classNames={{
-            input: 'bg-neutral-800 border-neutral-600 text-neutral-200 placeholder-neutral-500',
-            label: 'text-neutral-300',
-            error: 'text-red-400'
-          }}
-        />
-
-        <div className="flex justify-end gap-2 mt-4">
-          <button 
-            onClick={handleTestGmail}
-            disabled={!gmailConfig.enabled || gmailTesting}
-            className="btn-ghost text-sm flex items-center gap-2"
-          >
-            <IconTestPipe size={16} />
-            Test Connection
-          </button>
-          <button 
-            onClick={handleSaveGmailConfig}
-            disabled={!gmailConfig.enabled || gmailLoading}
-            className="btn-secondary text-sm flex items-center gap-2"
-          >
-            <IconCheck size={16} />
-            Save Configuration
-          </button>
-        </div>
-      </div>
-
-      {/* Discord API Section */}
+      {/* Discord Webhook Section */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <div>
@@ -364,8 +186,8 @@ export default function ApiManagement({ className }: ApiManagementProps) {
           </div>
           <Switch
             label="Enable Discord Integration"
-            checked={discordConfig.enabled}
-            onChange={(event) => setDiscordConfig(prev => ({ ...prev, enabled: event.currentTarget.checked }))}
+            checked={discordNotificationsEnabled}
+            onChange={(event) => setDiscordNotificationsEnabled(event.currentTarget.checked)}
             size="sm"
             classNames={{
               label: 'text-neutral-300',
@@ -377,10 +199,10 @@ export default function ApiManagement({ className }: ApiManagementProps) {
         <TextInput
           label="Webhook URL"
           placeholder="https://discord.com/api/webhooks/..."
-          value={discordConfig.webhookUrl}
-          onChange={(event) => setDiscordConfig(prev => ({ ...prev, webhookUrl: event.currentTarget.value }))}
-          error={discordErrors.webhookUrl}
-          disabled={!discordConfig.enabled}
+          value={discordWebhookUrl}
+          onChange={(event) => setDiscordWebhookUrl(event.currentTarget.value)}
+          error={discordWebhookUrlError}
+          disabled={!discordNotificationsEnabled}
           leftSection={<IconKey size={16} />}
           classNames={{
             input: 'bg-neutral-800 border-neutral-600 text-neutral-200 placeholder-neutral-500',
@@ -389,43 +211,18 @@ export default function ApiManagement({ className }: ApiManagementProps) {
           }}
         />
 
-        <div className="mb-4">
-          <Select
-            label="Notification Types"
-            placeholder="Select notification types"
-            value={discordConfig.notificationTypes as any}
-            onChange={(value) => setDiscordConfig(prev => ({ ...prev, notificationTypes: Array.isArray(value) ? value : [] }))}
-            data={[
-              { value: 'new_jobs', label: 'New Job Postings' },
-              { value: 'tag_updates', label: 'Tag Updates' },
-              { value: 'application_status', label: 'Application Status Changes' },
-              { value: 'daily_summary', label: 'Daily Summary' }
-            ]}
-            disabled={!discordConfig.enabled}
-            multiple
-            searchable
-            clearable
-            classNames={{
-              input: 'bg-neutral-800 border-neutral-600 text-neutral-200',
-              label: 'text-neutral-300',
-              dropdown: 'bg-neutral-800 border-neutral-600',
-              option: 'text-neutral-200 hover:bg-neutral-700'
-            }}
-          />
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button 
+        <div className="flex justify-end gap-2 mt-4">
+          <button
             onClick={handleTestDiscord}
-            disabled={!discordConfig.enabled || discordTesting}
+            disabled={!discordNotificationsEnabled || discordTesting || !discordWebhookUrl.trim()}
             className="btn-ghost text-sm flex items-center gap-2"
           >
             <IconTestPipe size={16} />
             Test Webhook
           </button>
-          <button 
+          <button
             onClick={handleSaveDiscordConfig}
-            disabled={!discordConfig.enabled || discordLoading}
+            disabled={discordLoading}
             className="btn-secondary text-sm flex items-center gap-2"
           >
             <IconCheck size={16} />

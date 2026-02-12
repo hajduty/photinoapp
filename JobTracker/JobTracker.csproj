@@ -40,13 +40,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Application\Features\Settings\" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Update="app.ico">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Application\Features\Settings\TestConnection\" />
 	</ItemGroup>
 
 </Project>

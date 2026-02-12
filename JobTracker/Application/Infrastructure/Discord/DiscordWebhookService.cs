@@ -1,5 +1,6 @@
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -105,7 +106,42 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
         catch (Exception ex)
         {
             // Log error but don't throw webhook failures shouldn't break the app
-            Console.WriteLine($"Discord webhook error: {ex.Message}");
+            Debug.WriteLine($"Discord webhook error: {ex.Message}");
+        }
+    }
+
+    public async Task<bool> TestWebhookAsync(string webhookUrl)
+    {
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+            return false;
+
+        try
+        {
+            var payload = new
+            {
+                embeds = new[]
+                {
+                    new
+                    {
+                        title = "🔔 Connection Test",
+                        description = "This is a test message from JobTracker. Your Discord webhook is working correctly!",
+                        color = 0x00FF00,
+                        timestamp = DateTime.UtcNow.ToString("O"),
+                        footer = new { text = "JobTracker" }
+                    }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(webhookUrl, content);
+            
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Discord webhook test error: {ex.Message}");
+            return false;
         }
     }
 }

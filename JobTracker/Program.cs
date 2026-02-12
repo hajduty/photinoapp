@@ -16,7 +16,11 @@ namespace Photino.HelloPhotino.React;
 
 class Program
 {
+#if DEBUG
+    public static bool IsDebugMode = true;
+#else
     public static bool IsDebugMode = false;
+#endif
 
     private static bool _shouldExit = false;
     private static bool _windowVisible = false;
@@ -26,6 +30,7 @@ class Program
     private static string? _appUrl;
     private static IEventEmitter? _eventEmitter;
     private static RpcDispatcher? _dispatcher;
+
 
     [STAThread]
     static void Main(string[] args)
@@ -61,7 +66,7 @@ class Program
             SeedData.Initialize(factory);
         }
 
-        _ = _host.StartAsync();
+        _host.StartAsync().Wait();
 
         _appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
         //Console.WriteLine($"Serving React app at {_appUrl}");
@@ -112,8 +117,8 @@ class Program
             .Center()
             .SetResizable(true)
             .SetWebSecurityEnabled(true)
-            .SetContextMenuEnabled(false)
-            .SetDevToolsEnabled(false)
+            .SetContextMenuEnabled(IsDebugMode)
+            .SetDevToolsEnabled(IsDebugMode)
             .RegisterWebMessageReceivedHandler(async (sender, message) =>
             {
                 var win = (PhotinoWindow)sender;
