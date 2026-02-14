@@ -6,6 +6,7 @@ using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.Events;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
+using JobTracker.Application.Infrastructure.Services.Scraper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -57,6 +58,7 @@ class Program
                 services.AddSingleton<JobTechScraper>();
                 services.AddSingleton<ScrapeService>();
                 services.AddSingleton<TrackerService>();
+                services.AddSingleton<LinkedInScraper>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
             }))
