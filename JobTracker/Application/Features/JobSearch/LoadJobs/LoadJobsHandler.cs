@@ -2,6 +2,7 @@
 using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
+using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.JobSearch.LoadJobs;
@@ -11,32 +12,19 @@ public record LoadJobsResponse(int JobsLoaded);
 
 public class LoadJobsHandler : RpcHandler<LoadJobsRequest, LoadJobsResponse>
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly JobTechScraper _jobTechScraper;
+    private readonly ScrapeService _scrapeService;
 
-    public override string Command => "jobSearch.loadJobs";
+    public override string Command => "jobSearch.loadJobs2";
 
-    public LoadJobsHandler(IDbContextFactory<AppDbContext> dbFactory, JobTechScraper jobTechScraper)
+    public LoadJobsHandler(ScrapeService scrapeService)
     {
-        _dbFactory = dbFactory;
-        _jobTechScraper = jobTechScraper;
+        _scrapeService = scrapeService;
     }
 
     protected override async Task<LoadJobsResponse> HandleAsync(LoadJobsRequest request)
     {
-        // Fetch jobs from JobTech API
-        var jobTechJobs = await _jobTechScraper.FetchJobsAsync(request.Keyword);
+        var jobTechJobs = await _scrapeService.Fetch(request); //- Run the timed service, dont take string keyword.
 
-        //var linkedInJobs = await FetchFromLinkedInAsync(keyword);
-        //var indeedJobs = await FetchFromIndeedAsync(keyword);
-
-        await using var db = await _dbFactory.CreateDbContextAsync();
-
-        db.Postings.AddRange(jobTechJobs);
-        //db.Postings.AddRange(linkedInJobs);
-        //db.Postings.AddRange(indeedJobs);
-
-        await db.SaveChangesAsync();
-        return new LoadJobsResponse(jobTechJobs.Count);
+        return new LoadJobsResponse(jobTechJobs.JobsLoaded);
     }
 }

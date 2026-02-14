@@ -1,7 +1,7 @@
 ﻿using JobTracker.Application.Features.Postings;
 using System.Text.Json;
 
-namespace JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
+namespace JobTracker.Application.Infrastructure.Services.Scraper.Util;
 
 public static class JobSearchHelper
 {
@@ -9,14 +9,14 @@ public static class JobSearchHelper
     {
         return new Posting
         {
-            Id = JobSearchHelper.ParseId(hit.GetProperty("id").GetString()),
+            Id = ParseId(hit.GetProperty("id").GetString()),
             Title = hit.GetProperty("headline").GetString() ?? "",
-            Description = JobSearchHelper.GetDescription(hit),
+            Description = GetDescription(hit),
             Company = hit.GetProperty("employer").GetProperty("name").GetString() ?? "",
-            Location = JobSearchHelper.GetLocation(hit),
+            Location = GetLocation(hit),
             PostedDate = DateTime.Parse(hit.GetProperty("publication_date").GetString()),
-            Url = JobSearchHelper.GetUrl(hit),
-            OriginUrl = JobSearchHelper.GetOriginUrl(hit),
+            Url = GetUrl(hit),
+            OriginUrl = GetOriginUrl(hit),
             CompanyImage = hit.GetProperty("logo_url").GetString() ?? "",
             CreatedAt = DateTime.UtcNow,
             LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString())

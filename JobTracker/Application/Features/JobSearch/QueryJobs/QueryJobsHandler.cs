@@ -8,9 +8,9 @@ using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 
-public record GetJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload);
+public record QueryJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload);
 
-public record GetJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
+public record QueryJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
 
 public record ExtendedPosting
 {
@@ -18,17 +18,17 @@ public record ExtendedPosting
     public List<Tag> Tags { get; init; }
 }
 
-public class GetJobsHandler : RpcHandler<GetJobsRequest, GetJobsResponse>
+public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     public override string Command => "jobSearch.getJobs";
 
-    public GetJobsHandler(IDbContextFactory<AppDbContext> dbFactory)
+    public QueryJobsHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
         _dbFactory = dbFactory;
     }
 
-    protected override async Task<GetJobsResponse> HandleAsync(GetJobsRequest req)
+    protected override async Task<QueryJobsResponse> HandleAsync(QueryJobsRequest req)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
@@ -92,7 +92,7 @@ public class GetJobsHandler : RpcHandler<GetJobsRequest, GetJobsResponse>
 
         var totalPages = (int)Math.Ceiling((double)totalResults / pageSize);
 
-        return new GetJobsResponse(
+        return new QueryJobsResponse(
             extendedPostings,
             page,
             pageSize,
