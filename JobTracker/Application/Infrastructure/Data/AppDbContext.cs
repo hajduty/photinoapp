@@ -1,5 +1,4 @@
-﻿using JobTracker.Application.Features.JobTracker;
-using JobTracker.Application.Features.Notification;
+﻿using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Features.Settings;
 using JobTracker.Application.Features.Tags;

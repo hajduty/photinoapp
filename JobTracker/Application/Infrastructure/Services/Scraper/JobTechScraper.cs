@@ -1,6 +1,6 @@
-﻿using JobTracker.Application.Features.JobSearch.LoadJobs.Utils;
-using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.Services.Scraper.Util;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -42,7 +42,6 @@ public class JobTechScraper
         {
             var posting = JobSearchHelper.MapPosting(hit);
 
-            // Check if job already exists in database
             var exists = await db.Postings.AnyAsync(p => p.OriginUrl == posting.OriginUrl);
             if (exists)
             {
@@ -55,7 +54,7 @@ public class JobTechScraper
                 continue;
             }
 
-            consecutiveDuplicates = 0; // Reset on new job
+            consecutiveDuplicates = 0;
             result.Add(posting);
         }
 

@@ -1,10 +1,11 @@
+using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 using JobTracker.Application.Features.JobTracker.Process;
 using JobTracker.Application.Features.Notification;
-using JobTracker.Application.Infrastructure.BackgroundJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.Events;
 using JobTracker.Application.Infrastructure.RPC;
+using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -31,7 +32,6 @@ class Program
     private static IEventEmitter? _eventEmitter;
     private static RpcDispatcher? _dispatcher;
 
-
     [STAThread]
     static void Main(string[] args)
     {
@@ -40,7 +40,7 @@ class Program
             .RunAsync();
 
         _host = Host.CreateDefaultBuilder(args)
-            .ConfigureServices(services =>
+            .ConfigureServices((Action<IServiceCollection>)(services =>
             {
                 services.AddDbContextFactory<AppDbContext>(options =>
                 {
@@ -50,12 +50,16 @@ class Program
 
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
-                services.AddHostedService<JobTrackerWorker>();
+                ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
                 services.AddSingleton<IEventEmitter, EventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
+                services.AddSingleton<JobTechScraper>();
+                services.AddSingleton<ScrapeService>();
+                services.AddSingleton<TrackerService>();
+
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
-            })
+            }))
             .Build();
 
         using (var scope = _host.Services.CreateScope())
