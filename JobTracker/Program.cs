@@ -9,6 +9,7 @@ using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Photino.NET;
 using Photino.NET.Server;
 using System.Text.Json;
@@ -46,6 +47,7 @@ class Program
                 {
                     var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
                     options.UseSqlite($"Data Source={dbPath}");
+                    options.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Warning);
                 });
 
                 services.AddRpcSystem();
@@ -57,6 +59,8 @@ class Program
                 services.AddSingleton<JobTechScraper>();
                 services.AddSingleton<ScrapeService>();
                 services.AddSingleton<TrackerService>();
+                services.AddSingleton<EmbeddingService>();
+                services.AddSingleton<OllamaService>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
             }))

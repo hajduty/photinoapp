@@ -2,6 +2,7 @@
 using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Features.Settings;
 using JobTracker.Application.Features.Tags;
+using JobTracker.Application.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Infrastructure.Data;
@@ -13,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Settings> Settings { get; set; } = null!;
+    public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -27,6 +29,16 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Features.JobTracker.JobTracker>()
             .HasMany(j => j.Tags)
             .WithMany(t => t.JobTrackers)
-            .UsingEntity(j => j.ToTable("JobAlertTags"));
+            .UsingEntity(j => j.ToTable("JobTrackerTags"));
+
+        modelBuilder.Entity<JobEmbedding>()
+                .HasOne<Posting>()
+                .WithOne()
+                .HasForeignKey<JobEmbedding>(je => je.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobEmbedding>()
+            .HasIndex(je => je.JobId)
+            .IsUnique();
     }
 }
