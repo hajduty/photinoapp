@@ -1,11 +1,9 @@
-﻿using JobTracker.Application.Features.JobSearch.GetJobs;
-using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace JobTracker.Application.Features.SemanticSearch.Search;
 

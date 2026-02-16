@@ -1,6 +1,5 @@
 ﻿using JobTracker.Application.Features.JobSearch.LoadJobs;
 using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
-using JobTracker.Application.Features.JobTracker.Process;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

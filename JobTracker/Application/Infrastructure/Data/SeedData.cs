@@ -1,7 +1,5 @@
 ﻿using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace JobTracker.Application.Infrastructure.Data;
 

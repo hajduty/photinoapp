@@ -2,7 +2,6 @@
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.Tags.CreateTag;
 

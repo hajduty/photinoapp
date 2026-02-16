@@ -1,9 +1,5 @@
-﻿using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
-using JobTracker.Application.Features.Postings;
-using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.JobSearch.LoadJobs;
 

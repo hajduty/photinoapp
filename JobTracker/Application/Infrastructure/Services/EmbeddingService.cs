@@ -1,9 +1,8 @@
 ﻿using JobTracker.Application.Features.Postings;
+using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Application.Infrastructure.Entities;
 using JobTracker.Application.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic.Devices;
 using System.Diagnostics;
 
 namespace JobTracker.Application.Infrastructure.Services;
