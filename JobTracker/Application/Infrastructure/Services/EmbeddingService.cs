@@ -1,7 +1,9 @@
 ﻿using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Entities;
+using JobTracker.Application.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic.Devices;
 using System.Diagnostics;
 
 namespace JobTracker.Application.Infrastructure.Services;
@@ -9,7 +11,10 @@ namespace JobTracker.Application.Infrastructure.Services;
 public class EmbeddingService
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly DomainEventPublisher _domainEventPublisher;
     private readonly OllamaService _ollama;
+    private CancellationTokenSource? _cts;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public EmbeddingService(IDbContextFactory<AppDbContext> dbFactory, OllamaService ollama)
     {
@@ -19,12 +24,30 @@ public class EmbeddingService
 
     public async Task GenerateEmbeddingsAsync()
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        if (!await _lock.WaitAsync(0))
+            return;
+
+        try
+        {
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
+            await GenerateEmbeddingsInternal(token);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task GenerateEmbeddingsInternal(CancellationToken token)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(token);
 
         var postings = await db.Postings
             .Where(p => !db.JobEmbeddings.Any(e => e.JobId == p.Id))
             .OrderBy(p => p.Id)
-            .ToListAsync();
+            .ToListAsync(token);
 
         Debug.WriteLine($"Found {postings.Count} postings to process");
 
@@ -36,16 +59,17 @@ public class EmbeddingService
         var totalProcessed = 0;
         var batchNumber = 0;
 
-        await foreach (var batchEmbeddings in _ollama.GenerateEmbeddingsBatchedAsync(postingTexts))
+        await foreach (var batchEmbeddings in _ollama.GenerateEmbeddingsBatchedAsync(postingTexts).WithCancellation(token))
         {
             var currentBatch = postings
                 .Skip(batchNumber * batchSize)
                 .Take(batchSize)
                 .ToList();
 
+            token.ThrowIfCancellationRequested();
+
             var successCount = 0;
 
-            // Add embeddings to DB context
             for (int i = 0; i < currentBatch.Count; i++)
             {
                 if (i < batchEmbeddings.Count && batchEmbeddings[i] != null)
@@ -66,7 +90,7 @@ public class EmbeddingService
                 }
             }
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(token);
 
             totalProcessed += successCount;
             batchNumber++;
@@ -76,20 +100,22 @@ public class EmbeddingService
         }
 
         Debug.WriteLine($"Complete! Generated {totalProcessed} embeddings");
+
+        _domainEventPublisher.PublishAsync("")
     }
 
     public async Task<List<Posting>> SearchAsync(string query, int top = 10)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        // 1️ Generate query embedding
+        // Generate query embedding
         var queryVector = await _ollama.GenerateEmbeddingAsync(query);
         var normalizedQuery = Normalize(queryVector);
 
-        // 2️ Load embeddings
+        // Load embeddings
         var embeddings = await db.JobEmbeddings.ToListAsync();
 
-        // 3️ Rank them in memory
+        // Rank them in memory
         var ranked = embeddings
             .Select(e => new
             {
@@ -102,12 +128,12 @@ public class EmbeddingService
 
         var rankedIds = ranked.Select(r => r.JobId).ToList();
 
-        // 4 Fetch postings
+        // Fetch postings
         var postings = await db.Postings
             .Where(p => rankedIds.Contains(p.Id))
             .ToListAsync();
 
-        // 5 Reorder postings based on ranking
+        // Reorder postings based on ranking
         var ordered = rankedIds
             .Join(postings,
                   id => id,
@@ -116,6 +142,11 @@ public class EmbeddingService
             .ToList();
 
         return ordered;
+    }
+
+    public void Cancel()
+    {
+        _cts?.Cancel();
     }
 
     public static float Dot(float[] a, float[] b)

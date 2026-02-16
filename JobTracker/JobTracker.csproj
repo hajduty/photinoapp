@@ -46,6 +46,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="Application\Features\System\" />
 	  <Folder Include="Application\Features\Settings\TestConnection\" />
 	</ItemGroup>
 

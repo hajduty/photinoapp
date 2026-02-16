@@ -5,11 +5,15 @@ namespace JobTracker.Application.Infrastructure.Events;
 
 public sealed class EventEmitter : IEventEmitter
 {
+    private readonly object _lock = new object();
     private PhotinoWindow? _window;
 
     public void RegisterWindow(PhotinoWindow window)
     {
-        _window = window;
+        lock (_lock)
+        {
+            _window = window;
+        }
     }
 
     public void Emit(string eventName)
@@ -19,17 +23,31 @@ public sealed class EventEmitter : IEventEmitter
 
     public void Emit<T>(string eventName, T data)
     {
-        if (_window is null)
+        PhotinoWindow? currentWindow;
+
+        lock (_lock)
+        {
+            currentWindow = _window;
+        }
+
+        if (currentWindow is null)
             return;
 
-        var message = JsonSerializer.Serialize(new
+        try
         {
-            type = "event",
-            name = eventName,
-            data,
-            timestamp = DateTime.UtcNow
-        });
+            var message = JsonSerializer.Serialize(new
+            {
+                type = "event",
+                name = eventName,
+                data,
+                timestamp = DateTime.UtcNow
+            });
 
-        _window.SendWebMessage(message);
+            currentWindow.SendWebMessage(message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"EventEmitter error: {ex.Message}");
+        }
     }
 }

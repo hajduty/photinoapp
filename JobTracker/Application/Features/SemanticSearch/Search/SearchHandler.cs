@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
-namespace JobTracker.Application.Features.SemanticSearch;
+namespace JobTracker.Application.Features.SemanticSearch.Search;
 
 public record SemanticSearchRequest(string Keyword, int Page, int PageSize);
 public record SemanticSearchResponse(List<RankedPostingResult> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
@@ -18,7 +18,7 @@ public class RankedPostingResult
     public float Score { get; init; }
 }
 
-public class SemanticSearchHandler
+public class SearchHandler
     : RpcHandler<SemanticSearchRequest, SemanticSearchResponse>
 {
     private readonly EmbeddingService _embeddingService;
@@ -29,7 +29,7 @@ public class SemanticSearchHandler
 
     public override string Command => "semanticSearch.query";
 
-    public SemanticSearchHandler(EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
+    public SearchHandler(EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
     {
         _embeddingService = embeddingService;
         _dbFactory = dbFactory;
