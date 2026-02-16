@@ -25,9 +25,10 @@ import { TestConnectionResponse } from '@/app/types/settings/test-connection-res
 
 interface ApiManagementProps {
   className?: string;
+  settings: Settings | null;
 }
 
-export default function ApiManagement({ className }: ApiManagementProps) {
+export default function ApiManagement({ className, settings }: ApiManagementProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,25 +42,15 @@ export default function ApiManagement({ className }: ApiManagementProps) {
   const [discordWebhookUrlError, setDiscordWebhookUrlError] = useState('');
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await sendPhotinoRequest<Settings>('settings.getSettings', {});
-
-      setDiscordWebhookUrl(response.DiscordWebhookUrl ?? '');
-      setDiscordNotificationsEnabled(response.DiscordNotificationsEnabled ?? false);
-    } catch (err) {
-      console.error('Failed to fetch settings:', err);
-      setError('Failed to load settings. Please try again.');
-    } finally {
+    if (settings) {
+      setDiscordWebhookUrl(settings.DiscordWebhookUrl ?? '');
+      setDiscordNotificationsEnabled(settings.DiscordNotificationsEnabled ?? false);
+      setLoading(false);
+    } else if (!settings) {
+      setError('Settings not available');
       setLoading(false);
     }
-  };
+  }, [settings]);
 
   const validateDiscordConfig = (): boolean => {
     const error = !discordWebhookUrl.trim() ? 'Webhook URL is required' : '';
@@ -75,11 +66,11 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: discordWebhookUrl,
-        DiscordNotificationsEnabled: discordNotificationsEnabled
+        DiscordNotificationsEnabled: discordNotificationsEnabled,
+        GenerateEmbeddings: null
       };
 
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
-      console.log("sent1");
 
       notifications.show({
         title: 'Success',

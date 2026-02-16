@@ -1,5 +1,5 @@
 using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
-using JobTracker.Application.Features.JobTracker.Process;
+using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
@@ -9,6 +9,7 @@ using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Photino.NET;
 using Photino.NET.Server;
 using System.Text.Json;
@@ -23,8 +24,9 @@ class Program
     public static bool IsDebugMode = false;
 #endif
 
-    private static bool _shouldExit = false;
-    private static bool _windowVisible = false;
+    private static volatile bool _shouldExit = false;
+    private static volatile bool _windowVisible = false;
+    private static readonly object _windowLock = new object();
     private static NotifyIcon? _notifyIcon;
     private static PhotinoWindow? _window;
     private static IHost? _host;
@@ -46,6 +48,7 @@ class Program
                 {
                     var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
                     options.UseSqlite($"Data Source={dbPath}");
+                    options.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Warning);
                 });
 
                 services.AddRpcSystem();
@@ -57,6 +60,8 @@ class Program
                 services.AddSingleton<JobTechScraper>();
                 services.AddSingleton<ScrapeService>();
                 services.AddSingleton<TrackerService>();
+                services.AddSingleton<EmbeddingService>();
+                services.AddSingleton<OllamaService>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
             }))
@@ -82,7 +87,13 @@ class Program
 
         while (!_shouldExit)
         {
-            if (!_windowVisible)
+            bool shouldCreateWindow;
+            lock (_windowLock)
+            {
+                shouldCreateWindow = _windowVisible && _window == null;
+            }
+
+            if (!shouldCreateWindow)
             {
                 Thread.Sleep(100);
                 Application.DoEvents();
@@ -90,10 +101,13 @@ class Program
             }
 
             CreateAndShowWindow();
-            
-            _windowVisible = false;
-            _window = null;
-            //1WriteLine("Window closed, app running in tray");
+
+            lock (_windowLock)
+            {
+                _windowVisible = false;
+                _window = null;
+            }
+            //WriteLine("Window closed, app running in tray");
         }
 
         _notifyIcon?.Dispose();
@@ -105,17 +119,17 @@ class Program
         var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
         var fullIconPath = Path.GetFullPath(iconPath);
         var iconExists = File.Exists(fullIconPath);
-        
+
         //Console.WriteLine($"Icon exists: {iconExists}, Path: {fullIconPath}");
-        
-        _window = new PhotinoWindow();
-        
+
+        var window = new PhotinoWindow();
+
         if (iconExists)
         {
-            _window.SetIconFile(fullIconPath);
+            window.SetIconFile(fullIconPath);
         }
-        
-        _window.SetTitle("JobTracker V1 (RELEASE)")
+
+        window.SetTitle("JobTracker V1 (RELEASE)")
             .SetUseOsDefaultSize(false)
             .SetSize(new Size(1200, 800))
             .Center()
@@ -138,9 +152,21 @@ class Program
             })
             .Load(_appUrl!);
 
-        _eventEmitter?.RegisterWindow(_window);
+        lock (_windowLock)
+        {
+            _window = window;
+        }
 
-        _window.WaitForClose();
+        _eventEmitter?.RegisterWindow(window);
+
+        try
+        {
+            window.WaitForClose();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Window error: {ex.Message}");
+        }
     }
 
     private static void SetupTrayIcon()
@@ -167,13 +193,28 @@ class Program
 
         var showItem = new ToolStripMenuItem("Show", null, (s, e) =>
         {
-            if (!_windowVisible)
+            lock (_windowLock)
             {
-                _windowVisible = true;
-            }
-            else if (_window != null)
-            {
-                _window.SetMinimized(false);
+                if (_window != null)
+                {
+                    // Window exists, just restore it
+                    try
+                    {
+                        _window.SetMinimized(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error showing window: {ex.Message}");
+                        // Window is dead, create a new one
+                        _windowVisible = true;
+                    }
+                }
+                else if (!_windowVisible)
+                {
+                    // No window exists and none is being created, create one
+                    _windowVisible = true;
+                }
+                // else: window is already being created, do nothing
             }
         });
 
@@ -186,13 +227,28 @@ class Program
         _notifyIcon.ContextMenuStrip = contextMenu;
         _notifyIcon.DoubleClick += (s, e) =>
         {
-            if (!_windowVisible)
+            lock (_windowLock)
             {
-                _windowVisible = true;
-            }
-            else if (_window != null)
-            {
-                _window.SetMinimized(false);
+                if (_window != null)
+                {
+                    // Window exists, just restore it
+                    try
+                    {
+                        _window.SetMinimized(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error showing window: {ex.Message}");
+                        // Window is dead, create a new one
+                        _windowVisible = true;
+                    }
+                }
+                else if (!_windowVisible)
+                {
+                    // No window exists and none is being created, create one
+                    _windowVisible = true;
+                }
+                // else: window is already being created, do nothing
             }
         };
 
@@ -205,6 +261,17 @@ class Program
         //Console.WriteLine("Exit requested");
         _shouldExit = true;
         _notifyIcon?.Dispose();
-        try { _window?.Close(); } catch { }
+
+        lock (_windowLock)
+        {
+            try
+            {
+                _window?.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error closing window: {ex.Message}");
+            }
+        }
     }
 }

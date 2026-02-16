@@ -1,4 +1,4 @@
-using JobTracker.Application.Features.JobTracker.Process;
+using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.Events;

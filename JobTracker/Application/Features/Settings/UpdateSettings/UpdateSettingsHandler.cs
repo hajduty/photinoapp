@@ -7,7 +7,8 @@ namespace JobTracker.Application.Features.Settings.UpdateSettings;
 [ExportTsInterface]
 public record UpdateSettingsRequest(
     string? DiscordWebhookUrl = null,
-    bool? DiscordNotificationsEnabled = null
+    bool? DiscordNotificationsEnabled = null,
+    bool? GenerateEmbeddings = null
 );
 [ExportTsInterface]
 public record UpdateSettingsResponse(Settings Settings);
@@ -40,6 +41,9 @@ public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, Up
         
         if (request.DiscordNotificationsEnabled.HasValue)
             settings.DiscordNotificationsEnabled = request.DiscordNotificationsEnabled.Value;
+
+        if (request.GenerateEmbeddings.HasValue)
+            settings.GenerateEmbeddings = request.GenerateEmbeddings.Value;
 
         settings.LastUpdatedAt = DateTime.UtcNow;
 

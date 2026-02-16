@@ -1,6 +1,6 @@
 using JobTracker.Application.Infrastructure.Events;
 
-namespace JobTracker.Application.Features.JobTracker.Process;
+namespace JobTracker.Application.Features.JobTracker;
 
 /// <summary>
 /// Domain event raised when jobs are found during tracker processing

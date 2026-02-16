@@ -6,4 +6,5 @@
 export interface UpdateSettingsRequest {
     DiscordWebhookUrl: string;
     DiscordNotificationsEnabled: boolean;
+    GenerateEmbeddings: boolean | null;
 }
