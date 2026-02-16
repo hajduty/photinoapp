@@ -1,4 +1,3 @@
-using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;

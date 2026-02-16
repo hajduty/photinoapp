@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace JobTracker.Application.Infrastructure.Events;
+namespace JobTracker.Application.Events;
 
 public sealed class DomainEventPublisher : IEventPublisher
 {

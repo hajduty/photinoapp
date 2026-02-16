@@ -1,7 +1,7 @@
 using Photino.NET;
 using System.Text.Json;
 
-namespace JobTracker.Application.Infrastructure.Events;
+namespace JobTracker.Application.Events;
 
 public sealed class EventEmitter : IEventEmitter
 {

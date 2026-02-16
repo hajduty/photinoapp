@@ -1,4 +1,4 @@
-using JobTracker.Application.Infrastructure.Events;
+using JobTracker.Application.Events;
 
 namespace JobTracker.Application.Features.JobTracker;
 

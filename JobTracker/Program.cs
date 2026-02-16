@@ -1,9 +1,9 @@
+using JobTracker.Application.Events;
 using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
-using JobTracker.Application.Infrastructure.Events;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;

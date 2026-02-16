@@ -2,7 +2,7 @@ using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.Settings.GetSettings;
+namespace JobTracker.Application.Features.System.Settings.GetSettings;
 
 public sealed class GetSettingsHandler : RpcHandler<object?, Settings>
 {

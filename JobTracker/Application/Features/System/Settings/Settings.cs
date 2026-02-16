@@ -1,6 +1,6 @@
 using TypeGen.Core.TypeAnnotations;
 
-namespace JobTracker.Application.Features.Settings;
+namespace JobTracker.Application.Features.System.Settings;
 
 [ExportTsInterface]
 public class Settings

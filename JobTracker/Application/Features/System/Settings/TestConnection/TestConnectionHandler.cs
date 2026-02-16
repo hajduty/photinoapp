@@ -2,7 +2,7 @@ using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.RPC;
 using TypeGen.Core.TypeAnnotations;
 
-namespace JobTracker.Application.Features.Settings.TestConnection;
+namespace JobTracker.Application.Features.System.Settings.TestConnection;
 
 [ExportTsInterface]
 public record TestConnectionRequest(string WebhookUrl);

@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.JobSearch;
 using System.Text.Json;
 
 namespace JobTracker.Application.Infrastructure.Services.Scraper.Util;

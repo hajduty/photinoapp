@@ -1,5 +1,5 @@
-﻿using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Application.Infrastructure.Events;
+﻿using JobTracker.Application.Events;
+using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
