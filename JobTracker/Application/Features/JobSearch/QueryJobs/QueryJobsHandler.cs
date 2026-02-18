@@ -1,10 +1,8 @@
-using JobTracker.Application.Features.Postings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
-using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 

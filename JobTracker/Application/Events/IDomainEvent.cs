@@ -1,4 +1,4 @@
-namespace JobTracker.Application.Infrastructure.Events;
+namespace JobTracker.Application.Events;
 
 public interface IDomainEvent
 {

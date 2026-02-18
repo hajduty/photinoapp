@@ -1,7 +1,7 @@
-﻿using JobTracker.Application.Features.Notification;
-using JobTracker.Application.Features.Postings;
+﻿using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Features.SemanticSearch;
-using JobTracker.Application.Features.Settings;
+using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
 

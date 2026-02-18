@@ -1,5 +1,4 @@
 ﻿using JobTracker.Application.Features.Tags;
-using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker;
 

@@ -2,7 +2,6 @@
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
-using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.JobTracker.Create;
 

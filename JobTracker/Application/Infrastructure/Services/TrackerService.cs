@@ -1,6 +1,6 @@
-﻿using JobTracker.Application.Features.JobTracker.Process;
+﻿using JobTracker.Application.Events;
+using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Application.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 

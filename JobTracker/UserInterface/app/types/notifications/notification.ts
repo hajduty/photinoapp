@@ -11,4 +11,5 @@ export interface Notification {
     Description: string;
     Type: NotificationType;
     IsRead: boolean;
+    CreatedAt: Date;
 }

@@ -1,7 +1,7 @@
+using JobTracker.Application.Events;
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
-using JobTracker.Application.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.Notification;
@@ -9,12 +9,12 @@ namespace JobTracker.Application.Features.Notification;
 public class JobsFoundEventHandler : IEventHandler<JobsFoundEvent>
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly IEventEmitter _eventEmitter;
+    private readonly IUiEventEmitter _eventEmitter;
     private readonly IDiscordWebhookService _discord;
 
     public JobsFoundEventHandler(
         IDbContextFactory<AppDbContext> dbFactory,
-        IEventEmitter eventEmitter,
+        IUiEventEmitter eventEmitter,
         IDiscordWebhookService discord)
     {
         _dbFactory = dbFactory;
@@ -39,7 +39,8 @@ public class JobsFoundEventHandler : IEventHandler<JobsFoundEvent>
         {
             Title = title,
             Description = description,
-            Type = NotificationType.MatchingJob
+            Type = NotificationType.MatchingJob,
+            CreatedAt = DateTime.UtcNow
         };
 
         dbContext.Notifications.Add(notification);

@@ -1,13 +1,5 @@
-﻿using JobTracker.Application.Features.JobSearch.LoadJobs;
-using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Application.Infrastructure.Events;
-using JobTracker.Application.Infrastructure.RPC;
+﻿using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Features.JobTracker.Process;
 

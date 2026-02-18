@@ -1,4 +1,4 @@
-﻿namespace JobTracker.Application.Features.Postings;
+﻿namespace JobTracker.Application.Features.JobSearch;
 
 public class Posting
 {

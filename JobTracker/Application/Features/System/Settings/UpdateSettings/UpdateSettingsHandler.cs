@@ -3,7 +3,7 @@ using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using TypeGen.Core.TypeAnnotations;
 
-namespace JobTracker.Application.Features.Settings.UpdateSettings;
+namespace JobTracker.Application.Features.System.Settings.UpdateSettings;
 [ExportTsInterface]
 public record UpdateSettingsRequest(
     string? DiscordWebhookUrl = null,

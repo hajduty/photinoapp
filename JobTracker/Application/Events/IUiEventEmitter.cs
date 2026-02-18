@@ -1,6 +1,6 @@
-namespace JobTracker.Application.Infrastructure.Events;
+namespace JobTracker.Application.Events;
 
-public interface IEventEmitter
+public interface IUiEventEmitter
 {
     void Emit(string eventName);
     void Emit<T>(string eventName, T data);
