@@ -15,4 +15,5 @@ public class Settings
     // App Info
     public string AppVersion { get; set; } = "1.0.0";
     public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
+    public bool? FirstStart { get; set; } = true;
 }

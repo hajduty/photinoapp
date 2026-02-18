@@ -7,4 +7,5 @@ export enum NotificationType {
     None = 0,
     MatchingJob = 1,
     JobsAdded = 2,
+    EmbeddingsEvent = 3
 }

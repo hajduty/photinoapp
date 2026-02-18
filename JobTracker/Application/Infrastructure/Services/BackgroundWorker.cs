@@ -8,12 +8,12 @@ namespace JobTracker.Application.Infrastructure.Services;
 public class BackgroundWorker : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromHours(1);
-    private readonly IEventEmitter _events;
+    private readonly IUiEventEmitter _events;
     private readonly TrackerService _trackerService;
     private readonly EmbeddingService _embeddingService;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public BackgroundWorker(IServiceProvider serviceProvider, IEventEmitter events, TrackerService trackerService, EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbContextFactory)
+    public BackgroundWorker(IServiceProvider serviceProvider, IUiEventEmitter events, TrackerService trackerService, EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbContextFactory)
     {
         _events = events;
         _trackerService = trackerService;

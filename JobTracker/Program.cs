@@ -2,6 +2,7 @@ using JobTracker.Application.Events;
 using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Features.Notification;
+using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.RPC;
@@ -31,7 +32,7 @@ class Program
     private static PhotinoWindow? _window;
     private static IHost? _host;
     private static string? _appUrl;
-    private static IEventEmitter? _eventEmitter;
+    private static IUiEventEmitter? _eventEmitter;
     private static RpcDispatcher? _dispatcher;
 
     [STAThread]
@@ -54,7 +55,7 @@ class Program
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
                 ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
-                services.AddSingleton<IEventEmitter, EventEmitter>();
+                services.AddSingleton<IUiEventEmitter, UiEventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
                 services.AddSingleton<JobTechScraper>();
@@ -64,6 +65,10 @@ class Program
                 services.AddSingleton<OllamaService>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
+                services.AddScoped<IEventHandler<EmbeddingsCancelled>, EmbeddingsCancelledHandler>();
+                services.AddScoped<IEventHandler<EmbeddingsFinished>, EmbeddingsFinishedHandler>();
+                services.AddScoped<IEventHandler<EmbeddingsStarted>, EmbeddingsStartedHandler>();
+                services.AddScoped<IEventHandler<EmbeddingsProgress>, EmbeddingsProgressHandler>();
             }))
             .Build();
 
@@ -80,7 +85,7 @@ class Program
         _appUrl = IsDebugMode ? "http://localhost:3000" : $"{baseUrl}/index.html";
         //Console.WriteLine($"Serving React app at {_appUrl}");
 
-        _eventEmitter = _host.Services.GetRequiredService<IEventEmitter>();
+        _eventEmitter = _host.Services.GetRequiredService<IUiEventEmitter>();
         _dispatcher = _host.Services.GetRequiredService<RpcDispatcher>();
 
         SetupTrayIcon();

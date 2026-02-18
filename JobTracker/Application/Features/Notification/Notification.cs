@@ -7,7 +7,8 @@ public enum NotificationType
 {
     None = 0,
     MatchingJob = 1,
-    JobsAdded = 2
+    JobsAdded = 2,
+    EmbeddingsEvent = 3
 }
 
 [ExportTsInterface]
@@ -18,4 +19,5 @@ public class Notification
     public string Description { get; set; } = string.Empty;
     public NotificationType Type { get; set; } = NotificationType.None;
     public bool IsRead { get; set; } = false;
+    public DateTime CreatedAt { get; set; }
 }

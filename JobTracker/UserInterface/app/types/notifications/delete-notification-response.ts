@@ -4,5 +4,5 @@
  */
 
 export interface DeleteNotificationResponse {
-    success: boolean;
+    Success: boolean;
 }

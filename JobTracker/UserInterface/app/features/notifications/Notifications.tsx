@@ -36,7 +36,6 @@ export default function Notifications() {
     }
   }, [opened]);
 
-  // Mark notifications as read when closing the popup
   useEffect(() => {
     if (!opened && notifications.length > 0) {
       const unreadNotifications = notifications.filter(n => !n.IsRead);
@@ -47,7 +46,6 @@ export default function Notifications() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
-  // Listen for new notification events from Photino
   useEffect(() => {
     const unsubscribe = onPhotinoEvent('notification.new', (newNotification: Notification) => {
       console.log('[Notifications] New notification received:', newNotification);
@@ -64,7 +62,10 @@ export default function Notifications() {
       setLoading(true);
       setError(null);
       const response = await sendPhotinoRequest<Notification[]>('notification.getNotifications', {});
-      setNotifications(response || []);
+      const sorted = (response || []).sort((a, b) => 
+        new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime()
+      );
+      setNotifications(sorted);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
       setError('Failed to load notifications');
@@ -304,6 +305,22 @@ export default function Notifications() {
                       </Text>
                       <Text size="xs" c="dimmed" lineClamp={2}>
                         {notification.Description}
+                      </Text>
+                      <Text size="xs" c="dimmed" mt={2}>
+                        {notification.CreatedAt instanceof Date 
+                          ? notification.CreatedAt.toLocaleString(undefined, { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              hour: 'numeric', 
+                              minute: '2-digit' 
+                            })
+                          : new Date(notification.CreatedAt).toLocaleString(undefined, { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              hour: 'numeric', 
+                              minute: '2-digit' 
+                            })
+                        }
                       </Text>
                     </Stack>
                     <ActionIcon

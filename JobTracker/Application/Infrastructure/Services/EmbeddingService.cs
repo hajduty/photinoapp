@@ -1,6 +1,7 @@
 ﻿using JobTracker.Application.Events;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.SemanticSearch;
+using JobTracker.Application.Features.System;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -10,15 +11,17 @@ namespace JobTracker.Application.Infrastructure.Services;
 public class EmbeddingService
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly DomainEventPublisher _domainEventPublisher;
+    private readonly IEventPublisher _domainEventPublisher;
     private readonly OllamaService _ollama;
+
     private CancellationTokenSource? _cts;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public EmbeddingService(IDbContextFactory<AppDbContext> dbFactory, OllamaService ollama)
+    public EmbeddingService(IDbContextFactory<AppDbContext> dbFactory, OllamaService ollama, IEventPublisher domainEventPublisher)
     {
         _dbFactory = dbFactory;
         _ollama = ollama;
+        _domainEventPublisher = domainEventPublisher;
     }
 
     public async Task GenerateEmbeddingsAsync()
@@ -41,66 +44,76 @@ public class EmbeddingService
 
     public async Task GenerateEmbeddingsInternal(CancellationToken token)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync(token);
-
-        var postings = await db.Postings
-            .Where(p => !db.JobEmbeddings.Any(e => e.JobId == p.Id))
-            .OrderBy(p => p.Id)
-            .ToListAsync(token);
-
-        Debug.WriteLine($"Found {postings.Count} postings to process");
-
-        var postingTexts = postings.Select(p =>
-            $"Location: {p.Location} {p.PostedDate} {p.Title} {p.Description}"
-        ).ToList();
-
-        var batchSize = 20;
         var totalProcessed = 0;
-        var batchNumber = 0;
+        await _domainEventPublisher.PublishAsync(new EmbeddingsStarted());
 
-        await foreach (var batchEmbeddings in _ollama.GenerateEmbeddingsBatchedAsync(postingTexts).WithCancellation(token))
+        try
         {
-            var currentBatch = postings
-                .Skip(batchNumber * batchSize)
-                .Take(batchSize)
-                .ToList();
+            await using var db = await _dbFactory.CreateDbContextAsync(token);
 
-            token.ThrowIfCancellationRequested();
+            var postings = await db.Postings
+                .Where(p => !db.JobEmbeddings.Any(e => e.JobId == p.Id))
+                .OrderBy(p => p.Id)
+                .ToListAsync(token);
 
-            var successCount = 0;
+            Debug.WriteLine($"Found {postings.Count} postings to process");
 
-            for (int i = 0; i < currentBatch.Count; i++)
+            var postingTexts = postings.Select(p =>
+                $"Location: {p.Location} {p.PostedDate} {p.Title} {p.Description}"
+            ).ToList();
+
+            var batchSize = 20;
+            var batchNumber = 0;
+
+            await foreach (var batchEmbeddings in _ollama.GenerateEmbeddingsBatchedAsync(postingTexts).WithCancellation(token))
             {
-                if (i < batchEmbeddings.Count && batchEmbeddings[i] != null)
-                {
-                    var normalized = Normalize(batchEmbeddings[i]);
-                    var blob = ToBytes(normalized);
+                var currentBatch = postings
+                    .Skip(batchNumber * batchSize)
+                    .Take(batchSize)
+                    .ToList();
 
-                    db.JobEmbeddings.Add(new JobEmbedding
-                    {
-                        JobId = currentBatch[i].Id,
-                        Data = blob
-                    });
-                    successCount++;
-                }
-                else
+                token.ThrowIfCancellationRequested();
+
+                var successCount = 0;
+
+                for (int i = 0; i < currentBatch.Count; i++)
                 {
-                    Debug.WriteLine($"Failed to generate embedding for Job {currentBatch[i].Id}");
+                    if (i < batchEmbeddings.Count && batchEmbeddings[i] != null)
+                    {
+                        var normalized = Normalize(batchEmbeddings[i]);
+                        var blob = ToBytes(normalized);
+
+                        db.JobEmbeddings.Add(new JobEmbedding
+                        {
+                            JobId = currentBatch[i].Id,
+                            Data = blob
+                        });
+                        successCount++;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Failed to generate embedding for Job {currentBatch[i].Id}");
+                    }
                 }
+
+                await db.SaveChangesAsync(token);
+
+                totalProcessed += successCount;
+                batchNumber++;
+
+                await _domainEventPublisher.PublishAsync(new EmbeddingsProgress(postings.Count, totalProcessed));
+
+                Debug.WriteLine($"Batch {batchNumber} saved: {successCount}/{currentBatch.Count} embeddings");
+                Debug.WriteLine($"Progress: {totalProcessed}/{postings.Count} ({(totalProcessed * 100 / postings.Count):F1}%)");
             }
 
-            await db.SaveChangesAsync(token);
-
-            totalProcessed += successCount;
-            batchNumber++;
-
-            Debug.WriteLine($"Batch {batchNumber} saved: {successCount}/{currentBatch.Count} embeddings");
-            Debug.WriteLine($"Progress: {totalProcessed}/{postings.Count} ({(totalProcessed * 100 / postings.Count):F1}%)");
+            Debug.WriteLine($"Complete! Generated {totalProcessed} embeddings");
+            await _domainEventPublisher.PublishAsync(new EmbeddingsFinished(totalProcessed));
         }
-
-        Debug.WriteLine($"Complete! Generated {totalProcessed} embeddings");
-
-        _domainEventPublisher.PublishAsync("")
+        catch (OperationCanceledException)
+        {
+            await _domainEventPublisher.PublishAsync(new EmbeddingsCancelled(totalProcessed));
+        }
     }
 
     public async Task<List<Posting>> SearchAsync(string query, int top = 10)
