@@ -30,7 +30,7 @@ public class TrackerService
 
         foreach (var track in trackedKeywords)
         {
-            await _scrapeService.Fetch(new Features.JobSearch.LoadJobs.LoadJobsRequest(track.Keyword));
+            await _scrapeService.Fetch(new LoadJobsRequest(track.Keyword));
 
             var escapedKeyword = track.Keyword
                 .Replace("[", "[[]")

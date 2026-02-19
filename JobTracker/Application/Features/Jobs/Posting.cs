@@ -14,4 +14,5 @@ public class Posting
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastApplicationDate { get; set; } = DateTime.UtcNow;
     public string? Source { get; set; }
+    public bool? Bookmarked { get; set; } = false;
 }

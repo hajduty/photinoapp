@@ -9,7 +9,7 @@ public record GetJobTitlesResponse(List<string> JobTitles);
 
 public sealed class GetJobTitlesHandler : RpcHandler<GetJobTitlesRequest, GetJobTitlesResponse>
 {
-    public override string Command => "jobSearch.getTitles";
+    public override string Command => "jobs.getTitles";
 
     private readonly HttpClient _httpClient;
     private readonly string apiUrl = "https://jobsearch.api.jobtechdev.se/";

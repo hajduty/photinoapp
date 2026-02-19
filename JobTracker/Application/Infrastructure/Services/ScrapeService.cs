@@ -1,10 +1,10 @@
-﻿using JobTracker.Application.Features.JobSearch.LoadJobs;
-using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
+﻿using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Infrastructure.Services;
-
+public record LoadJobsRequest(string Keyword);
+public record LoadJobsResponse(int JobsLoaded);
 public class ScrapeService
 {
     private readonly JobTechScraper _jobTechScraper;

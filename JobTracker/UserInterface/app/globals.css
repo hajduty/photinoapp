@@ -32,6 +32,10 @@ body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

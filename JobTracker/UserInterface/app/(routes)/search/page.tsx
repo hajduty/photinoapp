@@ -51,18 +51,16 @@ export default function JobSearch() {
         TimeSinceUpload: filters.date
       };
 
-      //const loadData = await sendPhotinoRequest('jobSearch.loadJobs', { keyword: term });
-
       console.log('Search Request:', request);
 
-      const response = await sendPhotinoRequest("jobSearch.getJobs", request);
+      const response = await sendPhotinoRequest("jobs.getJobs", request);
 
       console.log('Search Response:', response);
 
       const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const jobSearchResponse: GetJobsResponse = data;
+      const jobResponse: GetJobsResponse = data;
 
-      setJobPostings({ ...jobSearchResponse });
+      setJobPostings({ ...jobResponse });
 
       setCurrentPage(page - 1);
     } catch (err) {
