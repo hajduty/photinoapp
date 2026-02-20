@@ -30,6 +30,8 @@ public class BookmarkJobHandler
 
         posting.Bookmarked = request.IsBookmarked;
 
+        await db.SaveChangesAsync();
+
         return new BookmarkJobResponse(posting);
     }
 }

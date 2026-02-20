@@ -2,6 +2,8 @@
 
 namespace JobTracker.Application.Infrastructure.RPC;
 
+public sealed record NoRequest;
+
 public abstract class RpcHandler<TRequest, TResponse> : IRpcHandler
 {
     public abstract string Command { get; }

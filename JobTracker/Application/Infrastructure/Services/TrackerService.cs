@@ -63,7 +63,7 @@ public class TrackerService
                 ).ToList();
             }
 
-            track.LastCheckedAt = DateTime.UtcNow;
+            track.LastCheckedAt = DateTime.Now;
 
             // Publish domain event only when NEW jobs are found
             if (newPostings.Any())
