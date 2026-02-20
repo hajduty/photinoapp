@@ -5,10 +5,21 @@ import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBook
 
 interface JobPostingProps extends ExtendedPosting {
   onBookmark: (targetState: boolean) => void;
+  onApply?: (postingId: number) => void;
 }
 
-export default function JobPosting({ Posting, Tags, onBookmark }: JobPostingProps) {
+export default function JobPosting({ Posting, Tags, onBookmark, onApply }: JobPostingProps) {
   const active = Posting.Bookmarked;
+
+  const handleApply = () => {
+    // Open the job posting URL in a new tab
+    window.open(Posting.Url, '_blank', 'noopener,noreferrer');
+    
+    // If onApply callback is provided, call it to create an application
+    if (onApply) {
+      onApply(Posting.Id);
+    }
+  };
 
   return (
     <div className="card transition-all duration-300 border-neutral-700">
@@ -101,7 +112,7 @@ export default function JobPosting({ Posting, Tags, onBookmark }: JobPostingProp
               Details
             </button>
             <button
-              onClick={() => window.open(Posting.Url, '_blank', 'noopener,noreferrer')}
+              onClick={handleApply}
               className="px-4 py-1.5 text-xs font-bold btn-primary rounded transition-all flex items-center gap-1.5 shadow-sm"
             >
               <IconBolt size={14} />

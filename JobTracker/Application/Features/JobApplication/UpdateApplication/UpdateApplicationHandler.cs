@@ -4,16 +4,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.JobApplication;
 
-public record UpdateApplicationRequest(int Id, ApplicationStatus Status);
+public record UpdateApplicationRequest(int Id, ApplicationStatus ApplicationStatus);
 public record UpdateApplicationResponse(JobApplication Application);
 
-public class UpdateApplication 
+public class UpdateApplicationHandler 
     : RpcHandler<UpdateApplicationRequest, UpdateApplicationResponse>
 {
-    public override string Command => "jobApplication.update";
+    public override string Command => "applications.update";
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public UpdateApplication(IDbContextFactory<AppDbContext> dbFactory)
+    public UpdateApplicationHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
         _dbFactory = dbFactory;
     }
@@ -29,7 +29,7 @@ public class UpdateApplication
             throw new InvalidOperationException($"Job with Id {request.Id} not found");
         }
 
-        application.Status = request.Status;
+        application.Status = request.ApplicationStatus;
         application.LastStatusChangeAt = DateTime.Now;
         await db.SaveChangesAsync();
 

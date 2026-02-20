@@ -9,7 +9,7 @@ public record CreateApplicationResponse(JobApplication JobApplication);
 
 public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, CreateApplicationResponse>
 {
-    public override string Command => "jobApplication.create";
+    public override string Command => "applications.create";
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
     public CreateApplicationHandler(IDbContextFactory<AppDbContext> dbFactory)
@@ -21,14 +21,19 @@ public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, Cre
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
+        var posting = await db.Postings.FindAsync(request.JobId);
+
         var newApplication = new JobApplication
         {
             AppliedAt = DateTime.Now,
-            JobId = request.JobId,
+            JobId = posting.Id,
+            Posting = posting,
             CoverLetter = request.CoverLetter,
-            Status = ApplicationStatus.Submitted,
+            Status = ApplicationStatus.Pending,
             LastStatusChangeAt = DateTime.Now
         };
+
+        db.JobApplications.Add(newApplication);
 
         await db.SaveChangesAsync();
 

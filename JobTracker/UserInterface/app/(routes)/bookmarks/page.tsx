@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ExtendedPosting } from "@/app/types/jobs/extended-posting";
 import { GetBookmarkedJobsResponse } from "@/app/types/jobs/get-bookmarked-jobs-response";
+import { CreateApplicationRequest } from "@/app/types/applications/create-application";
 import { sendPhotinoRequest } from "@/app/utils/photino";
 import JobPosting from "../../features/search/JobPosting";
 import { Pagination, Text, Group, Box } from "@mantine/core";
@@ -39,7 +40,26 @@ export default function SavedPage() {
     
         console.log("Update successful");
       } catch (err) {
-        console.error('Bookmark failed:', err);
+      console.error('Bookmark failed:', err);
+      }
+    };
+
+    const handleApply = async (postingId: number) => {
+      try {
+        const request: CreateApplicationRequest = {
+          JobId: postingId,
+          CoverLetter: ''
+        };
+  
+        console.log('Application Request:', request);
+  
+        const response = await sendPhotinoRequest("applications.create", request);
+  
+        console.log('Application Response:', response);
+  
+        console.log("Application created successfully");
+      } catch (err) {
+        console.error('Apply failed:', err);
       }
     };
 
@@ -79,6 +99,7 @@ export default function SavedPage() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-neutral-200 mb-2">SAVED JOBS</h1>
+              <p className="text-neutral-400">Your bookmarked jobs.</p>
             </div>
           </div>
         </div>
@@ -98,11 +119,6 @@ export default function SavedPage() {
           </div>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <h3 className="text-white font-medium">Loading saved jobs...</h3>
-        )}
-
         {/* No Results State */}
         {!loading && !error && postings.length === 0 && (
           <div className="card p-8 text-center">
@@ -120,7 +136,7 @@ export default function SavedPage() {
         {!loading && postings.length > 0 && (
           <div className="space-y-4">
             {postings.map((posting, index) => (
-              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())}/>
+              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} onApply={(id) => handleApply(id)} />
             ))}
           </div>
         )}

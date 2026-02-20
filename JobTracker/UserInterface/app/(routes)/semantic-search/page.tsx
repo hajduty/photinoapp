@@ -1,4 +1,4 @@
-'use client';
+/* 'use client';
 
 import React, { useState } from 'react';
 import { 
@@ -125,7 +125,6 @@ export default function SemanticSearchPage() {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header and Search Form */}
         <div className="py-6">
           <div className="flex items-start justify-between">
             <div>
@@ -135,7 +134,6 @@ export default function SemanticSearchPage() {
           </div>
         </div>
 
-        {/* Search Input */}
         <form onSubmit={handleSearch}>
           <Group gap="sm">
             <TextInput
@@ -158,7 +156,6 @@ export default function SemanticSearchPage() {
           </Group>
         </form>
 
-        {/* Relevance Slider */}
         <div className="flex items-center gap-4">
           <Text size="sm" c="dimmed" className="whitespace-nowrap">Min Relevance</Text>
           <Slider
@@ -175,7 +172,6 @@ export default function SemanticSearchPage() {
           <Text size="sm" c="white" className="w-10 text-right">{minRelevance}%</Text>
         </div>
 
-        {/* Error State */}
         {error && (
           <div className="card p-6">
             <div className="flex items-center gap-3">
@@ -190,17 +186,14 @@ export default function SemanticSearchPage() {
           </div>
         )}
 
-        {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-8">
             <Loader />
           </div>
         )}
 
-        {/* Content */}
         {!loading && (
           <>
-            {/* Initial State */}
             {!hasSearched && (
               <div className="card p-8 text-center">
                 <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -214,7 +207,6 @@ export default function SemanticSearchPage() {
               </div>
             )}
 
-            {/* No Results State */}
             {hasSearched && results.length === 0 && !error && (
               <div className="card p-8 text-center">
                 <h3 className="text-white text-lg font-semibold mb-2">No Results Found</h3>
@@ -224,7 +216,6 @@ export default function SemanticSearchPage() {
               </div>
             )}
 
-            {/* Results */}
             {results.length > 0 && (
               <div>
                 <Text size="sm" c="dimmed" mb="md">
@@ -235,7 +226,6 @@ export default function SemanticSearchPage() {
                   {renderResults}
                 </div>
 
-                {/* Pagination */}
                 <Box className="p-6 w-full">
                   <Group justify="space-between" align="center">
                     <Text size="sm" c="dimmed">
@@ -263,3 +253,4 @@ export default function SemanticSearchPage() {
     </div>
   );
 }
+ */

@@ -6,12 +6,12 @@ namespace JobTracker.Application.Features.JobApplication.GetApplications;
 
 public record GetApplicationsResponse(List<JobApplication> AppliedJobs);
 
-public class GetApplications : RpcHandler<NoRequest, GetApplicationsResponse>
+public class GetApplicationsHandler : RpcHandler<NoRequest, GetApplicationsResponse>
 {
-    public override string Command => "jobApplication.get";
+    public override string Command => "applications.get";
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public GetApplications(IDbContextFactory<AppDbContext> dbFactory)
+    public GetApplicationsHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
         _dbFactory = dbFactory;
     }
@@ -20,6 +20,6 @@ public class GetApplications : RpcHandler<NoRequest, GetApplicationsResponse>
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        return new GetApplicationsResponse(await db.JobApplications.ToListAsync());
+        return new GetApplicationsResponse(await db.JobApplications.Include(j => j.Posting).ToListAsync());
     }
 }

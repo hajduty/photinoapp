@@ -32,8 +32,13 @@ body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 html::-webkit-scrollbar {
   width: 14px;               /* Width of the entire scrollbar */
+  scrollbar-gutter: stable;
 }
 
 /* 2. The Track (the background) */
