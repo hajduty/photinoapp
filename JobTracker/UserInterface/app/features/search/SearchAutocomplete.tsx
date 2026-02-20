@@ -21,7 +21,7 @@ export function SearchAutocomplete({ onChange }: SearchAutocompleteProps) {
     timeoutRef.current = window.setTimeout(async () => {
       if (!val) return setData([]);
       setLoading(true);
-      const response = await sendPhotinoRequest('jobSearch.getTitles', { keyword: val });
+      const response = await sendPhotinoRequest('jobs.getTitles', { keyword: val });
       console.log(response);
       setData(response.JobTitles || []);
       setLoading(false);

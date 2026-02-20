@@ -19,7 +19,7 @@ public record ExtendedPosting
 public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    public override string Command => "jobSearch.getJobs";
+    public override string Command => "jobs.getJobs";
 
     public QueryJobsHandler(IDbContextFactory<AppDbContext> dbFactory)
     {

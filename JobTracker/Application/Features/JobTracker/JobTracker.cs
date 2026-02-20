@@ -11,5 +11,5 @@ public class JobTracker
     public bool IsActive { get; set; } = true;
     public int CheckIntervalHours { get; set; } = 1;
     public virtual List<Tag> Tags { get; set; } = new List<Tag>();
-    public DateTime LastCheckedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastCheckedAt { get; set; } = DateTime.Now;
 }

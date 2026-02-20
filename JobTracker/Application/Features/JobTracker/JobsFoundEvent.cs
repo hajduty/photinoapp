@@ -12,7 +12,7 @@ public record JobsFoundEvent(
     IReadOnlyList<JobInfo> Jobs
 ) : IDomainEvent
 {
-    public DateTime OccurredOn { get; } = DateTime.UtcNow;
+    public DateTime OccurredOn { get; } = DateTime.Now;
 }
 
 public record JobInfo(int Id, string Title, string Company);

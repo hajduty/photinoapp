@@ -8,6 +8,7 @@ import Filter from '../../features/search/Filter';
 import { Pagination, Text, Group, Box } from '@mantine/core';
 import { GetJobsRequest } from '../../types/jobs/get-jobs-request';
 import { GetJobsResponse } from '../../types/jobs/get-jobs-response';
+import { CreateApplicationRequest } from '../../types/applications/create-application';
 import { IconAlertCircle, IconUserSearch } from '@tabler/icons-react';
 
 interface ParentFilters {
@@ -32,6 +33,60 @@ export default function JobSearch() {
 
   const ITEMS_PER_PAGE = 20;
 
+  const handleBookmark = async (id: number, targetState: boolean) => {
+    try {
+      const updatedPosting = await sendPhotinoRequest('jobs.bookmark', {
+        PostingId: id,
+        IsBookmarked: targetState
+      });
+
+      setJobPostings(prev => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          // Creating a brand new array reference
+          Postings: prev.Postings.map(item => {
+            if (item.Posting.Id === id) {
+              // We spread the item and the new Posting to ensure 
+              // a new reference is created for the whole ExtendedPosting
+              return {
+                ...item,
+                Posting: { ...updatedPosting.Posting }
+              };
+            }
+            return item;
+          })
+        };
+      });
+
+      console.log(updatedPosting);
+
+      console.log("Update successful");
+    } catch (err) {
+      console.error('Bookmark failed:', err);
+    }
+  };
+
+  const handleApply = async (postingId: number) => {
+    try {
+      const request: CreateApplicationRequest = {
+        JobId: postingId,
+        CoverLetter: ''
+      };
+
+      console.log('Application Request:', request);
+
+      const response = await sendPhotinoRequest("applications.create", request);
+
+      console.log('Application Response:', response);
+
+      console.log("Application created successfully");
+    } catch (err) {
+      console.error('Apply failed:', err);
+    }
+  };
+
   const searchJobs = async (e?: React.FormEvent, page: number = 0, keyword?: string) => {
     e?.preventDefault();
 
@@ -51,18 +106,16 @@ export default function JobSearch() {
         TimeSinceUpload: filters.date
       };
 
-      //const loadData = await sendPhotinoRequest('jobSearch.loadJobs', { keyword: term });
-
       console.log('Search Request:', request);
 
-      const response = await sendPhotinoRequest("jobSearch.getJobs", request);
+      const response = await sendPhotinoRequest("jobs.getJobs", request);
 
       console.log('Search Response:', response);
 
       const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const jobSearchResponse: GetJobsResponse = data;
+      const jobResponse: GetJobsResponse = data;
 
-      setJobPostings({ ...jobSearchResponse });
+      setJobPostings({ ...jobResponse });
 
       setCurrentPage(page - 1);
     } catch (err) {
@@ -149,7 +202,7 @@ export default function JobSearch() {
         {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
           <div className="space-y-4">
             {jobPostings.Postings.map((posting, index) => (
-              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} />
+              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} onApply={(id) => handleApply(id)} />
             ))}
           </div>
         )}

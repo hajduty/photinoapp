@@ -57,7 +57,7 @@ export default function RootLayout({
               </Drawer>
 
               {/* Main Content - no left padding on mobile, padding on desktop */}
-              <main className="flex-1 overflow-y-auto pt-16 md:pt-0 md:pl-48 min-h-screen">
+              <main className="flex-1 overflow-y-auto pt-16 md:pt-0 md:pl-48 min-h-screen bg-neutral-950">
                 <Notifications />
                 {children}
               </main>
