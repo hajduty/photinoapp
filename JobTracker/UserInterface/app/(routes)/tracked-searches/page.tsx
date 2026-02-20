@@ -217,7 +217,7 @@ export default function TrackersPage() {
 
   const formatDate = (date: Date | null) => {
     if (!date) return 'Never';
-    return new Date(date).toLocaleString('en-US', {
+    return new Date(date).toLocaleString('sv-SE', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

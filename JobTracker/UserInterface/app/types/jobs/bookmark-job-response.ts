@@ -1,5 +1,5 @@
-import { Posting } from "./posting";
+import { ExtendedPosting } from "./extended-posting";
 
 export interface BookmarkJobResponse {
-    Posting: Posting;
+    Posting: ExtendedPosting;
 }

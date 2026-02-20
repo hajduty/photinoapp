@@ -16,4 +16,5 @@ export interface Posting {
     CreatedAt: Date;
     LastApplicationDate: Date;
     Source: string;
+    Bookmarked: boolean;
 }

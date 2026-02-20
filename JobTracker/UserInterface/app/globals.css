@@ -32,15 +32,26 @@ body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html {
-  scrollbar-gutter: stable;
+html::-webkit-scrollbar {
+  width: 14px;               /* Width of the entire scrollbar */
+}
+
+/* 2. The Track (the background) */
+html::-webkit-scrollbar-track {
+  background: transparent;    /* Makes the track invisible */
+}
+
+html::-webkit-scrollbar-thumb {
+  background-color: rgb(55 55 55);
+  border: 3px solid transparent;
+  background-clip: content-box; 
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .btn-primary {
     @apply bg-neutral-700 hover:bg-neutral-600 text-white font-medium px-4 py-2 rounded-lg border border-neutral-600 transition-all duration-200;
   }
@@ -57,8 +68,24 @@ html {
     @apply bg-neutral-900 border border-neutral-700 rounded-sm;
   }
   
-  .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-lg transition-all border border-transparent hover:border-neutral-600/30 text-sm;
+  .sidebar-section {
+    @apply flex flex-col gap-1;
+  }
+  
+  .sidebar-section-title {
+    @apply text-[10px] font-semibold uppercase tracking-widest text-neutral-500 px-3 py-2 select-none;
+  }
+  
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2 text-neutral-400 hover:text-white hover:bg-neutral-800/60 rounded-lg transition-all duration-200 text-sm font-medium;
+  }
+  
+  .sidebar-nav-item:hover {
+    @apply bg-neutral-900;
+  }
+  
+  .sidebar-nav-item.active {
+    @apply text-white bg-neutral-800;
   }
   
   .badge {
