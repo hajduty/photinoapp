@@ -31,9 +31,9 @@ export default function RootLayout({
           <SystemEventsProvider>
             <div className="flex min-h-screen relative">
               {/* Desktop Sidebar - hidden on small screens */}
-              <div className="hidden md:block fixed left-0 top-0 bottom-0 z-50">
+              <aside className="hidden md:block fixed left-0 top-0 bottom-0 w-[220px] z-50">
                 <Sidebar />
-              </div>
+              </aside>
 
               {/* Mobile Header with Hamburger - visible only on small screens */}
               <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-neutral-950 border-b border-neutral-700 z-40 flex items-center px-4">
@@ -50,16 +50,27 @@ export default function RootLayout({
                 withCloseButton={false}
                 classNames={{
                   body: "p-0 h-full",
-                  content: "bg-neutral-950"
                 }}
               >
                 <Sidebar onNavigate={close} />
               </Drawer>
 
-              {/* Main Content - no left padding on mobile, padding on desktop */}
-              <main className="flex-1 overflow-y-auto pt-16 md:pt-0 md:pl-48 min-h-screen bg-neutral-950">
-                <Notifications />
-                {children}
+              {/* Main Content */}
+              <main className="flex-1 overflow-y-auto min-h-screen bg-neutral-950">
+                {/* Mobile top padding to account for header */}
+                <div className="md:hidden h-16" />
+                
+                {/* Desktop: left margin equal to sidebar width */}
+                <div className="hidden md:block md:ml-[220px]">
+                    <Notifications />
+                    {children}
+                </div>
+                
+                {/* Mobile: full width */}
+                <div className="md:hidden">
+                  <Notifications />
+                  {children}
+                </div>
               </main>
             </div>
           </SystemEventsProvider>

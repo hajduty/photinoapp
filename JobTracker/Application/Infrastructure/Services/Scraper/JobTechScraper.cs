@@ -19,7 +19,7 @@ public class JobTechScraper
     public async Task<List<Posting>> FetchJobsAsync(string keyword)
     {
         const int LIMIT = 100;
-        const int MAX_CONSECUTIVE_DUPLICATES = 5; // Stop after finding this many consecutive duplicates
+        const int MAX_CONSECUTIVE_DUPLICATES = 20;
         const int MAX_RESULTS = 1000;
 
         var result = new List<Posting>();
@@ -99,7 +99,7 @@ public class JobTechScraper
             }
 
             apiOffset += LIMIT;
-            await Task.Delay(300); // be nice to the api
+            await Task.Delay(1000); // be nice to the api
         }
 
         return result;
