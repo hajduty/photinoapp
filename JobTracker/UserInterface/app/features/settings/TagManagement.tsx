@@ -293,6 +293,7 @@ export default function TagManagement({ className }: TagManagementProps) {
 
       {/* Create Tag Modal */}
       <Modal
+        lockScroll={false}
         opened={createModalOpen}
         onClose={() => {
           setCreateModalOpen(false);
@@ -359,6 +360,7 @@ export default function TagManagement({ className }: TagManagementProps) {
 
       {/* Edit Tag Modal */}
       <Modal
+        lockScroll={false}
         opened={editModalOpen}
         onClose={() => {
           setEditModalOpen(false);

@@ -22,10 +22,10 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   const isActive = (path: string) => pathname === path
 
   return (
-    <div className="h-full flex flex-col bg-neutral-950/20 border-r border-neutral-800 md:w-[220px]">
+    <div className="h-full flex flex-col bg-neutral-950/20 border-r border-neutral-800">
       {/* Header */}
-      <Box className="p-4 border-b border-neutral-800">
-        <div className="flex items-center justify-between">
+      <Box className="p-8 border-b border-neutral-800">
+        <div className="flex items-center justify-center gap-1">
           <Text size="lg" fw={700} c="white">JOBTRACKER</Text>
           <Notifications />
         </div>

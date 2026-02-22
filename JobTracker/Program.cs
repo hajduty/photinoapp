@@ -54,7 +54,7 @@ class Program
 
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
-                ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
+                //ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
                 services.AddSingleton<IUiEventEmitter, UiEventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
@@ -255,6 +255,7 @@ class Program
                 }
                 // else: window is already being created, do nothing
             }
+
         };
 
         // Start with window visible

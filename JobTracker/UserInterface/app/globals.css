@@ -70,7 +70,7 @@ html::-webkit-scrollbar-thumb {
   }
   
   .card {
-    @apply bg-neutral-900 border border-neutral-700 rounded-sm;
+    @apply bg-neutral-900/70 border border-neutral-800 rounded-md;
   }
   
   .sidebar-section {
@@ -200,4 +200,81 @@ html::-webkit-scrollbar-thumb {
 
 .mantine-Notification-root[data-mantine-color="yellow"]::before {
   background-color: #eab308 !important;
+}
+
+.mantine-Modal-content {
+  background-color: #131313 !important;
+}
+
+.mantine-Modal-header {
+  background-color: #131313 !important;
+}
+
+.mantine-Pagination-control {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: #a3a3a3 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.mantine-Pagination-control:hover {
+  border-color: #262626 !important;
+  color: white !important;
+}
+
+.mantine-Pagination-control[data-disabled="true"] {
+  background-color: transparent !important;
+  opacity: 0.5 !important;
+}
+
+.mantine-Pagination-control[data-active="true"] {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+  color: white !important;
+}
+
+/* Heatmap styles - gray scale for dark background */
+.mantine-Heatmap-weekdayLabel {
+  fill: #a3a3a3 !important;
+}
+
+.mantine-Heatmap-monthLabel {
+  fill: #a3a3a3 !important;
+}
+
+.mantine-Heatmap-cell {
+  stroke: #262626 !important;
+}
+
+.mantine-Tooltip-tooltip {
+  background-color: #303030 !important;
+  color: rgb(210,210,210) !important;
+}
+
+.mantine-Drawer-content {
+  background-color: #121212 !important;
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #404040;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #525252;
 }

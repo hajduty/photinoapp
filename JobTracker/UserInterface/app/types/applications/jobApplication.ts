@@ -8,6 +8,7 @@ export interface JobApplication {
   AppliedAt: Date,
   LastStatusChangeAt: Date,
   Status: ApplicationStatus
+  StatusHistory: ApplicationStatusHistory[]
 }
 
 export enum ApplicationStatus {
@@ -18,4 +19,13 @@ export enum ApplicationStatus {
   Accepted,
   Rejected,
   Ghosted
+}
+
+export interface ApplicationStatusHistory {
+  Id: number,
+  JobApplicationId: number,
+  JobApplication: JobApplication,
+  ApplicationStatus: ApplicationStatus,
+  ChangedAt: Date,
+  Note?: string
 }
