@@ -54,7 +54,7 @@ class Program
 
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
-                //ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
+                ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
                 services.AddSingleton<IUiEventEmitter, UiEventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
