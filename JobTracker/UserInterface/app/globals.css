@@ -159,13 +159,13 @@ html::-webkit-scrollbar-thumb {
 }
 
 .mantine-Notification-root {
-  background-color: #0A0A0A !important;
+  background-color: #111111 !important;
   border: 1px solid #404040 !important;
-  color: white !important;
+  color: rgb(200,200,200) !important;
 }
 
 .mantine-Notification-root::before {
-  background-color: #3b82f6 !important;
+  background-color: #111111 !important;
 }
 
 .mantine-Notification-title {

@@ -21,7 +21,7 @@ function showEmbeddingsToast(data: unknown, onCancel?: () => void) {
     id: embeddingsId,
     title,
     message: (
-      <div className="flex items-center justify-between w-full gap-8 px-2">
+      <div className="flex items-center justify-between w-full gap-8">
         <span>{message}</span>
         {onCancel && <Button size="xs" variant="light" color="red" onClick={onCancel}>Cancel</Button>}
       </div>
