@@ -20,6 +20,9 @@ public class GetApplicationsHandler : RpcHandler<NoRequest, GetApplicationsRespo
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        return new GetApplicationsResponse(await db.JobApplications.Include(j => j.Posting).ToListAsync());
+        return new GetApplicationsResponse(await db.JobApplications
+            .Include(j => j.Posting)
+            .Include(j => j.StatusHistory.OrderByDescending(h => h.ChangedAt))
+            .ToListAsync());
     }
 }

@@ -255,6 +255,7 @@ class Program
                 }
                 // else: window is already being created, do nothing
             }
+
         };
 
         // Start with window visible

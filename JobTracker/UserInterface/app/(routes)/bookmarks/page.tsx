@@ -92,15 +92,13 @@ export default function SavedPage() {
   }, [])
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header and Search Form */}
-        <div className="py-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-200 mb-2">SAVED JOBS</h1>
-              <p className="text-neutral-400">Your bookmarked jobs.</p>
-            </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-200 mb-2">SAVED JOBS</h1>
+            <p className="text-neutral-400">Your bookmarked jobs.</p>
           </div>
         </div>
 
@@ -136,7 +134,13 @@ export default function SavedPage() {
         {!loading && postings.length > 0 && (
           <div className="space-y-4">
             {postings.map((posting, index) => (
-              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} onApply={(id) => handleApply(id)} />
+              <JobPosting 
+                key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} 
+                Posting={posting.Posting} 
+                Tags={posting.Tags} 
+                onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} 
+                onApply={(id) => handleApply(id)}
+              />
             ))}
           </div>
         )}

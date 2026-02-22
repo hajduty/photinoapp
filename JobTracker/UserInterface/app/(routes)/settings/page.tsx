@@ -79,8 +79,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto py-6">
+    <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <Flex justify="space-between" align="center" mb="md">
           <Box>
             <Title order={2} c="white">SETTINGS</Title>

@@ -18,12 +18,13 @@ export default function JobApplicationsPage() {
     setError(null);
 
     try {
-      const response = await sendPhotinoRequest("applications.get", {});
+      const response = await sendPhotinoRequest("applications.get", {hello:"hello"});
+      console.log("WTF");
+      console.log(response);
 
       const data = typeof response === 'string' ? JSON.parse(response) : response;
       const applicationResponse: GetApplicationResponse = data;
 
-      console.log(response);
 
       setApplications(applicationResponse.AppliedJobs || []);
     } catch (err) {
@@ -71,7 +72,6 @@ export default function JobApplicationsPage() {
 
       console.log('Delete Application Response:', response);
 
-      // Remove from local state
       setApplications(prev => prev.filter(app => app.JobId !== jobId));
 
       console.log("Application deleted successfully");
@@ -86,15 +86,13 @@ export default function JobApplicationsPage() {
   }, [])
 
   return (
-    <div className="p-8">
+    <div className="md:p-8 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header and Search Form */}
-        <div className="py-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB APPLICATIONS</h1>
-              <p className="text-neutral-400">Track and manage all your job applications in one place.</p>
-            </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB APPLICATIONS</h1>
+            <p className="text-neutral-400">Track and manage all your job applications in one place.</p>
           </div>
         </div>
 

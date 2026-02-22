@@ -31,15 +31,15 @@ const mockEmails: MockEmail[] = [
   }
 ];
 
-// Color mapping for each application status
+// Color mapping for each application status (pastel colors for dark theme)
 const statusColors: Record<ApplicationStatus, string> = {
-  [ApplicationStatus.Pending]: '#F59E0B',
-  [ApplicationStatus.Submitted]: '#3B82F6',
-  [ApplicationStatus.Interview]: '#8B5CF6',
-  [ApplicationStatus.Offer]: '#10B981',
-  [ApplicationStatus.Accepted]: '#22C55E',
-  [ApplicationStatus.Rejected]: '#EF4444',
-  [ApplicationStatus.Ghosted]: '#6B7280',
+  [ApplicationStatus.Pending]: '#fbbf24',
+  [ApplicationStatus.Submitted]: '#60a5fa',
+  [ApplicationStatus.Interview]: '#a78bfa',
+  [ApplicationStatus.Offer]: '#34d399',
+  [ApplicationStatus.Accepted]: '#4ade80',
+  [ApplicationStatus.Rejected]: '#f87171',
+  [ApplicationStatus.Ghosted]: '#9ca3af',
 };
 
 // Label mapping for each application status
@@ -82,7 +82,7 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
   return (
     <>
       <div className="card transition-all duration-300 border-neutral-700">
-        <div className="flex flex-col p-4 border-b border-neutral-700 hover:bg-neutral-800/30 transition-colors duration-200 gap-4">
+        <div className="flex flex-col p-4 border-neutral-700 hover:bg-neutral-800/30 transition-colors duration-200 gap-4">
           
           {/* Main Content Area */}
           <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -109,9 +109,10 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
                 <Menu shadow="md" width={150} position="bottom-end">
                   <Menu.Target>
                     <Badge 
-                      size="lg" 
+                      size="sm" 
+                      radius="xs"
                       variant="filled"
-                      style={{ backgroundColor: statusColor, color: getContrastColor(statusColor), cursor: 'pointer' }}
+                      style={{ backgroundColor: statusColor, color: '#1f2937', cursor: 'pointer' }}
                     >
                       {statusLabel}
                     </Badge>
@@ -210,6 +211,7 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
         title="Emails"
         size="lg"
         centered
+        lockScroll={false}
       >
         <div className="space-y-4">
           {mockEmails.length === 0 ? (

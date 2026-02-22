@@ -226,8 +226,8 @@ export default function TrackersPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto py-6">
+    <div className="p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB TRACKERS</h1>
@@ -235,7 +235,7 @@ export default function TrackersPage() {
           </div>
           <button 
             onClick={() => openModal()} 
-            className="btn-secondary text-sm flex items-center gap-2"
+            className="btn-secondary text-sm flex items-center"
           >
             <IconPlus size={16} />
             Add Tracker
@@ -319,6 +319,7 @@ export default function TrackersPage() {
           onClose={() => setModalOpen(false)}
           title={editingTracker ? 'Edit Tracker' : 'New Tracker'}
           centered
+          lockScroll={false}
           classNames={{
             content: 'bg-neutral-900 border border-neutral-800',
             title: 'text-neutral-200',

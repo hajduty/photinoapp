@@ -133,18 +133,16 @@ export default function JobSearch() {
   }, [filters]);
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="md:p-8 p-4">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header and Search Form */}
-        <div className="py-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB SEARCH</h1>
-              <p className="text-neutral-400">Explore all available jobs instantly, results come from your tracked searches.</p>
-            </div>
-
-            <SearchAutocomplete onChange={(val) => { setSearchTerm(val); searchJobs(undefined, 1, val) }} />
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-200 mb-2">JOB SEARCH</h1>
+            <p className="text-neutral-400">Explore all available jobs instantly, results come from your tracked searches.</p>
           </div>
+
+          <SearchAutocomplete onChange={(val) => { setSearchTerm(val); searchJobs(undefined, 1, val) }} />
         </div>
 
         {/* Filter Component */}
@@ -202,7 +200,13 @@ export default function JobSearch() {
         {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
           <div className="space-y-4">
             {jobPostings.Postings.map((posting, index) => (
-              <JobPosting key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} Posting={posting.Posting} Tags={posting.Tags} onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} onApply={(id) => handleApply(id)} />
+              <JobPosting 
+                key={posting.Posting.Id || `${posting.Posting.Id}-${index}`} 
+                Posting={posting.Posting} 
+                Tags={posting.Tags} 
+                onBookmark={(e) => handleBookmark(posting.Posting.Id, e.valueOf())} 
+                onApply={(id) => handleApply(id)}
+              />
             ))}
           </div>
         )}
@@ -222,7 +226,6 @@ export default function JobSearch() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 disabled={loading}
-                color="gray"
                 size="md"
                 radius="sm"
               />
