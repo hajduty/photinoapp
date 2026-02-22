@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<Settings> Settings { get; set; } = null!;
     public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
+    public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -50,6 +51,12 @@ public class AppDbContext : DbContext
             .HasOne<Posting>()
             .WithOne()
             .HasForeignKey<JobApplication>(je => je.JobId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // --------------
+        modelBuilder.Entity<ApplicationStatusHistory>()
+            .HasOne(h => h.JobApplication)
+            .WithMany(a => a.StatusHistory)
+            .HasForeignKey(h => h.JobApplicationId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -30,7 +30,16 @@ public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, Cre
             Posting = posting,
             CoverLetter = request.CoverLetter,
             Status = ApplicationStatus.Pending,
-            LastStatusChangeAt = DateTime.Now
+            LastStatusChangeAt = DateTime.Now,
+            StatusHistory = new List<ApplicationStatusHistory>
+            {
+                new()
+                {
+                    Status = ApplicationStatus.Pending,
+                    ChangedAt = DateTime.Now,
+                    Note = "Application created"
+                }
+            }
         };
 
         db.JobApplications.Add(newApplication);

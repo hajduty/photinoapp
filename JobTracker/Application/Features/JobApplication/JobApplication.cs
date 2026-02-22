@@ -12,6 +12,7 @@ public class JobApplication
     public DateTime AppliedAt { get; set; }
     public DateTime? LastStatusChangeAt { get; set; }
     public ApplicationStatus Status { get; set; }
+    public List<ApplicationStatusHistory> StatusHistory { get; set; } = new();
     //public List<Mails> RelatedMails
 }
 

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.JobApplication;
 
-public record UpdateApplicationRequest(int Id, ApplicationStatus ApplicationStatus);
+public record UpdateApplicationRequest(int Id, ApplicationStatus ApplicationStatus, string? Note = null);
 public record UpdateApplicationResponse(JobApplication Application);
 
 public class UpdateApplicationHandler 
@@ -29,8 +29,20 @@ public class UpdateApplicationHandler
             throw new InvalidOperationException($"Job with Id {request.Id} not found");
         }
 
-        application.Status = request.ApplicationStatus;
-        application.LastStatusChangeAt = DateTime.Now;
+        if (application.Status != request.ApplicationStatus)
+        {
+            application.Status = request.ApplicationStatus;
+            application.LastStatusChangeAt = DateTime.Now;
+
+            db.ApplicationStatusHistories.Add(new ApplicationStatusHistory
+            {
+                JobApplicationId = application.JobId,
+                Status = request.ApplicationStatus,
+                ChangedAt = DateTime.Now,
+                Note = request.Note
+            });
+        }
+
         await db.SaveChangesAsync();
 
         return new UpdateApplicationResponse(application);
