@@ -406,3 +406,11 @@ FodyWeavers.xsd
 /JobTracker.Tests/Models/sentence-bert-swedish-cased/config.json
 /JobTracker.Tests/Models/sentence-bert-swedish-cased/model.onnx
 /JobTracker.Tests/Models/sentence-bert-swedish-cased/tokenizer.json
+/JobTracker.Tests/Models/jina-embeddings-v5-text-nano-retrieval/config.json
+/JobTracker.Tests/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx
+/JobTracker.Tests/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx_data
+/JobTracker.Tests/Models/jina-embeddings-v5-text-nano-retrieval/tokenizer.json
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/config.json
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx_data
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/tokenizer.json
