@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Photino.NET;
 using Photino.NET.Server;
+using Services;
 using System.Text.Json;
 
 namespace Photino.HelloPhotino.React;
@@ -58,11 +59,12 @@ class Program
                 services.AddSingleton<IUiEventEmitter, UiEventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
+                services.AddSingleton<BertService>();
+                services.AddSingleton<JinaEmbeddingService>();
                 services.AddSingleton<JobTechScraper>();
                 services.AddSingleton<ScrapeService>();
                 services.AddSingleton<TrackerService>();
-                services.AddSingleton<EmbeddingService>();
-                services.AddSingleton<OllamaService>();
+                services.AddSingleton<EmbeddingProcessor>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
                 services.AddScoped<IEventHandler<EmbeddingsCancelled>, EmbeddingsCancelledHandler>();

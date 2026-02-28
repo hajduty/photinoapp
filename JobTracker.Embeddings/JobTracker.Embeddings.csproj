@@ -1,0 +1,119 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastBertTokenizer" Version="1.1.30-alpha" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.2" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.2" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntimeGenAI.DirectML" Version="0.12.1" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+    <PackageReference Include="System.Numerics.Tensors" Version="9.0.0" />
+    <PackageReference Include="Tokenizers.DotNet" Version="1.4.0" />
+    <PackageReference Include="Tokenizers.DotNet.runtime.win-x64" Version="1.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model.onnx_data">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model_q4f16.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model_q4f16.onnx_data">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\added_tokens.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\genai_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\generation_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\merges.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\quantize_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\special_tokens_map.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\tokenizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\tokenizer_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\qwen-2.5-0.5b\vocab.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\sentence-bert-swedish-cased\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\sentence-bert-swedish-cased\model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\sentence-bert-swedish-cased\tokenizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model_fp16.onnx_data">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-retrieval\tokenizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\added_tokens.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\genai_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\generation_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\merges.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\quantize_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\special_tokens_map.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\tokenizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\tokenizer_config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Summarizer\vocab.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -19,7 +19,7 @@ public class RankedPostingResult
 public class SearchHandler
     : RpcHandler<SemanticSearchRequest, SemanticSearchResponse>
 {
-    private readonly EmbeddingService _embeddingService;
+    private readonly EmbeddingProcessor _embeddingService;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly OllamaService _ollamaService;
 
@@ -27,7 +27,7 @@ public class SearchHandler
 
     public override string Command => "semanticSearch.query";
 
-    public SearchHandler(EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
+    public SearchHandler(EmbeddingProcessor embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
     {
         _embeddingService = embeddingService;
         _dbFactory = dbFactory;
@@ -43,7 +43,7 @@ public class SearchHandler
 
         // Generate query embedding
         var queryVector = await _ollamaService.GenerateEmbeddingAsync(keyword);
-        var normalizedQuery = EmbeddingService.Normalize(queryVector);
+        var normalizedQuery = EmbeddingProcessor.Normalize(queryVector);
 
         // Load embeddings
         var embeddings = await db.JobEmbeddings.ToListAsync();
@@ -53,7 +53,7 @@ public class SearchHandler
             .Select(e => new
             {
                 e.JobId,
-                Score = EmbeddingService.Dot(normalizedQuery, EmbeddingService.FromBytes(e.Data))
+                Score = EmbeddingProcessor.Dot(normalizedQuery, EmbeddingProcessor.FromBytes(e.Data))
             })
             .OrderByDescending(x => x.Score)
             .ToList();

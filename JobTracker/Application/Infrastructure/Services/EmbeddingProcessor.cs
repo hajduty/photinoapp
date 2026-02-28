@@ -4,24 +4,28 @@ using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Features.System;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Services;
 using System.Diagnostics;
 
 namespace JobTracker.Application.Infrastructure.Services;
 
-public class EmbeddingService
+public class EmbeddingProcessor
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IEventPublisher _domainEventPublisher;
-    private readonly OllamaService _ollama;
+    private readonly JinaEmbeddingService _embeddingService; // Your new service
 
     private CancellationTokenSource? _cts;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public EmbeddingService(IDbContextFactory<AppDbContext> dbFactory, OllamaService ollama, IEventPublisher domainEventPublisher)
+    public EmbeddingProcessor(
+        IDbContextFactory<AppDbContext> dbFactory,
+        IEventPublisher domainEventPublisher,
+        JinaEmbeddingService embeddingService)
     {
         _dbFactory = dbFactory;
-        _ollama = ollama;
         _domainEventPublisher = domainEventPublisher;
+        _embeddingService = embeddingService;
     }
 
     public async Task GenerateEmbeddingsAsync()
@@ -58,41 +62,43 @@ public class EmbeddingService
 
             Debug.WriteLine($"Found {postings.Count} postings to process");
 
+            // Format texts for embedding
             var postingTexts = postings.Select(p =>
                 $"Location: {p.Location} {p.PostedDate} {p.Title} {p.Description}"
             ).ToList();
 
-            var batchSize = 20;
+            var batchSize = 16;
             var batchNumber = 0;
 
-            await foreach (var batchEmbeddings in _ollama.GenerateEmbeddingsBatchedAsync(postingTexts).WithCancellation(token))
+            // Process in batches using your new EmbeddingService
+            for (int i = 0; i < postingTexts.Count; i += batchSize)
             {
-                var currentBatch = postings
-                    .Skip(batchNumber * batchSize)
-                    .Take(batchSize)
-                    .ToList();
-
                 token.ThrowIfCancellationRequested();
 
-                var successCount = 0;
+                var textBatch = postingTexts.Skip(i).Take(batchSize).ToList();
+                var currentBatch = postings.Skip(i).Take(batchSize).ToList();
 
-                for (int i = 0; i < currentBatch.Count; i++)
+                var embeddingFloats = _embeddingService.GenerateEmbeddingsBatch(textBatch.ToArray());
+
+                var successCount = 0;
+                for (int j = 0; j < currentBatch.Count; j++)
                 {
-                    if (i < batchEmbeddings.Count && batchEmbeddings[i] != null)
+                    if (j < embeddingFloats.Length && embeddingFloats[j] != null)
                     {
-                        var normalized = Normalize(batchEmbeddings[i]);
-                        var blob = ToBytes(normalized);
+                        var floats = embeddingFloats[j];
+                        var bytes = new byte[floats.Length * sizeof(float)];
+                        Buffer.BlockCopy(floats, 0, bytes, 0, bytes.Length);
 
                         db.JobEmbeddings.Add(new JobEmbedding
                         {
-                            JobId = currentBatch[i].Id,
-                            Data = blob
+                            JobId = currentBatch[j].Id,
+                            Data = bytes
                         });
                         successCount++;
                     }
                     else
                     {
-                        Debug.WriteLine($"Failed to generate embedding for Job {currentBatch[i].Id}");
+                        Debug.WriteLine($"Failed to generate embedding for Job {currentBatch[j].Id}");
                     }
                 }
 
@@ -120,9 +126,9 @@ public class EmbeddingService
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        // Generate query embedding
-        var queryVector = await _ollama.GenerateEmbeddingAsync(query);
-        var normalizedQuery = Normalize(queryVector);
+        // Generate query embedding using your new service
+        var queryEmbeddingBytes = _embeddingService.GenerateEmbedding(query);
+        var normalizedQuery = FromBytes(queryEmbeddingBytes); // Convert back to float for dot product
 
         // Load embeddings
         var embeddings = await db.JobEmbeddings.ToListAsync();
@@ -161,6 +167,7 @@ public class EmbeddingService
         _cts?.Cancel();
     }
 
+    // Keep these helper methods (they're still needed)
     public static float Dot(float[] a, float[] b)
     {
         float sum = 0;
@@ -177,6 +184,8 @@ public class EmbeddingService
         return floats;
     }
 
+    // Note: Normalize and ToBytes are no longer needed since EmbeddingService handles them
+    // But if other code uses them, you can keep them or remove if unused
     public static float[] Normalize(float[] vec)
     {
         var len = Math.Sqrt(vec.Select(x => x * x).Sum());
