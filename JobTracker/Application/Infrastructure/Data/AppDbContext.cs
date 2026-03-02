@@ -1,7 +1,8 @@
-﻿using JobTracker.Application.Features.JobApplication;
+﻿using JobTracker.Application.Features.Classifications;
+using JobTracker.Application.Features.Embeddings;
+using JobTracker.Application.Features.JobApplication;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.Notification;
-using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
+    public DbSet<Prototype> Prototypes { get; set; } = null!;
+    public DbSet<Classification> Classifications { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -35,13 +38,12 @@ public class AppDbContext : DbContext
         // --------------
         modelBuilder.Entity<JobEmbedding>()
             .HasOne<Posting>()
-            .WithOne()
-            .HasForeignKey<JobEmbedding>(je => je.JobId)
+            .WithMany() 
+            .HasForeignKey(jse => jse.JobId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<JobEmbedding>()
-            .HasIndex(je => je.JobId)
-            .IsUnique();
+            .HasIndex(jse => jse.JobId);
         // --------------
         modelBuilder.Entity<JobApplication>()
             .HasIndex(je => je.JobId)
@@ -58,5 +60,15 @@ public class AppDbContext : DbContext
             .WithMany(a => a.StatusHistory)
             .HasForeignKey(h => h.JobApplicationId)
             .OnDelete(DeleteBehavior.Cascade);
+        // --------------
+        modelBuilder.Entity<Classification>()
+            .HasMany(c => c.Prototypes)
+            .WithOne(p => p.Classification)
+            .HasForeignKey(p => p.ClassificationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Classification>()
+            .HasIndex(c => c.Name)
+            .IsUnique();
     }
 }
