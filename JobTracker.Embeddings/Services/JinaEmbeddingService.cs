@@ -4,7 +4,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using Tokenizers.DotNet;
 
-namespace Services;
+namespace JobTracker.Embeddings.Services;
 
 // DeepSeek cooked here
 
@@ -12,7 +12,7 @@ public class JinaEmbeddingService : IDisposable
 {
     private readonly InferenceSession _session;
     private readonly Tokenizer _tokenizer;
-    private readonly int _maxLength = 512;
+    private readonly int _maxLength = 64;
     private readonly int _hiddenSize;
     private readonly bool _useGpu;
 
@@ -20,12 +20,12 @@ public class JinaEmbeddingService : IDisposable
     private readonly long[] _attentionMaskBuffer;
     private readonly int[] _singleDimensions;
 
-    public JinaEmbeddingService(int maxLength = 512, bool forceCpu = false)
+    public JinaEmbeddingService(int maxLength = 64, bool forceCpu = false)
     {
         _maxLength = maxLength;
 
-        string modelPath = "Models/jina-embeddings-v5-text-nano-retrieval/model.onnx";
-        string tokenizerJsonPath = "Models/jina-embeddings-v5-text-nano-retrieval/tokenizer.json";
+        string modelPath = "Models/jina-embeddings-v5-text-nano-classification/model.onnx";
+        string tokenizerJsonPath = "Models/jina-embeddings-v5-text-nano-classification/tokenizer.json";
 
         _tokenizer = new Tokenizer(tokenizerJsonPath);
 
@@ -162,7 +162,7 @@ public class JinaEmbeddingService : IDisposable
         int count = texts.Length;
         var allEmbeddings = new float[count][];
 
-        int batchSize = _useGpu ? 16 : 4;
+        int batchSize = _useGpu ? 110 : 16;
 
         for (int i = 0; i < count; i += batchSize)
         {
@@ -264,7 +264,7 @@ public class JinaEmbeddingService : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float CosineSimilarity(float[] a, float[] b)
+    public static float CosineSimilarity(float[] a, float[] b)
     {
         if (a.Length != b.Length)
             throw new ArgumentException("Vector length mismatch");

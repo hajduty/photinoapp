@@ -213,6 +213,7 @@ export default function ClassificationPrototypeModal({
           title: 'text-neutral-200',
           close: 'text-neutral-400 hover:text-white'
         }}
+        lockScroll={false}
       >
         {prototypeToDelete && (
           <div className="space-y-3">

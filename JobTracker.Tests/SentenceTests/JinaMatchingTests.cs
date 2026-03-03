@@ -1,5 +1,5 @@
-﻿using Microsoft.VisualStudio.TestPlatform.Utilities;
-using Services;
+﻿using JobTracker.Embeddings.Services;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit.Abstractions;
 
 namespace JobTracker.Tests.SentenceTests;

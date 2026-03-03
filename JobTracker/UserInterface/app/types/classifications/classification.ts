@@ -8,5 +8,6 @@ import { Prototype } from "../prototypes/prototype";
 export interface Classification {
     Id: number;
     Name: string;
+    Color?: string;
     Prototypes: Prototype[];
 }

@@ -15,7 +15,7 @@ public class JobEmbedding
     public float? Score { get; set; }
 }
 
-public class JobSentenceDto
+public class JobSentence
 {
     public int Id { get; set; }
     public int JobId { get; set; }

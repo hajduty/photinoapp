@@ -3,7 +3,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 using FastBertTokenizer;
 using System.Buffers;
 
-namespace Services;
+namespace JobTracker.Embeddings.Services;
 
 public class BertService : IDisposable
 {
@@ -246,7 +246,7 @@ public class BertService : IDisposable
         return pooled;
     }
 
-    private float[] Normalize(float[] vec)
+    public static float[] Normalize(float[] vec)
     {
         var len = Math.Sqrt(vec.Select(x => x * x).Sum());
         if (len < 1e-12) return vec;

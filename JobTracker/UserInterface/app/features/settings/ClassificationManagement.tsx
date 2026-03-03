@@ -8,7 +8,8 @@ import {
   Text,
   Badge,
   rem,
-  Loader
+  Loader,
+  ColorPicker
 } from '@mantine/core';
 import {
   IconPlus,
@@ -25,6 +26,7 @@ import { CreateClassificationRequest } from '../../types/classifications/create-
 import { CreateClassificationResponse } from '../../types/classifications/create-classification-response';
 import { DeleteClassificationRequest } from '../../types/classifications/delete-classification-request';
 import { DeleteClassificationResponse } from '../../types/classifications/delete-classification-response';
+import { getContrastColor } from '../../utils/getContrastColor';
 import ClassificationPrototypeModal from './ClassificationPrototypeModal';
 
 interface ClassificationManagementProps {
@@ -44,6 +46,7 @@ export default function ClassificationManagement({ className }: ClassificationMa
 
   // Form states
   const [newClassificationName, setNewClassificationName] = useState('');
+  const [newClassificationColor, setNewClassificationColor] = useState<string | undefined>(undefined);
   const [classificationToDelete, setClassificationToDelete] = useState<Classification | null>(null);
   const [classificationToEdit, setClassificationToEdit] = useState<Classification | null>(null);
 
@@ -88,7 +91,8 @@ export default function ClassificationManagement({ className }: ClassificationMa
     try {
       setIsSubmitting(true);
       const request: CreateClassificationRequest = {
-        Name: newClassificationName.trim()
+        Name: newClassificationName.trim(),
+        ...(newClassificationColor && { Color: newClassificationColor })
       };
 
       const response = await sendPhotinoRequest<CreateClassificationResponse>('classifications.create', request);
@@ -140,7 +144,15 @@ export default function ClassificationManagement({ className }: ClassificationMa
     <Table.Tr key={classification.Id}>
       <Table.Td>
         <Group gap="sm">
-          <Badge color="blue" variant="light">
+          <Badge
+            color="gray"
+            variant="light"
+            style={{
+              backgroundColor: classification.Color || 'transparent',
+              color: classification.Color ? getContrastColor(classification.Color) : 'inherit',
+              border: 'none'
+            }}
+          >
             {classification.Name}
           </Badge>
         </Group>
@@ -270,6 +282,20 @@ export default function ClassificationManagement({ className }: ClassificationMa
             error: 'text-red-400'
           }}
         />
+        <div className="mb-4">
+          <Text className="text-neutral-300 mb-2">Classification Color</Text>
+          <ColorPicker
+            value={newClassificationColor}
+            onChange={setNewClassificationColor}
+            format="hex"
+            withPicker={true}
+            fullWidth
+            swatches={[
+              '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6366f1', '#a855f7', '#ec4899',
+              '#6b7280', '#111827', '#06b6d4', '#84cc16', '#f43f5e', '#a78bfa', '#f59e0b'
+            ]}
+          />
+        </div>
         <Group justify="flex-end" mt="md">
           <button 
             onClick={() => setCreateModalOpen(false)}
@@ -314,6 +340,7 @@ export default function ClassificationManagement({ className }: ClassificationMa
           title: 'text-neutral-200',
           close: 'text-neutral-400 hover:text-white'
         }}
+        lockScroll={false}
       >
         {classificationToDelete && (
           <div>

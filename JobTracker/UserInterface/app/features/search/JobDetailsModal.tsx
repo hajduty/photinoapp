@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
 import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark } from '@tabler/icons-react';
 import { Modal, Divider } from '@mantine/core';
+import { Classification } from '@/app/types/classifications/classification';
+import { sendPhotinoRequest } from '@/app/utils/photino';
+import { JobSentence } from '@/app/types/jobs/jobsentence';
 
 interface JobDetailsModalProps {
   posting: ExtendedPosting;
@@ -13,15 +16,85 @@ interface JobDetailsModalProps {
   isBookmarked?: boolean;
 }
 
-export default function JobDetailsModal({ 
-  posting, 
-  opened, 
-  onClose, 
-  onApply, 
+export default function JobDetailsModal({
+  posting,
+  opened,
+  onClose,
+  onApply,
   onBookmark,
-  isBookmarked = false 
+  isBookmarked = false
 }: JobDetailsModalProps) {
   const { Posting, Tags } = posting;
+  const [classifications, setClassifications] = useState<Classification[]>();
+  const [sentences, setSentences] = useState<JobSentence[]>();
+
+  const fetchClassifications = async () => {
+    const response = await sendPhotinoRequest("classifications.get", { norequest: "0" })
+    setClassifications(response.Classifications)
+  }
+
+  const fetchSentences = async () => {
+    const response = await sendPhotinoRequest("embeddings.getDescription", { JobId: Posting.Id })
+    setSentences(response.Sentences);
+    console.log(response.Sentences);
+  }
+
+  const descriptionBuilder = () => {
+    if (!sentences || !classifications) return Posting.Description;
+
+    // Sort sentences by Start so highlights are correct
+    const sortedSentences = [...sentences].sort((a, b) => a.Start - b.Start);
+
+    
+
+    // Map description into React nodes with highlights
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+
+    sortedSentences.forEach((sentence) => {
+      const { Start, Length, Sentence, SentenceType } = sentence;
+
+      // Add any text before the sentence
+      if (Start > cursor) {
+        nodes.push(
+          <span key={`text-${cursor}`}>{Posting.Description.slice(cursor, Start)}</span>
+        );
+      }
+
+      // Find the matching classification color
+      const classification = classifications.find(c => c.Name === SentenceType);
+      const bgColor = classification?.Color ?? 'transparent';
+
+      nodes.push(
+        <span
+          key={`sentence-${Start}`}
+          style={{
+            backgroundColor: bgColor,
+            borderRadius: '2px',
+            padding: '0 2px',
+          }}
+        >
+          {Posting.Description.slice(Start, Start + Length)}
+        </span>
+      );
+
+      cursor = Start + Length;
+    });
+
+    // Add remaining text after last sentence
+    if (cursor < Posting.Description.length) {
+      nodes.push(<span key={`text-end`}>{Posting.Description.slice(cursor)}</span>);
+    }
+
+    return nodes;
+  };
+
+  useEffect(() => {
+    if (opened) {
+      fetchClassifications();
+      fetchSentences();
+    }
+  }, [opened])
 
   const handleApply = () => {
     if (onApply) {
@@ -53,7 +126,7 @@ export default function JobDetailsModal({
             <p className="text-sm text-neutral-400">{Posting.Company}</p>
           </div>
           {onBookmark && (
-            <button 
+            <button
               onClick={onBookmark}
               className="flex-shrink-0 p-2 text-neutral-500 hover:text-yellow-500 transition-colors"
             >
@@ -113,14 +186,14 @@ export default function JobDetailsModal({
         {/* Full Description - Scrollable with custom scrollbar */}
         <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
           <h3 className="text-sm font-semibold text-neutral-300 mb-2">Job Description</h3>
-          <div 
-            className="text-neutral-300 text-sm whitespace-pre-wrap leading-relaxed"
-            style={{ 
+          <div
+            className="text-neutral-300 text-sm leading-relaxed"
+            style={{
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word'
             }}
           >
-            {Posting.Description}
+            {descriptionBuilder()}
           </div>
         </div>
 

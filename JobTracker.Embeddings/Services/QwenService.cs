@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace Services;
+namespace JobTracker.Embeddings.Services;
 
 public class QwenService : IDisposable
 {

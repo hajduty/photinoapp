@@ -1,6 +1,6 @@
 ﻿using Xunit;
 using Xunit.Abstractions;
-using Services;
+using JobTracker.Embeddings.Services;
 
 namespace JobTracker.Tests;
 

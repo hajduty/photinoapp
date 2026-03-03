@@ -42,7 +42,7 @@ export default function JobPosting({ Posting, Tags, onBookmark, onApply, onClick
   return (
     <>
       <div className="card transition-all duration-300 border-neutral-700 cursor-pointer" onClick={handleCardClick}>
-        <div className="flex flex-col p-4 border-neutral-700 hover:bg-neutral-800/30 transition-colors duration-200 gap-4">
+        <div className="flex flex-col p-4 border-neutral-700 hover:bg-neutral-800/30 transition-colors duration-200">
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start gap-3 mb-2">

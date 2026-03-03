@@ -76,7 +76,7 @@ public class EmbeddingProcessor
 
             const int batchSize = 110;
 
-            var buffer = new List<(int JobId, JobSentenceDto Sentence)>(batchSize);
+            var buffer = new List<(int JobId, JobSentence Sentence)>(batchSize);
 
             foreach (var posting in postings)
             {
@@ -120,7 +120,7 @@ public class EmbeddingProcessor
     }
 
     private async Task<int> ProcessBatch(
-        List<(int JobId, JobSentenceDto Sentence)> batch,
+        List<(int JobId, JobSentence Sentence)> batch,
         AppDbContext db,
         CancellationToken token)
     {
@@ -164,9 +164,9 @@ public class EmbeddingProcessor
     "dept", "approx", "incl", "excl", "est", "fig", "no", "vol", "p"
 };
 
-    public List<JobSentenceDto> ExtractJobSentences(string text)
+    public List<JobSentence> ExtractJobSentences(string text)
     {
-        var result = new List<JobSentenceDto>();
+        var result = new List<JobSentence>();
         if (string.IsNullOrWhiteSpace(text)) return result;
 
         int start = 0, id = 0;
@@ -184,7 +184,7 @@ public class EmbeddingProcessor
             if (!string.IsNullOrWhiteSpace(sentence))
             {
                 int actualStart = text.IndexOf(sentence, start, StringComparison.Ordinal);
-                result.Add(new JobSentenceDto
+                result.Add(new JobSentence
                 {
                     Id = id++,
                     Start = actualStart,
@@ -204,7 +204,7 @@ public class EmbeddingProcessor
             if (trailing.Length > 20)
             {
                 int actualStart = text.IndexOf(trailing, start, StringComparison.Ordinal);
-                result.Add(new JobSentenceDto { Id = id++, Start = actualStart, Length = trailing.Length, Sentence = trailing });
+                result.Add(new JobSentence { Id = id++, Start = actualStart, Length = trailing.Length, Sentence = trailing });
             }
         }
 

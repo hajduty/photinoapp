@@ -19,12 +19,10 @@ export default function JobApplicationsPage() {
 
     try {
       const response = await sendPhotinoRequest("applications.get", {hello:"hello"});
-      console.log("WTF");
       console.log(response);
 
       const data = typeof response === 'string' ? JSON.parse(response) : response;
       const applicationResponse: GetApplicationResponse = data;
-
 
       setApplications(applicationResponse.AppliedJobs || []);
     } catch (err) {

@@ -18,6 +18,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Models\jina-embeddings-v5-text-nano-classification\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-classification\model.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-classification\model.onnx_data">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\jina-embeddings-v5-text-nano-classification\tokenizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Models\jina-embeddings-v5-text-nano-retrieval\model.onnx_data">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

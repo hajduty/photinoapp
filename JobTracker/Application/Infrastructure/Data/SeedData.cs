@@ -83,13 +83,13 @@ public static class SeedData
     {
         var classificationData = new[]
         {
-            new Classification { Id = 1, Name = "Job Title & Intro" },
-            new Classification { Id = 2, Name = "Company & Culture" },
-            new Classification { Id = 3, Name = "Must-Haves" },
-            new Classification { Id = 4, Name = "Technologies" },
-            new Classification { Id = 5, Name = "Responsibilities" },
-            new Classification { Id = 6, Name = "Location" },
-            new Classification { Id = 7, Name = "Application Process" }
+            new Classification { Id = 1, Name = "Job Title & Intro",       Color = null },
+            new Classification { Id = 2, Name = "Company & Culture",       Color = null },
+            new Classification { Id = 3, Name = "Must-Haves",              Color = "#3F1D1D" },
+            new Classification { Id = 4, Name = "Technologies",            Color = "#1E3A34" },
+            new Classification { Id = 5, Name = "Responsibilities",        Color = "#1E293B" },
+            new Classification { Id = 6, Name = "Location",                Color = null },
+            new Classification { Id = 7, Name = "Application Process",     Color = "#3A2E1F" }
         };
 
         context.Classifications.AddRange(classificationData);
@@ -140,9 +140,8 @@ public static class SeedData
 
             // Application Process (ClassificationId = 7)
             CreatePrototype(31, 7, "Apply by March 31st with your CV and a brief cover letter"),
-            CreatePrototype(32, 7, "Process includes: initial screening, technical interview, and team meet"),
-            CreatePrototype(33, 7, "We review applications continuously, so don't wait to apply"),
-            CreatePrototype(34, 7, "Complete a short coding test as part of the application"),
+            CreatePrototype(32, 7, "Process includes: initial screening, interview, and team meet"),
+            CreatePrototype(33, 7, "We review continuously, so don't wait to apply"),
             CreatePrototype(35, 7, "Two interview rounds: HR screening followed by technical panel")
         };
 

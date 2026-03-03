@@ -7,7 +7,7 @@ using TypeGen.Core.TypeAnnotations;
 namespace JobTracker.Application.Features.Classifications.CreateClassification;
 
 [ExportTsInterface]
-public record CreateClassificationRequest(string Name);
+public record CreateClassificationRequest(string Name, string Color);
 [ExportTsInterface] 
 public record CreateClassificationResponse(Classification Classification);
 
@@ -28,7 +28,8 @@ public class CreateClassificationHandler
 
         var classification = new Classification
         {
-            Name = request.Name
+            Name = request.Name,
+            Color = request.Color
         };
 
         db.Classifications.Add(classification);
