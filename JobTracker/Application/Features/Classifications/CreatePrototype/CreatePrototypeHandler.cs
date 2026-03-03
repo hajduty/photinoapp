@@ -1,8 +1,8 @@
 ﻿using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
-using Services;
 using TypeGen.Core.TypeAnnotations;
+using JobTracker.Embeddings.Services;
 
 namespace JobTracker.Application.Features.Classifications.CreatePrototype;
 [ExportTsInterface]

@@ -52,6 +52,26 @@ html::-webkit-scrollbar-thumb {
   background-clip: content-box; 
 }
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(55 55 55);
+  border: 3px solid transparent;
+  background-clip: content-box; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #525252;
+}
+
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -253,28 +273,4 @@ html::-webkit-scrollbar-thumb {
 
 .mantine-Drawer-content {
   background-color: #121212 !important;
-}
-
-/* Custom scrollbar styles */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #404040 transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #404040;
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #525252;
 }

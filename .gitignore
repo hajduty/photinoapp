@@ -414,3 +414,7 @@ FodyWeavers.xsd
 /JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx
 /JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/model.onnx_data
 /JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-retrieval/tokenizer.json
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-classification/config.json
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-classification/model.onnx
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-classification/model.onnx_data
+/JobTracker.Embeddings/Models/jina-embeddings-v5-text-nano-classification/tokenizer.json

@@ -15,6 +15,7 @@ import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
 import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
 import TagManagement from '../../features/settings/TagManagement'
+import ClassificationManagement from '../../features/settings/ClassificationManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
 
 export default function SettingsPage() {
@@ -89,6 +90,10 @@ export default function SettingsPage() {
         </Flex>
 
         <TagManagement />
+
+        <Space h="xl" />
+
+        <ClassificationManagement />
 
         <Space h="xl" />
 

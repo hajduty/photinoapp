@@ -1,10 +1,10 @@
 ﻿using JobTracker.Application.Events;
+using JobTracker.Application.Features.Embeddings;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.SemanticSearch;
-using JobTracker.Application.Features.System;
 using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
-using Services;
 using System.Diagnostics;
 
 namespace JobTracker.Application.Infrastructure.Services;
@@ -13,7 +13,8 @@ public class EmbeddingProcessor
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IEventPublisher _domainEventPublisher;
-    private readonly JinaEmbeddingService _embeddingService; // Your new service
+    private readonly JinaEmbeddingService _embeddingService;
+    private readonly SentenceClassifierService _classifierService;
 
     private CancellationTokenSource? _cts;
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -21,11 +22,13 @@ public class EmbeddingProcessor
     public EmbeddingProcessor(
         IDbContextFactory<AppDbContext> dbFactory,
         IEventPublisher domainEventPublisher,
-        JinaEmbeddingService embeddingService)
+        JinaEmbeddingService embeddingService,
+        SentenceClassifierService classifierService)
     {
         _dbFactory = dbFactory;
         _domainEventPublisher = domainEventPublisher;
         _embeddingService = embeddingService;
+        _classifierService = classifierService;
     }
 
     public async Task GenerateEmbeddingsAsync()
@@ -55,6 +58,9 @@ public class EmbeddingProcessor
         {
             await using var db = await _dbFactory.CreateDbContextAsync(token);
 
+            db.ChangeTracker.AutoDetectChangesEnabled = false;
+
+            // Fetch jobs without embeddings
             var postings = await db.Postings
                 .Where(p => !db.JobEmbeddings.Any(e => e.JobId == p.Id))
                 .OrderBy(p => p.Id)
@@ -62,64 +68,161 @@ public class EmbeddingProcessor
 
             Debug.WriteLine($"Found {postings.Count} postings to process");
 
-            // Format texts for embedding
-            var postingTexts = postings.Select(p =>
-                $"Location: {p.Location} {p.PostedDate} {p.Title} {p.Description}"
-            ).ToList();
+            if (postings.Count == 0)
+            {
+                await _domainEventPublisher.PublishAsync(new EmbeddingsFinished(0));
+                return;
+            }
 
-            var batchSize = 16;
-            var batchNumber = 0;
+            const int batchSize = 110;
 
-            // Process in batches using your new EmbeddingService
-            for (int i = 0; i < postingTexts.Count; i += batchSize)
+            var buffer = new List<(int JobId, JobSentenceDto Sentence)>(batchSize);
+
+            foreach (var posting in postings)
             {
                 token.ThrowIfCancellationRequested();
 
-                var textBatch = postingTexts.Skip(i).Take(batchSize).ToList();
-                var currentBatch = postings.Skip(i).Take(batchSize).ToList();
+                var fullText = $"{posting.Location}. {posting.Title}. {posting.Description}";
+                var sentences = ExtractJobSentences(fullText);
 
-                var embeddingFloats = _embeddingService.GenerateEmbeddingsBatch(textBatch.ToArray());
-
-                var successCount = 0;
-                for (int j = 0; j < currentBatch.Count; j++)
+                foreach (var sentence in sentences)
                 {
-                    if (j < embeddingFloats.Length && embeddingFloats[j] != null)
-                    {
-                        var floats = embeddingFloats[j];
-                        var bytes = new byte[floats.Length * sizeof(float)];
-                        Buffer.BlockCopy(floats, 0, bytes, 0, bytes.Length);
+                    buffer.Add((posting.Id, sentence));
 
-                        db.JobEmbeddings.Add(new JobEmbedding
-                        {
-                            JobId = currentBatch[j].Id,
-                            Data = bytes
-                        });
-                        successCount++;
-                    }
-                    else
+                    if (buffer.Count >= batchSize)
                     {
-                        Debug.WriteLine($"Failed to generate embedding for Job {currentBatch[j].Id}");
+                        totalProcessed += await ProcessBatch(buffer, db, token);
+                        buffer.Clear();
+
+                        await _domainEventPublisher.PublishAsync(
+                            new EmbeddingsProgress(postings.Count, totalProcessed));
                     }
                 }
-
-                await db.SaveChangesAsync(token);
-
-                totalProcessed += successCount;
-                batchNumber++;
-
-                await _domainEventPublisher.PublishAsync(new EmbeddingsProgress(postings.Count, totalProcessed));
-
-                Debug.WriteLine($"Batch {batchNumber} saved: {successCount}/{currentBatch.Count} embeddings");
-                Debug.WriteLine($"Progress: {totalProcessed}/{postings.Count} ({(totalProcessed * 100 / postings.Count):F1}%)");
             }
 
-            Debug.WriteLine($"Complete! Generated {totalProcessed} embeddings");
+            if (buffer.Count > 0)
+            {
+                totalProcessed += await ProcessBatch(buffer, db, token);
+                buffer.Clear();
+
+                await _domainEventPublisher.PublishAsync(
+                    new EmbeddingsProgress(postings.Count, totalProcessed));
+            }
+
+            db.ChangeTracker.AutoDetectChangesEnabled = true;
+
             await _domainEventPublisher.PublishAsync(new EmbeddingsFinished(totalProcessed));
         }
         catch (OperationCanceledException)
         {
             await _domainEventPublisher.PublishAsync(new EmbeddingsCancelled(totalProcessed));
         }
+    }
+
+    private async Task<int> ProcessBatch(
+        List<(int JobId, JobSentenceDto Sentence)> batch,
+        AppDbContext db,
+        CancellationToken token)
+    {
+        var texts = new string[batch.Count];
+
+        for (int i = 0; i < batch.Count; i++)
+            texts[i] = batch[i].Sentence.Sentence;
+
+        var embeddings = _embeddingService.GenerateEmbeddingsBatch(texts);
+
+        for (int i = 0; i < batch.Count; i++)
+        {
+            var (jobId, sentence) = batch[i];
+            var vector = embeddings[i];
+
+            var bytes = new byte[vector.Length * sizeof(float)];
+            Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
+
+            var category = _classifierService.ClassifyWithScore(vector);
+
+            db.JobEmbeddings.Add(new JobEmbedding
+            {
+                JobId = jobId,
+                Start = sentence.Start,
+                Length = sentence.Length,
+                Sentence = sentence.Sentence,
+                SentenceType = category.Category,
+                Score = category.Score,
+                Data = bytes
+            });
+        }
+
+        await db.SaveChangesAsync(token);
+
+        return batch.Count;
+    }
+
+    private static readonly HashSet<string> Abbreviations = new(StringComparer.OrdinalIgnoreCase)
+{
+    "e.g", "i.e", "etc", "vs", "mr", "mrs", "ms", "dr", "prof", "sr", "jr",
+    "dept", "approx", "incl", "excl", "est", "fig", "no", "vol", "p"
+};
+
+    public List<JobSentenceDto> ExtractJobSentences(string text)
+    {
+        var result = new List<JobSentenceDto>();
+        if (string.IsNullOrWhiteSpace(text)) return result;
+
+        int start = 0, id = 0;
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+
+            if (c == '.' && IsSentenceEndDot(text, i)) continue;
+
+            if (c is not ('.' or '!' or '?' or '\n')) continue;
+
+            var sentence = text[start..(i + 1)].Trim();
+
+            if (!string.IsNullOrWhiteSpace(sentence))
+            {
+                int actualStart = text.IndexOf(sentence, start, StringComparison.Ordinal);
+                result.Add(new JobSentenceDto
+                {
+                    Id = id++,
+                    Start = actualStart,
+                    Length = sentence.Length,
+                    Sentence = sentence,
+                    SentenceType = null
+                });
+            }
+
+            start = i + 1;
+        }
+
+        // Catch trailing text without punctuation
+        if (start < text.Length)
+        {
+            var trailing = text[start..].Trim();
+            if (trailing.Length > 20)
+            {
+                int actualStart = text.IndexOf(trailing, start, StringComparison.Ordinal);
+                result.Add(new JobSentenceDto { Id = id++, Start = actualStart, Length = trailing.Length, Sentence = trailing });
+            }
+        }
+
+        return result;
+    }
+
+    private static bool IsSentenceEndDot(string text, int i)
+    {
+        // Not end of string — check what follows
+        if (i + 1 < text.Length && !char.IsWhiteSpace(text[i + 1]))
+            return true; // dot immediately followed by non-space (e.g. "3.5", "U.S.A")
+
+        // Extract the word before the dot
+        int wordStart = i - 1;
+        while (wordStart > 0 && char.IsLetter(text[wordStart - 1])) wordStart--;
+        string wordBefore = text[wordStart..i].ToLower();
+
+        return Abbreviations.Contains(wordBefore); // skip if known abbreviation
     }
 
     public async Task<List<Posting>> SearchAsync(string query, int top = 10)

@@ -1,4 +1,5 @@
-﻿using JobTracker.Application.Features.JobSearch;
+﻿/*
+using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
@@ -21,19 +22,16 @@ public class SearchHandler
 {
     private readonly EmbeddingProcessor _embeddingService;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly OllamaService _ollamaService;
 
     private readonly int MAX_LIMIT = 10;
 
     public override string Command => "semanticSearch.query";
 
-    public SearchHandler(EmbeddingProcessor embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
+    public SearchHandler(EmbeddingProcessor embeddingService, IDbContextFactory<AppDbContext> dbFactory,)
     {
         _embeddingService = embeddingService;
         _dbFactory = dbFactory;
-        _ollamaService = ollamaService;
     }
-
 
     public async Task<List<RankedPostingResult>> GetRankedResults(string keyword)
     {
@@ -116,3 +114,4 @@ public class SearchHandler
         return response;
     }
 }
+*/

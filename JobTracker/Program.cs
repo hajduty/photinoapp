@@ -7,13 +7,13 @@ using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
+using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Photino.NET;
 using Photino.NET.Server;
-using Services;
 using System.Text.Json;
 
 namespace Photino.HelloPhotino.React;
@@ -65,6 +65,7 @@ class Program
                 services.AddSingleton<ScrapeService>();
                 services.AddSingleton<TrackerService>();
                 services.AddSingleton<EmbeddingProcessor>();
+                services.AddSingleton<SentenceClassifierService>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
                 services.AddScoped<IEventHandler<EmbeddingsCancelled>, EmbeddingsCancelledHandler>();
@@ -77,9 +78,11 @@ class Program
         using (var scope = _host.Services.CreateScope())
         {
             var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            var jinaService = scope.ServiceProvider.GetRequiredService<JinaEmbeddingService>();
+
             using var db = factory.CreateDbContext();
             db.Database.EnsureCreated();
-            SeedData.Initialize(factory);
+            SeedData.Initialize(factory, jinaService);
         }
 
         _host.StartAsync().Wait();

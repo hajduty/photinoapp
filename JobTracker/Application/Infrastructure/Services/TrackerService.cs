@@ -41,7 +41,7 @@ public class TrackerService
 
             var query = db.Postings
                 .AsNoTracking()
-                .Where(p => p.CreatedAt > track.LastCheckedAt) // disable for now (testing)
+                .Where(p => p.CreatedAt > track.LastCheckedAt)
                 .Where(p =>
                     EF.Functions.Like(p.Title, pattern) ||
                     EF.Functions.Like(p.Company, pattern) ||
@@ -65,7 +65,6 @@ public class TrackerService
 
             track.LastCheckedAt = DateTime.Now;
 
-            // Publish domain event only when NEW jobs are found
             if (newPostings.Any())
             {
                 var jobsInfo = newPostings.Select(p => new JobInfo(p.Id, p.Title, p.Company)).ToList();
