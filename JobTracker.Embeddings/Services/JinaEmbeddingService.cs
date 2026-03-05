@@ -247,34 +247,12 @@ public class JinaEmbeddingService : IDisposable
     public byte[] GenerateEmbedding(string text)
     {
         float[] embedding = GenerateEmbeddingInternal(text);
-        return ToBytes(embedding);
+        return Helper.ToBytes(embedding);
     }
 
     public float[] GenerateEmbeddingFloat(string text)
     {
         return GenerateEmbeddingInternal(text);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] ToBytes(float[] vector)
-    {
-        byte[] buffer = new byte[vector.Length * sizeof(float)];
-        Buffer.BlockCopy(vector, 0, buffer, 0, buffer.Length);
-        return buffer;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float CosineSimilarity(float[] a, float[] b)
-    {
-        if (a.Length != b.Length)
-            throw new ArgumentException("Vector length mismatch");
-
-        float dot = 0f;
-        for (int i = 0; i < a.Length; i++)
-        {
-            dot += a[i] * b[i];
-        }
-        return dot;
     }
 
     public void Dispose()

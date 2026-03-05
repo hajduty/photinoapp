@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace JobTracker.Application.Features.Embeddings.GetDescription;
 
 public record GetJobDescriptionRequest(int JobId);
-public record GetJobDescriptionResponse(List<JobSentence> Sentences);
+public record GetJobDescriptionResponse(List<JobSentenceDto> Sentences);
 
 public class GetDescriptionHandler 
     : RpcHandler<GetJobDescriptionRequest, GetJobDescriptionResponse>
@@ -28,27 +28,27 @@ public class GetDescriptionHandler
         
         //var descriptions = await db.JobEmbeddings.
 
-        var embeddings = db.JobEmbeddings.Where(j => j.JobId == request.JobId).ToList();
+        var embeddings = db.JobChunks.Where(j => j.JobId == request.JobId).ToList();
 
         // reclassify
         foreach (var embedding in embeddings)
         {
-            var data = _classifierService.ClassifyWithScore(embedding.Data);
+            var data = _classifierService.ClassifyWithScore(embedding.ChunkEmbedding);
 
-            embedding.SentenceType = data.Category;
+            embedding.ChunkType = data.Category;
             embedding.Score = data.Score;
         }
 
         await db.SaveChangesAsync();
 
-        var sentences = embeddings.Select(e => new JobSentence
+        var sentences = embeddings.Select(e => new JobSentenceDto
         {
             Id = e.Id,
             JobId = e.JobId,
-            Start = e.Start,
+            Start = e.StartChar,
             Length = e.Length,
-            Sentence = e.Sentence,
-            SentenceType = e.SentenceType,
+            Sentence = e.ChunkText,
+            SentenceType = e.ChunkType,
             Score = e.Score
         }).ToList();
 

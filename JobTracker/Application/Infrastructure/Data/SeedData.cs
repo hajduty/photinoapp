@@ -44,7 +44,6 @@ public static class SeedData
             new Tag { Name = "CSS", Color = "#264de4" },
             new Tag { Name = "PHP", Color = "#777bb4" },
             new Tag { Name = "Ruby", Color = "#cc342d" },
-
             new Tag { Name = "C#", Color = "#512bd4" },
             new Tag { Name = "Java", Color = "#007396" },
             new Tag { Name = "C++", Color = "#00599c" },
@@ -54,13 +53,11 @@ public static class SeedData
             new Tag { Name = "Rust", Color = "#dea584" },
             new Tag { Name = "Swift", Color = "#fa7343" },
             new Tag { Name = "Kotlin", Color = "#7f52ff" },
-
             new Tag { Name = "React", Color = "#61dafb" },
             new Tag { Name = "Next.js", Color = "#000000" },
             new Tag { Name = "Vue", Color = "#42b883" },
             new Tag { Name = "Angular", Color = "#dd0031" },
             new Tag { Name = "Svelte", Color = "#ff3e00" },
-
             new Tag { Name = ".NET", Color = "#512bd4" },
             new Tag { Name = "ASP.NET Core", Color = "#5c2d91" },
             new Tag { Name = "Spring", Color = "#6db33f" },
@@ -69,7 +66,6 @@ public static class SeedData
             new Tag { Name = "Flask", Color = "#000000" },
             new Tag { Name = "Laravel", Color = "#ff2d20" },
             new Tag { Name = "Ruby on Rails", Color = "#cc0000" },
-
             new Tag { Name = "Electron", Color = "#47848f" },
             new Tag { Name = ".NET MAUI", Color = "#512bd4" },
             new Tag { Name = "WPF", Color = "#68217a" },
@@ -83,66 +79,70 @@ public static class SeedData
     {
         var classificationData = new[]
         {
-            new Classification { Id = 1, Name = "Job Title & Intro",       Color = null },
-            new Classification { Id = 2, Name = "Company & Culture",       Color = null },
-            new Classification { Id = 3, Name = "Must-Haves",              Color = "#3F1D1D" },
-            new Classification { Id = 4, Name = "Technologies",            Color = "#1E3A34" },
-            new Classification { Id = 5, Name = "Responsibilities",        Color = "#1E293B" },
-            new Classification { Id = 6, Name = "Location",                Color = null },
-            new Classification { Id = 7, Name = "Application Process",     Color = "#3A2E1F" }
+            new Classification { Id = 1, Name = "Responsibilities", Color = "#2F3746" }, // muted slate
+            new Classification { Id = 2, Name = "Requirements",     Color = "#4A2A22" }, // dark burnt orange
+            new Classification { Id = 3, Name = "Technologies",     Color = "#2A3550" }, // deep navy
+            new Classification { Id = 4, Name = "The Offer",        Color = "#4A243A" }, // dark muted pink
         };
 
         context.Classifications.AddRange(classificationData);
 
         var prototypes = new List<Prototype>
         {
-            // Job Title & Intro (ClassificationId = 1)
-            CreatePrototype(1, 1, "Senior Full-stack Developer - Join our core product team"),
-            CreatePrototype(2, 1, "Frontend Developer position focusing on React and modern web technologies"),
-            CreatePrototype(3, 1, "Backend Engineer wanted for scalable cloud solutions"),
-            CreatePrototype(4, 1, "DevOps Specialist to lead our infrastructure transformation"),
-            CreatePrototype(5, 1, "Junior Developer opportunity with mentorship program"),
-
-            // Company & Culture (ClassificationId = 2)
-            CreatePrototype(6, 2, "We're a flat organization where every voice matters and ideas can come from anyone"),
-            CreatePrototype(7, 2, "Our culture emphasizes work-life balance with flexible hours and remote work options"),
-            CreatePrototype(8, 2, "We offer competitive benefits including health insurance, pension plans, and wellness grants"),
-            CreatePrototype(9, 2, "Join a diverse and inclusive team that values collaboration and continuous learning"),
-            CreatePrototype(10, 2, "Modern office in the city center with great coffee, snacks, and regular team events"),
-
-            // Must-Haves (ClassificationId = 3)
-            CreatePrototype(11, 3, "Minimum 3 years of professional development experience required"),
-            CreatePrototype(12, 3, "Must have strong communication skills and be fluent in English"),
-            CreatePrototype(13, 3, "Bachelor's degree in Computer Science or equivalent practical experience"),
-            CreatePrototype(14, 3, "Proven track record of delivering complex software projects on time"),
-            CreatePrototype(15, 3, "Experience with agile methodologies and version control systems"),
-
-            // Technologies (ClassificationId = 4)
-            CreatePrototype(16, 4, "Experience with C# and .NET Core / .NET 6+ is essential"),
-            CreatePrototype(17, 4, "Strong knowledge of React, TypeScript, and modern JavaScript"),
-            CreatePrototype(18, 4, "Proficiency with SQL databases and Entity Framework Core"),
-            CreatePrototype(19, 4, "Experience with cloud platforms (Azure/AWS) and containerization (Docker)"),
-            CreatePrototype(20, 4, "Familiarity with microservices architecture and message queues"),
-
-            // Responsibilities (ClassificationId = 5)
-            CreatePrototype(21, 5, "Design and implement new features while maintaining existing codebase"),
-            CreatePrototype(22, 5, "Participate in code reviews and provide constructive feedback to peers"),
-            CreatePrototype(23, 5, "Collaborate with product managers to refine requirements and estimate work"),
-            CreatePrototype(24, 5, "Write unit tests and ensure high code quality standards"),
-            CreatePrototype(25, 5, "Mentor junior developers and contribute to technical documentation"),
-
-            // Location (ClassificationId = 6)
-            CreatePrototype(26, 6, "Stockholm office with hybrid work model (2-3 days per week in office)"),
-            CreatePrototype(27, 6, "Fully remote position within Sweden with quarterly team meetups"),
-            CreatePrototype(28, 6, "Gothenburg based role with flexible working hours"),
-            CreatePrototype(29, 6, "Malmö office, relocation assistance available for the right candidate"),
-            CreatePrototype(30, 6, "Remote-first company with optional co-working space access"),
-
-            // Application Process (ClassificationId = 7)
-            CreatePrototype(31, 7, "Apply by March 31st with your CV and a brief cover letter"),
-            CreatePrototype(32, 7, "Process includes: initial screening, interview, and team meet"),
-            CreatePrototype(33, 7, "We review continuously, so don't wait to apply"),
-            CreatePrototype(35, 7, "Two interview rounds: HR screening followed by technical panel")
+            // 1. Responsibilities 
+            CreatePrototype(1,  1, "Design and implement new product features end-to-end"),
+            CreatePrototype(2,  1, "Participate in code reviews and mentor junior developers"),
+            CreatePrototype(3,  1, "Write automated tests and maintain code quality standards"),
+            CreatePrototype(4,  1, "Collaborate with product and design to define requirements"),
+            CreatePrototype(5,  1, "Own and improve CI/CD pipelines and deployment processes"),
+            CreatePrototype(6,  1, "What you will be working on day-to-day"),
+            CreatePrototype(7,  1, "Your responsibilities and duties in this role"),
+            CreatePrototype(8,  1, "Designa och implementera nya produktfunktioner"),
+            CreatePrototype(9,  1, "Delta i kodgranskning och mentorskap av juniora utvecklare"),
+            CreatePrototype(10, 1, "Skriva automatiserade tester och upprätthålla kodkvalitet"),
+            CreatePrototype(11, 1, "Samarbeta med produkt och design för att ta fram krav"),
+            CreatePrototype(12, 1, "Dina arbetsuppgifter och ansvarsområden i rollen"),
+        
+            // 2. Requirements 
+            CreatePrototype(13, 2, "3+ years of professional software development experience"),
+            CreatePrototype(14, 2, "Bachelor's degree in Computer Science or equivalent"),
+            CreatePrototype(15, 2, "Fluent English, both written and spoken"),
+            CreatePrototype(16, 2, "Must have experience with distributed systems"),
+            CreatePrototype(17, 2, "Required: strong understanding of OOP principles"),
+            CreatePrototype(18, 2, "Minimum qualifications and candidate requirements"),
+            CreatePrototype(19, 2, "If you are an Android developer: minimum 3 years experience required"),
+            CreatePrototype(20, 2, "We are looking for someone with a proven track record"),
+            CreatePrototype(21, 2, "Minst 3 års erfarenhet av professionell mjukvaruutveckling"),
+            CreatePrototype(22, 2, "Flytande svenska och engelska i tal och skrift"),
+            CreatePrototype(23, 2, "Krav: god förståelse för objektorienterad programmering"),
+            CreatePrototype(24, 2, "Vi söker någon med dokumenterad erfarenhet"),
+            CreatePrototype(25, 2, "Meriterande om du har erfarenhet av distribuerade system"),
+        
+            // 3. Technologies
+            CreatePrototype(26, 3, "C# / .NET Core and Entity Framework"),
+            CreatePrototype(27, 3, "React, TypeScript, and modern frontend tooling"),
+            CreatePrototype(28, 3, "Azure, AWS, Docker, Kubernetes"),
+            CreatePrototype(29, 3, "PostgreSQL, Redis, RabbitMQ, REST APIs"),
+            CreatePrototype(30, 3, "Python, FastAPI, NumPy, Pandas"),
+            CreatePrototype(31, 3, "Tech stack: Node.js, GraphQL, MongoDB"),
+            CreatePrototype(32, 3, "Experience with the following technologies is required"),
+            CreatePrototype(33, 3, "Vi använder följande tekniker i vår stack"),
+            CreatePrototype(34, 3, "Erfarenhet av nedanstående teknologier är ett krav"),
+        
+            // 4. The Offer
+            CreatePrototype(35, 4, "Fully remote within Sweden, hybrid Stockholm 2–3 days"),
+            CreatePrototype(36, 4, "30 days vacation, stock options, and learning budget"),
+            CreatePrototype(37, 4, "Flat organization where every voice matters"),
+            CreatePrototype(38, 4, "Mission-driven team that values work-life balance"),
+            CreatePrototype(39, 4, "We are a Series B startup building developer tooling"),
+            CreatePrototype(40, 4, "Competitive salary and benefits package"),
+            CreatePrototype(41, 4, "About us and why you should join our team"),
+            CreatePrototype(42, 4, "On-site in Berlin, relocation support provided"),
+            CreatePrototype(43, 4, "Hybridarbete från Stockholmskontoret 2–3 dagar i veckan"),
+            CreatePrototype(44, 4, "30 dagars semester, friskvårdsbidrag och tjänstepension"),
+            CreatePrototype(45, 4, "Vi är ett snabbväxande bolag med platt organisation"),
+            CreatePrototype(46, 4, "Om oss och varför du ska välja att jobba hos oss"),
+            CreatePrototype(47, 4, "Konkurrenskraftig lön och förmåner"),
         };
 
         context.Prototypes.AddRange(prototypes);

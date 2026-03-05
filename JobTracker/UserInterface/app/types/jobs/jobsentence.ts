@@ -9,7 +9,7 @@
     public float? Score { get; set; }
 } */
 
-export interface JobSentence {
+export interface JobSentenceDto {
     Id: number,
     JobId: number,
     Start: number,

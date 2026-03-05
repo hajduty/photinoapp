@@ -5,7 +5,7 @@ import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBook
 import { Modal, Divider } from '@mantine/core';
 import { Classification } from '@/app/types/classifications/classification';
 import { sendPhotinoRequest } from '@/app/utils/photino';
-import { JobSentence } from '@/app/types/jobs/jobsentence';
+import { JobSentenceDto } from '@/app/types/jobs/jobsentence';
 
 interface JobDetailsModalProps {
   posting: ExtendedPosting;
@@ -26,7 +26,7 @@ export default function JobDetailsModal({
 }: JobDetailsModalProps) {
   const { Posting, Tags } = posting;
   const [classifications, setClassifications] = useState<Classification[]>();
-  const [sentences, setSentences] = useState<JobSentence[]>();
+  const [sentences, setSentences] = useState<JobSentenceDto[]>();
 
   const fetchClassifications = async () => {
     const response = await sendPhotinoRequest("classifications.get", { norequest: "0" })
@@ -45,9 +45,6 @@ export default function JobDetailsModal({
     // Sort sentences by Start so highlights are correct
     const sortedSentences = [...sentences].sort((a, b) => a.Start - b.Start);
 
-    
-
-    // Map description into React nodes with highlights
     const nodes: React.ReactNode[] = [];
     let cursor = 0;
 

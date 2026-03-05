@@ -6,6 +6,7 @@ using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace JobTracker.Application.Infrastructure.Data;
 
@@ -16,11 +17,12 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Settings> Settings { get; set; } = null!;
-    public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
+    public DbSet<JobSentence> JobSentences { get; set; } = null!;
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
     public DbSet<Prototype> Prototypes { get; set; } = null!;
     public DbSet<Classification> Classifications { get; set; } = null!;
+    public DbSet<JobChunk> JobChunks { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -36,13 +38,13 @@ public class AppDbContext : DbContext
             .WithMany(t => t.JobTrackers)
             .UsingEntity(j => j.ToTable("JobTrackerTags"));
         // --------------
-        modelBuilder.Entity<JobEmbedding>()
+        modelBuilder.Entity<JobSentence>()
             .HasOne<Posting>()
             .WithMany() 
             .HasForeignKey(jse => jse.JobId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<JobEmbedding>()
+        modelBuilder.Entity<JobSentence>()
             .HasIndex(jse => jse.JobId);
         // --------------
         modelBuilder.Entity<JobApplication>()
@@ -70,5 +72,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Classification>()
             .HasIndex(c => c.Name)
             .IsUnique();
+        // ---------------
+        modelBuilder.Entity<JobChunk>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SentenceIds)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<int>>(v, new JsonSerializerOptions()) ?? new List<int>()
+                );
+        });
     }
 }

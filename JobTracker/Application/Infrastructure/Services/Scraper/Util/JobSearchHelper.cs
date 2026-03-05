@@ -19,7 +19,8 @@ public static class JobSearchHelper
             OriginUrl = GetOriginUrl(hit),
             CompanyImage = hit.GetProperty("logo_url").GetString() ?? "",
             CreatedAt = DateTime.UtcNow,
-            LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString())
+            LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString()),
+            DescriptionFormatted = hit.GetProperty("description").GetProperty("text_formatted").GetString() ?? ""
         };
     }
 

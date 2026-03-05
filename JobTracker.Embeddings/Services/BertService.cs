@@ -38,7 +38,7 @@ public class BertService : IDisposable
     public byte[] GenerateEmbedding(string text)
     {
         var embedding = GenerateEmbeddingInternal(text);
-        return ToBytes(embedding);
+        return Helper.ToBytes(embedding);
     }
 
     public List<byte[]> GenerateEmbeddingsBatch(List<string> texts)
@@ -50,7 +50,7 @@ public class BertService : IDisposable
         {
             var batch = texts.Skip(i).Take(batchSize).ToList();
             var embeddings = GenerateEmbeddingsInternal(batch);
-            results.AddRange(embeddings.Select(ToBytes));
+            results.AddRange(embeddings.Select(Helper.ToBytes));
         }
 
         return results;
@@ -94,7 +94,7 @@ public class BertService : IDisposable
 
         // Mean pooling and normalize
         var pooled = MeanPooling(embeddings, attentionMask);
-        return Normalize(pooled);
+        return Helper.Normalize(pooled);
     }
 
     private List<float[]> GenerateEmbeddingsInternal(List<string> texts)
@@ -138,7 +138,7 @@ public class BertService : IDisposable
         for (int i = 0; i < texts.Count; i++)
         {
             var pooled = MeanPoolingBatch(allEmbeddings, i, paddedMasks[i], _maxLength);
-            result.Add(Normalize(pooled));
+            result.Add(Helper.Normalize(pooled));
         }
 
         return result;
@@ -154,48 +154,6 @@ public class BertService : IDisposable
             padded.Add(0);
 
         return padded;
-    }
-
-    public string ExtractSummary(string text, int maxSentences = 5)
-    {
-        // Split into sentences
-        var sentences = text
-            .Split(new[] { ". ", ".\n", "! ", "? ", "\n" }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 20) // skip tiny fragments
-            .ToList();
-
-        if (sentences.Count <= maxSentences)
-            return string.Join(". ", sentences);
-
-        // Embed all sentences
-        var embeddings = GenerateEmbeddingsInternal(sentences);
-
-        // Embed the full text as the "topic" anchor
-        var docEmbedding = GenerateEmbeddingInternal(text);
-
-        // Score each sentence by cosine similarity to full document
-        var scored = sentences
-            .Select((sentence, i) => new
-            {
-                Sentence = sentence,
-                Index = i,
-                Score = CosineSimilarity(embeddings[i], docEmbedding)
-            })
-            .OrderByDescending(x => x.Score)
-            .Take(maxSentences)
-            .OrderBy(x => x.Index)
-            .ToList();
-
-        return string.Join(". ", scored.Select(x => x.Sentence)).Trim();
-    }
-
-    public static float CosineSimilarity(float[] a, float[] b)
-    {
-        float dot = 0;
-        for (int i = 0; i < a.Length; i++)
-            dot += a[i] * b[i];
-        return dot;
     }
 
     private float[] MeanPooling(Tensor<float> tokenEmbeddings, List<long> attentionMask)
@@ -244,25 +202,6 @@ public class BertService : IDisposable
             pooled[j] /= validTokens;
 
         return pooled;
-    }
-
-    public static float[] Normalize(float[] vec)
-    {
-        var len = Math.Sqrt(vec.Select(x => x * x).Sum());
-        if (len < 1e-12) return vec;
-
-        var normalized = new float[vec.Length];
-        for (int i = 0; i < vec.Length; i++)
-            normalized[i] = (float)(vec[i] / len);
-
-        return normalized;
-    }
-
-    private byte[] ToBytes(float[] vec)
-    {
-        var buffer = new byte[vec.Length * sizeof(float)];
-        Buffer.BlockCopy(vec, 0, buffer, 0, buffer.Length);
-        return buffer;
     }
 
     public void Dispose()

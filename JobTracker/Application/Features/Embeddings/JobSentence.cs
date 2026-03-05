@@ -2,7 +2,7 @@
 
 namespace JobTracker.Application.Features.Embeddings;
 
-public class JobEmbedding
+public class JobSentence
 {
     [Key]
     public int Id { get; set; }
@@ -15,7 +15,7 @@ public class JobEmbedding
     public float? Score { get; set; }
 }
 
-public class JobSentence
+public class JobSentenceDto
 {
     public int Id { get; set; }
     public int JobId { get; set; }
