@@ -14,11 +14,6 @@ public static class SeedData
         _jinaService = jinaEmbeddingService;
         using var context = factory.CreateDbContext();
 
-        if (!context.Prototypes.Any()) {
-            SeedClassificationsAndPrototypes(context);
-            context.SaveChanges();
-        }
-
         if (context.JobTrackers.Any())
             return;
 
@@ -73,91 +68,5 @@ public static class SeedData
         );
 
         context.SaveChanges();
-    }
-
-    private static void SeedClassificationsAndPrototypes(AppDbContext context)
-    {
-        var classificationData = new[]
-        {
-            new Classification { Id = 1, Name = "Responsibilities", Color = "#2F3746" }, // muted slate
-            new Classification { Id = 2, Name = "Requirements",     Color = "#4A2A22" }, // dark burnt orange
-            new Classification { Id = 3, Name = "Technologies",     Color = "#2A3550" }, // deep navy
-            new Classification { Id = 4, Name = "The Offer",        Color = "#4A243A" }, // dark muted pink
-        };
-
-        context.Classifications.AddRange(classificationData);
-
-        var prototypes = new List<Prototype>
-        {
-            // 1. Responsibilities 
-            CreatePrototype(1,  1, "Design and implement new product features end-to-end"),
-            CreatePrototype(2,  1, "Participate in code reviews and mentor junior developers"),
-            CreatePrototype(3,  1, "Write automated tests and maintain code quality standards"),
-            CreatePrototype(4,  1, "Collaborate with product and design to define requirements"),
-            CreatePrototype(5,  1, "Own and improve CI/CD pipelines and deployment processes"),
-            CreatePrototype(6,  1, "What you will be working on day-to-day"),
-            CreatePrototype(7,  1, "Your responsibilities and duties in this role"),
-            CreatePrototype(8,  1, "Designa och implementera nya produktfunktioner"),
-            CreatePrototype(9,  1, "Delta i kodgranskning och mentorskap av juniora utvecklare"),
-            CreatePrototype(10, 1, "Skriva automatiserade tester och upprätthålla kodkvalitet"),
-            CreatePrototype(11, 1, "Samarbeta med produkt och design för att ta fram krav"),
-            CreatePrototype(12, 1, "Dina arbetsuppgifter och ansvarsområden i rollen"),
-        
-            // 2. Requirements 
-            CreatePrototype(13, 2, "3+ years of professional software development experience"),
-            CreatePrototype(14, 2, "Bachelor's degree in Computer Science or equivalent"),
-            CreatePrototype(15, 2, "Fluent English, both written and spoken"),
-            CreatePrototype(16, 2, "Must have experience with distributed systems"),
-            CreatePrototype(17, 2, "Required: strong understanding of OOP principles"),
-            CreatePrototype(18, 2, "Minimum qualifications and candidate requirements"),
-            CreatePrototype(19, 2, "If you are an Android developer: minimum 3 years experience required"),
-            CreatePrototype(20, 2, "We are looking for someone with a proven track record"),
-            CreatePrototype(21, 2, "Minst 3 års erfarenhet av professionell mjukvaruutveckling"),
-            CreatePrototype(22, 2, "Flytande svenska och engelska i tal och skrift"),
-            CreatePrototype(23, 2, "Krav: god förståelse för objektorienterad programmering"),
-            CreatePrototype(24, 2, "Vi söker någon med dokumenterad erfarenhet"),
-            CreatePrototype(25, 2, "Meriterande om du har erfarenhet av distribuerade system"),
-        
-            // 3. Technologies
-            CreatePrototype(26, 3, "C# / .NET Core and Entity Framework"),
-            CreatePrototype(27, 3, "React, TypeScript, and modern frontend tooling"),
-            CreatePrototype(28, 3, "Azure, AWS, Docker, Kubernetes"),
-            CreatePrototype(29, 3, "PostgreSQL, Redis, RabbitMQ, REST APIs"),
-            CreatePrototype(30, 3, "Python, FastAPI, NumPy, Pandas"),
-            CreatePrototype(31, 3, "Tech stack: Node.js, GraphQL, MongoDB"),
-            CreatePrototype(32, 3, "Experience with the following technologies is required"),
-            CreatePrototype(33, 3, "Vi använder följande tekniker i vår stack"),
-            CreatePrototype(34, 3, "Erfarenhet av nedanstående teknologier är ett krav"),
-        
-            // 4. The Offer
-            CreatePrototype(35, 4, "Fully remote within Sweden, hybrid Stockholm 2–3 days"),
-            CreatePrototype(36, 4, "30 days vacation, stock options, and learning budget"),
-            CreatePrototype(37, 4, "Flat organization where every voice matters"),
-            CreatePrototype(38, 4, "Mission-driven team that values work-life balance"),
-            CreatePrototype(39, 4, "We are a Series B startup building developer tooling"),
-            CreatePrototype(40, 4, "Competitive salary and benefits package"),
-            CreatePrototype(41, 4, "About us and why you should join our team"),
-            CreatePrototype(42, 4, "On-site in Berlin, relocation support provided"),
-            CreatePrototype(43, 4, "Hybridarbete från Stockholmskontoret 2–3 dagar i veckan"),
-            CreatePrototype(44, 4, "30 dagars semester, friskvårdsbidrag och tjänstepension"),
-            CreatePrototype(45, 4, "Vi är ett snabbväxande bolag med platt organisation"),
-            CreatePrototype(46, 4, "Om oss och varför du ska välja att jobba hos oss"),
-            CreatePrototype(47, 4, "Konkurrenskraftig lön och förmåner"),
-        };
-
-        context.Prototypes.AddRange(prototypes);
-    }
-
-    private static Prototype CreatePrototype(int id, int classificationId, string text)
-    {
-        var embedding = _jinaService.GenerateEmbeddingFloat(text);
-
-        return new Prototype
-        {
-            Id = id,
-            ClassificationId = classificationId,
-            Text = text,
-            Embedding = embedding.SelectMany(BitConverter.GetBytes).ToArray()
-        };
     }
 }

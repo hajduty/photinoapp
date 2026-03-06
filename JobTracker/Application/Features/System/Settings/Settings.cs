@@ -10,7 +10,7 @@ public class Settings
     // Discord Integration
     public string DiscordWebhookUrl { get; set; } = string.Empty;
     public bool DiscordNotificationsEnabled { get; set; } = false;
-    public bool GenerateEmbeddings { get; set; } = true;
+    public bool GenerateEmbeddings { get; set; } = false;
     // App Info
     public string AppVersion { get; set; } = "1.0.0";
     public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
