@@ -1,9 +1,7 @@
 ﻿using JobTracker.Application.Events;
 using JobTracker.Application.Features.Embeddings;
-using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Infrastructure.Data;
-using JobTracker.Embeddings;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -15,8 +13,6 @@ public class EmbeddingProcessor
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IEventPublisher _domainEventPublisher;
     private readonly JinaEmbeddingService _embeddingService;
-    private readonly SentenceClassifierService _classifierService;
-    private readonly SemanticChunker _chunker;
 
     private CancellationTokenSource? _cts;
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -24,15 +20,11 @@ public class EmbeddingProcessor
     public EmbeddingProcessor(
         IDbContextFactory<AppDbContext> dbFactory,
         IEventPublisher domainEventPublisher,
-        JinaEmbeddingService embeddingService,
-        SentenceClassifierService classifierService,
-        SemanticChunker chunker)
+        JinaEmbeddingService embeddingService)
     {
         _dbFactory = dbFactory;
         _domainEventPublisher = domainEventPublisher;
         _embeddingService = embeddingService;
-        _classifierService = classifierService;
-        _chunker = chunker;
     }
 
     public async Task GenerateEmbeddingsAsync()
@@ -43,10 +35,7 @@ public class EmbeddingProcessor
         try
         {
             _cts = new CancellationTokenSource();
-            var token = _cts.Token;
-
-            await GenerateEmbeddingsInternal(token);
-            await GenerateChunksForReadyJobsAsync(token);
+            await GenerateEmbeddingsInternal(_cts.Token);
         }
         finally
         {
@@ -54,61 +43,7 @@ public class EmbeddingProcessor
         }
     }
 
-    private async Task GenerateChunksForReadyJobsAsync(CancellationToken token)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync(token);
-
-        // Find jobs that have sentences but no chunks yet
-        var jobsToChunk = await db.Postings
-            .Where(p => db.JobSentences.Any(s => s.JobId == p.Id)
-                     && !db.JobChunks.Any(c => c.JobId == p.Id))
-            .Select(p => p.Id)
-            .ToListAsync(token);
-
-        if (!jobsToChunk.Any()) return;
-
-        int processed = 0;
-
-        foreach (var jobId in jobsToChunk)
-        {
-            token.ThrowIfCancellationRequested();
-
-            // Load existing sentences + embeddings
-            var sentences = await db.JobSentences
-                .Where(s => s.JobId == jobId)
-                .OrderBy(s => s.Start)
-                .ToListAsync(token);
-
-            if (!sentences.Any()) continue;
-
-            // Convert JobSentence to EmbeddedUnit (for the generic chunker)
-            var units = sentences.Select(s => new EmbeddedUnit(
-                Id: s.Id,
-                Text: s.Sentence,
-                Embedding: Helper.FromBytes(s.Data).AsMemory()
-            )).ToList();
-
-            var genericChunks = _chunker.Chunk(units); 
-
-            var chunkEntities = genericChunks.Select(gc => new JobChunk
-            {
-                JobId = jobId,
-                ChunkText = gc.Text,
-                ChunkEmbedding = gc.EmbeddingBytes,
-                StartChar = sentences.First(s => s.Id == gc.OriginalUnitIds.Min()).Start,
-                Length = gc.Text.Length, 
-                SentenceIds = gc.OriginalUnitIds.ToList(),
-                ChunkType = _classifierService?.Classify(gc.EmbeddingBytes)
-            }).ToList();
-
-            db.JobChunks.AddRange(chunkEntities);
-            await db.SaveChangesAsync(token);
-
-            processed++;
-        }
-    }
-
-    public async Task GenerateEmbeddingsInternal(CancellationToken token)
+    private async Task GenerateEmbeddingsInternal(CancellationToken token)
     {
         var totalProcessed = 0;
         await _domainEventPublisher.PublishAsync(new EmbeddingsStarted());
@@ -116,12 +51,10 @@ public class EmbeddingProcessor
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(token);
-
             db.ChangeTracker.AutoDetectChangesEnabled = false;
 
-            // Fetch jobs without embeddings
             var postings = await db.Postings
-                .Where(p => !db.JobSentences.Any(e => e.JobId == p.Id))
+                .Where(p => !db.JobEmbeddings.Any(e => e.JobId == p.Id))
                 .OrderBy(p => p.Id)
                 .ToListAsync(token);
 
@@ -133,43 +66,38 @@ public class EmbeddingProcessor
                 return;
             }
 
-            const int batchSize = 110;
+            const int batchSize = 4;
 
-            var buffer = new List<(int JobId, JobSentenceDto Sentence)>(batchSize);
-
-            foreach (var posting in postings)
+            for (int i = 0; i < postings.Count; i += batchSize)
             {
                 token.ThrowIfCancellationRequested();
 
-                var fullText = $"{posting.Description}";
-                var sentences = JobSentenceExtractor.Extract(posting.Description);
+                var batch = postings.Skip(i).Take(batchSize).ToList();
+                var texts = batch.Select(p => p.Description).ToArray();
 
-                foreach (var sentence in sentences)
+                var embeddings = _embeddingService.GenerateEmbeddingsBatch(texts);
+
+                for (int j = 0; j < batch.Count; j++)
                 {
-                    buffer.Add((posting.Id, sentence));
+                    var vector = embeddings[j];
+                    var bytes = new byte[vector.Length * sizeof(float)];
+                    Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
 
-                    if (buffer.Count >= batchSize)
+                    db.JobEmbeddings.Add(new JobEmbedding
                     {
-                        totalProcessed += await ProcessBatch(buffer, db, token);
-                        buffer.Clear();
-
-                        await _domainEventPublisher.PublishAsync(
-                            new EmbeddingsProgress(postings.Count, totalProcessed));
-                    }
+                        JobId = batch[j].Id,
+                        EmbeddingData = bytes
+                    });
                 }
-            }
 
-            if (buffer.Count > 0)
-            {
-                totalProcessed += await ProcessBatch(buffer, db, token);
-                buffer.Clear();
+                await db.SaveChangesAsync(token);
+                totalProcessed += batch.Count;
 
                 await _domainEventPublisher.PublishAsync(
                     new EmbeddingsProgress(postings.Count, totalProcessed));
             }
 
             db.ChangeTracker.AutoDetectChangesEnabled = true;
-
             await _domainEventPublisher.PublishAsync(new EmbeddingsFinished(totalProcessed));
         }
         catch (OperationCanceledException)
@@ -178,45 +106,5 @@ public class EmbeddingProcessor
         }
     }
 
-    private async Task<int> ProcessBatch(
-        List<(int JobId, JobSentenceDto Sentence)> batch,
-        AppDbContext db,
-        CancellationToken token)
-    {
-        var texts = new string[batch.Count];
-
-        for (int i = 0; i < batch.Count; i++)
-            texts[i] = batch[i].Sentence.Sentence;
-
-        var embeddings = _embeddingService.GenerateEmbeddingsBatch(texts);
-
-        for (int i = 0; i < batch.Count; i++)
-        {
-            var (jobId, sentence) = batch[i];
-            var vector = embeddings[i];
-
-            var bytes = new byte[vector.Length * sizeof(float)];
-            Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
-
-            //var category = _classifierService.ClassifyWithScore(vector);
-
-            db.JobSentences.Add(new JobSentence
-            {
-                JobId = jobId,
-                Start = sentence.Start,
-                Length = sentence.Length,
-                Sentence = sentence.Sentence,
-                Data = bytes
-            });
-        }
-
-        await db.SaveChangesAsync(token);
-
-        return batch.Count;
-    }
-
-    public void Cancel()
-    {
-        _cts?.Cancel();
-    }
+    public void Cancel() => _cts?.Cancel();
 }

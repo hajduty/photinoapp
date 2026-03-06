@@ -12,7 +12,7 @@ public class JinaEmbeddingService : IDisposable
 {
     private readonly InferenceSession _session;
     private readonly Tokenizer _tokenizer;
-    private readonly int _maxLength = 64;
+    private readonly int _maxLength = 2048;
     private readonly int _hiddenSize;
     private readonly bool _useGpu;
 
@@ -20,7 +20,7 @@ public class JinaEmbeddingService : IDisposable
     private readonly long[] _attentionMaskBuffer;
     private readonly int[] _singleDimensions;
 
-    public JinaEmbeddingService(int maxLength = 64, bool forceCpu = false)
+    public JinaEmbeddingService(int maxLength = 2048, bool forceCpu = false)
     {
         _maxLength = maxLength;
 
@@ -162,7 +162,7 @@ public class JinaEmbeddingService : IDisposable
         int count = texts.Length;
         var allEmbeddings = new float[count][];
 
-        int batchSize = _useGpu ? 110 : 16;
+        int batchSize = _useGpu ? 4 : 2;
 
         for (int i = 0; i < count; i += batchSize)
         {
@@ -183,7 +183,7 @@ public class JinaEmbeddingService : IDisposable
         {
             for (int b = 0; b < batchSize; b++)
             {
-                string text = "Passage: " + texts[startIdx + b];
+                string text = texts[startIdx + b];
                 uint[] encoded = _tokenizer.Encode(text);
                 int len = Math.Min(encoded.Length, _maxLength);
                 lengths[b] = len;
@@ -208,7 +208,6 @@ public class JinaEmbeddingService : IDisposable
             using var results = _session.Run(inputs);
             var allTokenEmbeddings = results[0].AsTensor<float>();
 
-            // Process results
             for (int b = 0; b < batchSize; b++)
             {
                 int effectiveLength = lengths[b];

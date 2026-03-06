@@ -66,7 +66,6 @@ class Program
                 services.AddSingleton<TrackerService>();
                 services.AddSingleton<EmbeddingProcessor>();
                 services.AddSingleton<SentenceClassifierService>();
-                services.AddSingleton<SemanticChunker>();
 
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
                 services.AddScoped<IEventHandler<EmbeddingsCancelled>, EmbeddingsCancelledHandler>();
