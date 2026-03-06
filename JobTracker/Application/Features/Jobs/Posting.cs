@@ -18,4 +18,5 @@ public class Posting
     public DateTime LastApplicationDate { get; set; } = DateTime.Now;
     public string? Source { get; set; }
     public bool? Bookmarked { get; set; } = false;
+    public int? YearsOfExperience { get; set; } = 0;
 }

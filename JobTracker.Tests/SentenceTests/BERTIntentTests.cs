@@ -1,6 +1,7 @@
 ﻿using Xunit;
 using Xunit.Abstractions;
 using JobTracker.Embeddings.Services;
+using JobTracker.Embeddings;
 
 namespace JobTracker.Tests.SentenceTests;
 
@@ -76,9 +77,9 @@ public class SummarizeTest : IDisposable
         // Generate averaged embeddings
         var emailVec = _embeddingService.GenerateEmbeddingFloat(Data.RejectionEmailToClassify);
 
-        var simRejection = BertService.CosineSimilarity(emailVec, _rejectionVec);
-        var simInterview = BertService.CosineSimilarity(emailVec, _interviewVec);
-        var simOffer = BertService.CosineSimilarity(emailVec, _offerVec);
+        var simRejection = Helper.CosineSimilarity(emailVec, _rejectionVec);
+        var simInterview = Helper.CosineSimilarity(emailVec, _interviewVec);
+        var simOffer = Helper.CosineSimilarity(emailVec, _offerVec);
 
         _output.WriteLine($"Rejection: {simRejection:F4}");
         _output.WriteLine($"Interview: {simInterview:F4}");
@@ -100,9 +101,9 @@ public class SummarizeTest : IDisposable
 
         var emailVec = _embeddingService.GenerateEmbeddingFloat(Data.OfferEmailToClassify);
 
-        var simRejection = BertService.CosineSimilarity(emailVec, _rejectionVec);
-        var simInterview = BertService.CosineSimilarity(emailVec, _interviewVec);
-        var simOffer = BertService.CosineSimilarity(emailVec, _offerVec);
+        var simRejection = Helper.CosineSimilarity(emailVec, _rejectionVec);
+        var simInterview = Helper.CosineSimilarity(emailVec, _interviewVec);
+        var simOffer = Helper.CosineSimilarity(emailVec, _offerVec);
 
         _output.WriteLine($"Rejection: {simRejection:F4}");
         _output.WriteLine($"Interview: {simInterview:F4}");

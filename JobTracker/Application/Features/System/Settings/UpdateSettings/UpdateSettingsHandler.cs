@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.System.Settings.UpdateSettings;
-[ExportTsInterface]
+
 public record UpdateSettingsRequest(
-    string? DiscordWebhookUrl = null,
-    bool? DiscordNotificationsEnabled = null,
-    bool? GenerateEmbeddings = null
+    string? DiscordWebhookUrl,
+    bool? DiscordNotificationsEnabled,
+    bool? GenerateEmbeddings,
+    string? UserCV
 );
-[ExportTsInterface]
+
 public record UpdateSettingsResponse(Settings Settings);
 
 public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, UpdateSettingsResponse>

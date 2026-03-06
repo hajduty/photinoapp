@@ -10,4 +10,5 @@ export interface Settings {
     GenerateEmbeddings: boolean;
     AppVersion: string;
     LastUpdatedAt: Date;
+    UserCV: string;
 }

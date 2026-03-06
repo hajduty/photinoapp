@@ -42,7 +42,6 @@ export default function JobDetailsModal({
   const descriptionBuilder = () => {
     if (!sentences || !classifications) return Posting.Description;
 
-    // Sort sentences by Start so highlights are correct
     const sortedSentences = [...sentences].sort((a, b) => a.Start - b.Start);
 
     const nodes: React.ReactNode[] = [];
@@ -51,14 +50,12 @@ export default function JobDetailsModal({
     sortedSentences.forEach((sentence) => {
       const { Start, Length, Sentence, SentenceType } = sentence;
 
-      // Add any text before the sentence
       if (Start > cursor) {
         nodes.push(
           <span key={`text-${cursor}`}>{Posting.Description.slice(cursor, Start)}</span>
         );
       }
 
-      // Find the matching classification color
       const classification = classifications.find(c => c.Name === SentenceType);
       const bgColor = classification?.Color ?? 'transparent';
 
@@ -78,7 +75,6 @@ export default function JobDetailsModal({
       cursor = Start + Length;
     });
 
-    // Add remaining text after last sentence
     if (cursor < Posting.Description.length) {
       nodes.push(<span key={`text-end`}>{Posting.Description.slice(cursor)}</span>);
     }
@@ -162,23 +158,24 @@ export default function JobDetailsModal({
 
         {/* Tags */}
         {Tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {Tags.map((tag) => (
-              <span
-                key={tag.Id}
-                className="inline-flex items-center px-2 py-1 rounded text-xs font-bold uppercase tracking-wide"
-                style={{
-                  backgroundColor: tag.Color,
-                  color: getContrastColor(tag.Color),
-                }}
-              >
-                {tag.Name}
-              </span>
-            ))}
-          </div>
+          <>
+            <div className="flex flex-wrap gap-2">
+              {Tags.map((tag) => (
+                <span
+                  key={tag.Id}
+                  className="inline-flex items-center px-2 py-1 rounded text-xs font-bold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: tag.Color,
+                    color: getContrastColor(tag.Color),
+                  }}
+                >
+                  {tag.Name}
+                </span>
+              ))}
+            </div>
+            <Divider />
+          </>
         )}
-
-        <Divider />
 
         {/* Full Description - Scrollable with custom scrollbar */}
         <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
@@ -190,7 +187,14 @@ export default function JobDetailsModal({
               wordBreak: 'break-word'
             }}
           >
-            {descriptionBuilder()}
+            {posting.Posting.DescriptionFormatted ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: posting.Posting.DescriptionFormatted }}
+                className="space-y-3"
+              />
+            ) : (
+              posting.Posting.Description
+            )}
           </div>
         </div>
 

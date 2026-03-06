@@ -1,99 +1,121 @@
-﻿using JobTracker.Application.Features.Embeddings;
-using JobTracker.Embeddings;
+﻿using JobTracker.Embeddings;
+using JobTracker.Embeddings.Services;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 namespace JobTracker.Application.Infrastructure.Services;
 
+public record EmbeddedUnit(
+    int Id,
+    string Text,
+    ReadOnlyMemory<float> Embedding);
+
+public record ChunkResult(
+    string Text,
+    byte[] EmbeddingBytes,
+    IReadOnlyList<int> OriginalUnitIds = null);
+
+public class CvChunk
+{
+    public string ChunkText { get; set; }
+    public byte[] ChunkEmbedding { get; set; }
+}
+
 public class SemanticChunker
 {
-    private readonly float _defaultThreshold = 0.28f;
-    private readonly SentenceClassifierService _sentenceClassifier;
+    private readonly SentenceClassifierService _classifier;
+    private readonly JinaEmbeddingService _embeddingService;
+    private readonly float _defaultThreshold = 0.75f;
 
-    public SemanticChunker(SentenceClassifierService sentenceClassifier)
+    public SemanticChunker(SentenceClassifierService classifier, JinaEmbeddingService embeddingService)
     {
-        _sentenceClassifier = sentenceClassifier;
+        _classifier = classifier;
+        _embeddingService = embeddingService;
     }
 
-    public List<JobChunk> CreateChunks(
-        List<JobSentence> sentences,
-        int jobId,
+    public List<ChunkResult> Chunk(
+        IReadOnlyList<EmbeddedUnit> units,
         float? similarityThreshold = null)
     {
-        if (!sentences.Any()) return new();
+        if (units.Count == 0) return new List<ChunkResult>();
 
         var threshold = similarityThreshold ?? _defaultThreshold;
-        var chunks = new List<JobChunk>();
-        var current = new List<JobSentence>();
+        var chunks = new List<ChunkResult>();
+        var current = new List<EmbeddedUnit>();
 
-        int chunkStart = sentences[0].Start;
-
-        for (int i = 0; i < sentences.Count; i++)
+        for (int i = 0; i < units.Count; i++)
         {
-            current.Add(sentences[i]);
+            current.Add(units[i]);
 
-            if (i == sentences.Count - 1)
+            if (i == units.Count - 1)
             {
-                chunks.Add(BuildChunk(current, jobId, chunkStart));
+                chunks.Add(BuildChunk(current));
                 break;
             }
 
-            var sim = CalculateSimilarity(sentences[i].Data, sentences[i + 1].Data);
+            var sim = CalculateSimilarity(units[i].Embedding, units[i + 1].Embedding);
 
             if (sim < threshold)
             {
-                chunks.Add(BuildChunk(current, jobId, chunkStart));
+                chunks.Add(BuildChunk(current));
                 current.Clear();
-                chunkStart = sentences[i + 1].Start;
             }
         }
 
         return chunks;
     }
 
-    private float CalculateSimilarity(byte[] aBytes, byte[] bBytes)
+    private float CalculateSimilarity(ReadOnlyMemory<float> aMem, ReadOnlyMemory<float> bMem)
     {
-        var a = Helper.FromBytes(aBytes);
-        var b = Helper.FromBytes(bBytes);
+        var a = aMem.ToArray();
+        var b = bMem.ToArray();
         return Helper.Dot(a, b);
     }
 
-    private JobChunk BuildChunk(List<JobSentence> group, int jobId, int startChar)
+    private ChunkResult BuildChunk(List<EmbeddedUnit> group)
     {
         var textBuilder = new StringBuilder();
         for (int i = 0; i < group.Count; i++)
         {
-            if (i > 0) textBuilder.Append(' ');
-            textBuilder.Append(group[i].Sentence.Trim());
+            if (i > 0) textBuilder.Append(" ");
+            textBuilder.Append(group[i].Text.Trim());
         }
-
         var text = textBuilder.ToString();
 
-        var vectors = new ReadOnlyMemory<float>[group.Count];
-        for (int i = 0; i < group.Count; i++)
-        {
-            vectors[i] = Helper.FromBytes(group[i].Data);
-        }
+        var vectors = group.Select(u => u.Embedding).ToArray();
 
-        var pooled = Helper.MeanPool(vectors);
+        var pooled = Helper.MeanPool(vectors.AsMemory());
+
         var pooledBytes = Helper.ToBytes(pooled);
 
-        int endChar = group[group.Count - 1].Start + group[group.Count - 1].Length;
+        return new ChunkResult(
+            text,
+            pooledBytes,
+            group.Select(u => u.Id).ToList()
+        );
+    }
 
-        var sentenceIds = new List<int>(group.Count);
-        for (int i = 0; i < group.Count; i++)
+    public List<CvChunk> ChunkCv(string cvText)
+    {
+        var sentences = JobSentenceExtractor.Extract(cvText);
+        var texts = sentences.Select(s => s.Sentence).ToArray();
+        var rawEmbeddings = _embeddingService.GenerateEmbeddingsBatch(texts);
+
+        var units = new List<EmbeddedUnit>();
+        for (int i = 0; i < sentences.Count; i++)
         {
-            sentenceIds.Add(group[i].Id);
+            units.Add(new EmbeddedUnit(
+                i,
+                sentences[i].Sentence,
+                rawEmbeddings[i].AsMemory()));
         }
 
-        return new JobChunk
+        var generic = Chunk(units);
+
+        return generic.Select(gc => new CvChunk
         {
-            JobId = jobId,
-            ChunkText = text,
-            ChunkEmbedding = pooledBytes,
-            StartChar = startChar,
-            Length = endChar - startChar,
-            SentenceIds = sentenceIds,
-            ChunkType = _sentenceClassifier.Classify(pooled)
-        };
+            ChunkText = gc.Text,
+            ChunkEmbedding = gc.EmbeddingBytes,
+        }).ToList();
     }
 }

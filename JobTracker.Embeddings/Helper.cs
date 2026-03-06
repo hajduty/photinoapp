@@ -82,4 +82,10 @@ public static class Helper
 
         return sum;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float[] MeanPool(ReadOnlyMemory<float>[] vecsArray)
+    {
+        return MeanPool(vecsArray.AsMemory());
+    }
 }

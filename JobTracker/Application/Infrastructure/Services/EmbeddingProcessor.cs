@@ -3,6 +3,7 @@ using JobTracker.Application.Features.Embeddings;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Embeddings;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -57,6 +58,7 @@ public class EmbeddingProcessor
     {
         await using var db = await _dbFactory.CreateDbContextAsync(token);
 
+        // Find jobs that have sentences but no chunks yet
         var jobsToChunk = await db.Postings
             .Where(p => db.JobSentences.Any(s => s.JobId == p.Id)
                      && !db.JobChunks.Any(c => c.JobId == p.Id))
@@ -66,10 +68,12 @@ public class EmbeddingProcessor
         if (!jobsToChunk.Any()) return;
 
         int processed = 0;
+
         foreach (var jobId in jobsToChunk)
         {
             token.ThrowIfCancellationRequested();
 
+            // Load existing sentences + embeddings
             var sentences = await db.JobSentences
                 .Where(s => s.JobId == jobId)
                 .OrderBy(s => s.Start)
@@ -77,7 +81,25 @@ public class EmbeddingProcessor
 
             if (!sentences.Any()) continue;
 
-            var chunkEntities = _chunker.CreateChunks(sentences, jobId);
+            // Convert JobSentence to EmbeddedUnit (for the generic chunker)
+            var units = sentences.Select(s => new EmbeddedUnit(
+                Id: s.Id,
+                Text: s.Sentence,
+                Embedding: Helper.FromBytes(s.Data).AsMemory()
+            )).ToList();
+
+            var genericChunks = _chunker.Chunk(units); 
+
+            var chunkEntities = genericChunks.Select(gc => new JobChunk
+            {
+                JobId = jobId,
+                ChunkText = gc.Text,
+                ChunkEmbedding = gc.EmbeddingBytes,
+                StartChar = sentences.First(s => s.Id == gc.OriginalUnitIds.Min()).Start,
+                Length = gc.Text.Length, 
+                SentenceIds = gc.OriginalUnitIds.ToList(),
+                ChunkType = _classifierService?.Classify(gc.EmbeddingBytes)
+            }).ToList();
 
             db.JobChunks.AddRange(chunkEntities);
             await db.SaveChangesAsync(token);

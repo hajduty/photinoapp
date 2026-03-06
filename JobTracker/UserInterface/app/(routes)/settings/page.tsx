@@ -17,6 +17,7 @@ import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-res
 import TagManagement from '../../features/settings/TagManagement'
 import ClassificationManagement from '../../features/settings/ClassificationManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
+import CVManagement from '../../features/settings/CVManagement'
 
 export default function SettingsPage() {
   const [embeddingsEnabled, setEmbeddingsEnabled] = useState(false);
@@ -53,7 +54,8 @@ export default function SettingsPage() {
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: settings?.DiscordWebhookUrl ?? '',
         DiscordNotificationsEnabled: settings?.DiscordNotificationsEnabled ?? false,
-        GenerateEmbeddings: enabled
+        GenerateEmbeddings: enabled,
+        UserCV: settings?.UserCV ?? ''
       };
 
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
@@ -98,6 +100,13 @@ export default function SettingsPage() {
         <Space h="xl" />
 
         <ApiManagement settings={settings} />
+
+        <Space h="xl" />
+
+        <CVManagement 
+          settings={settings} 
+          onUpdate={setSettings} 
+        />
 
         <Switch
           label="Enable AI features"
