@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker", "JobTracker\Jo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.Tests", "JobTracker.Tests\JobTracker.Tests.csproj", "{04414399-B8C2-4051-8E5D-56223A1C7A00}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.Embeddings", "JobTracker.Embeddings\JobTracker.Embeddings.csproj", "{FF47C94E-9C13-4B02-AD48-5EEF7DC38A6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{04414399-B8C2-4051-8E5D-56223A1C7A00}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04414399-B8C2-4051-8E5D-56223A1C7A00}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04414399-B8C2-4051-8E5D-56223A1C7A00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF47C94E-9C13-4B02-AD48-5EEF7DC38A6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF47C94E-9C13-4B02-AD48-5EEF7DC38A6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF47C94E-9C13-4B02-AD48-5EEF7DC38A6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF47C94E-9C13-4B02-AD48-5EEF7DC38A6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

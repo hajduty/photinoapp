@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.System.Settings.UpdateSettings;
-[ExportTsInterface]
+
 public record UpdateSettingsRequest(
-    string? DiscordWebhookUrl = null,
-    bool? DiscordNotificationsEnabled = null,
-    bool? GenerateEmbeddings = null
-);
-[ExportTsInterface]
+    string? DiscordWebhookUrl,
+    bool? DiscordNotificationsEnabled,
+    bool? GenerateEmbeddings,
+    bool? FirstStart
+    );
+
 public record UpdateSettingsResponse(Settings Settings);
 
 public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, UpdateSettingsResponse>
@@ -36,6 +37,9 @@ public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, Up
         }
 
         // Update only provided fields
+        if (request.FirstStart != null)
+            settings.FirstStart = request.FirstStart;
+
         if (request.DiscordWebhookUrl != null)
             settings.DiscordWebhookUrl = request.DiscordWebhookUrl;
         

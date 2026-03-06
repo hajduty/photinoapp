@@ -7,6 +7,7 @@ export interface Posting {
     Id: number;
     Title: string;
     Description: string;
+    DescriptionFormatted: string;
     Company: string;
     Location: string;
     PostedDate: Date;
@@ -17,4 +18,5 @@ export interface Posting {
     LastApplicationDate: Date;
     Source: string;
     Bookmarked: boolean;
+    YearsOfExperience: number;
 }

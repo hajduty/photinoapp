@@ -1,4 +1,5 @@
-﻿using JobTracker.Application.Features.JobSearch;
+﻿/*
+using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using JobTracker.Application.Infrastructure.Services;
@@ -19,21 +20,18 @@ public class RankedPostingResult
 public class SearchHandler
     : RpcHandler<SemanticSearchRequest, SemanticSearchResponse>
 {
-    private readonly EmbeddingService _embeddingService;
+    private readonly EmbeddingProcessor _embeddingService;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly OllamaService _ollamaService;
 
     private readonly int MAX_LIMIT = 10;
 
     public override string Command => "semanticSearch.query";
 
-    public SearchHandler(EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbFactory, OllamaService ollamaService)
+    public SearchHandler(EmbeddingProcessor embeddingService, IDbContextFactory<AppDbContext> dbFactory,)
     {
         _embeddingService = embeddingService;
         _dbFactory = dbFactory;
-        _ollamaService = ollamaService;
     }
-
 
     public async Task<List<RankedPostingResult>> GetRankedResults(string keyword)
     {
@@ -43,7 +41,7 @@ public class SearchHandler
 
         // Generate query embedding
         var queryVector = await _ollamaService.GenerateEmbeddingAsync(keyword);
-        var normalizedQuery = EmbeddingService.Normalize(queryVector);
+        var normalizedQuery = EmbeddingProcessor.Normalize(queryVector);
 
         // Load embeddings
         var embeddings = await db.JobEmbeddings.ToListAsync();
@@ -53,7 +51,7 @@ public class SearchHandler
             .Select(e => new
             {
                 e.JobId,
-                Score = EmbeddingService.Dot(normalizedQuery, EmbeddingService.FromBytes(e.Data))
+                Score = EmbeddingProcessor.Dot(normalizedQuery, EmbeddingProcessor.FromBytes(e.Data))
             })
             .OrderByDescending(x => x.Score)
             .ToList();
@@ -116,3 +114,4 @@ public class SearchHandler
         return response;
     }
 }
+*/

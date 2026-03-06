@@ -2,6 +2,7 @@
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Infrastructure.Services;
@@ -27,9 +28,13 @@ public class TrackerService
         var trackedKeywords = await db.JobTrackers.Include(j => j.Tags).ToListAsync();
 
         int totalJobsAdded = 0;
+        var now = DateTime.UtcNow;
 
         foreach (var track in trackedKeywords)
         {
+            if (track.LastCheckedAt.AddHours(track.CheckIntervalHours) > now)
+                continue;
+
             await _scrapeService.Fetch(new LoadJobsRequest(track.Keyword));
 
             var escapedKeyword = track.Keyword
@@ -41,7 +46,7 @@ public class TrackerService
 
             var query = db.Postings
                 .AsNoTracking()
-                .Where(p => p.CreatedAt > track.LastCheckedAt) // disable for now (testing)
+                .Where(p => p.CreatedAt > track.LastCheckedAt)
                 .Where(p =>
                     EF.Functions.Like(p.Title, pattern) ||
                     EF.Functions.Like(p.Company, pattern) ||
@@ -63,9 +68,8 @@ public class TrackerService
                 ).ToList();
             }
 
-            track.LastCheckedAt = DateTime.Now;
+            track.LastCheckedAt = DateTime.UtcNow;
 
-            // Publish domain event only when NEW jobs are found
             if (newPostings.Any())
             {
                 var jobsInfo = newPostings.Select(p => new JobInfo(p.Id, p.Title, p.Company)).ToList();

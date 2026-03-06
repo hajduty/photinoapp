@@ -19,7 +19,7 @@ public sealed class GetSettingsHandler : RpcHandler<object?, Settings>
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
         
         // Return first settings record or create default if none exists
-        var settings = await dbContext.Settings.FirstOrDefaultAsync();
+        var settings = await dbContext.Settings.Include(s => s.SelectedTags).FirstOrDefaultAsync();
         
         if (settings == null)
         {

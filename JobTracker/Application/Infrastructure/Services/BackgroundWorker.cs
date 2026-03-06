@@ -10,14 +10,14 @@ public class BackgroundWorker : BackgroundService
     private readonly TimeSpan _interval = TimeSpan.FromHours(1);
     private readonly IUiEventEmitter _events;
     private readonly TrackerService _trackerService;
-    private readonly EmbeddingService _embeddingService;
+    private readonly EmbeddingProcessor _embeddingProcessor;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public BackgroundWorker(IServiceProvider serviceProvider, IUiEventEmitter events, TrackerService trackerService, EmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbContextFactory)
+    public BackgroundWorker(IServiceProvider serviceProvider, IUiEventEmitter events, TrackerService trackerService, EmbeddingProcessor embeddingProcessor, IDbContextFactory<AppDbContext> dbContextFactory)
     {
         _events = events;
         _trackerService = trackerService;
-        _embeddingService = embeddingService;
+        _embeddingProcessor = embeddingProcessor;
         _dbFactory = dbContextFactory;
     }
 
@@ -32,7 +32,7 @@ public class BackgroundWorker : BackgroundService
 
             if (settings != null && settings.GenerateEmbeddings)
             {
-                await _embeddingService.GenerateEmbeddingsAsync();
+                await _embeddingProcessor.GenerateEmbeddingsAsync();
             }
 
             await Task.Delay(_interval, stoppingToken);

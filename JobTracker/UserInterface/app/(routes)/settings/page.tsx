@@ -8,14 +8,18 @@ import {
   Space,
   Flex,
   Switch,
-  Loader
+  Loader,
+  Divider
 } from '@mantine/core'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
 import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
 import TagManagement from '../../features/settings/TagManagement'
+import ClassificationManagement from '../../features/settings/ClassificationManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
+import CVManagement from '../../features/settings/CVManagement'
+import UserPreferences from '../../features/settings/UserPreferences'
 
 export default function SettingsPage() {
   const [embeddingsEnabled, setEmbeddingsEnabled] = useState(false);
@@ -29,7 +33,7 @@ export default function SettingsPage() {
       try {
         setSettingsLoading(true);
         setSettingsError(null);
-        
+
         const response = await sendPhotinoRequest<Settings>('settings.getSettings', {});
         setSettings(response);
         setEmbeddingsEnabled(response.GenerateEmbeddings ?? false);
@@ -48,15 +52,16 @@ export default function SettingsPage() {
   const handleEmbeddingsToggle = async (enabled: boolean) => {
     try {
       setEmbeddingsLoading(true);
-      
+
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: settings?.DiscordWebhookUrl ?? '',
         DiscordNotificationsEnabled: settings?.DiscordNotificationsEnabled ?? false,
-        GenerateEmbeddings: enabled
+        GenerateEmbeddings: enabled,
+        UserCV: settings?.UserCV ?? ''
       };
 
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
-      
+
       setEmbeddingsEnabled(enabled);
       setSettings(prev => prev ? { ...prev, GenerateEmbeddings: enabled } : null);
     } catch (err) {
@@ -88,23 +93,43 @@ export default function SettingsPage() {
           </Box>
         </Flex>
 
-        <TagManagement />
-
-        <Space h="xl" />
-
         <ApiManagement settings={settings} />
 
-        <Switch
-          label="Enable AI features"
-          checked={embeddingsEnabled}
-          onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
-          disabled={embeddingsLoading}
-          size="sm"
-          classNames={{
-            label: 'text-neutral-300',
-            track: 'bg-neutral-700'
-          }}
-        />
+        <Divider />
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-neutral-200 mb-2">CV & JOB PREFERENCES</h1>
+            <p className="text-neutral-400">Manage your job preferences for smarter job recommendations</p>
+          </div>
+        </div>
+        <div className='flex gap-2'>
+          <CVManagement
+            settings={settings}
+            onUpdate={setSettings}
+          />
+          <Space h="md" />
+          <UserPreferences
+            settings={settings}
+            onUpdate={setSettings}
+          />
+        </div>
+          <Switch
+            label="Enable AI features"
+            checked={embeddingsEnabled}
+            onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
+            disabled={embeddingsLoading}
+            size="sm"
+            classNames={{
+              label: 'text-neutral-300',
+              track: 'bg-neutral-700'
+            }}
+          />
+
+        <Divider />
+
+        <TagManagement />
+
       </div>
     </div>
   )

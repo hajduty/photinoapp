@@ -1,10 +1,12 @@
-﻿using JobTracker.Application.Features.JobApplication;
+﻿using JobTracker.Application.Features.Classifications;
+using JobTracker.Application.Features.Embeddings;
+using JobTracker.Application.Features.JobApplication;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.Notification;
-using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace JobTracker.Application.Infrastructure.Data;
 
@@ -15,9 +17,11 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Settings> Settings { get; set; } = null!;
-    public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
+    public DbSet<Prototype> Prototypes { get; set; } = null!;
+    public DbSet<Classification> Classifications { get; set; } = null!;
+    public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -32,16 +36,6 @@ public class AppDbContext : DbContext
             .HasMany(j => j.Tags)
             .WithMany(t => t.JobTrackers)
             .UsingEntity(j => j.ToTable("JobTrackerTags"));
-        // --------------
-        modelBuilder.Entity<JobEmbedding>()
-            .HasOne<Posting>()
-            .WithOne()
-            .HasForeignKey<JobEmbedding>(je => je.JobId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<JobEmbedding>()
-            .HasIndex(je => je.JobId)
-            .IsUnique();
         // --------------
         modelBuilder.Entity<JobApplication>()
             .HasIndex(je => je.JobId)
@@ -58,5 +52,34 @@ public class AppDbContext : DbContext
             .WithMany(a => a.StatusHistory)
             .HasForeignKey(h => h.JobApplicationId)
             .OnDelete(DeleteBehavior.Cascade);
+        // --------------
+        modelBuilder.Entity<Classification>()
+            .HasMany(c => c.Prototypes)
+            .WithOne(p => p.Classification)
+            .HasForeignKey(p => p.ClassificationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Classification>()
+            .HasIndex(c => c.Name)
+            .IsUnique();
+        // --------------
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.BlockedKeywords)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.MatchedKeywords)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .HasMany(u => u.SelectedTags)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("UserPreferenceTags"));
     }
 }

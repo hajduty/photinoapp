@@ -25,18 +25,18 @@ public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, Cre
 
         var newApplication = new JobApplication
         {
-            AppliedAt = DateTime.Now,
+            AppliedAt = DateTime.UtcNow,
             JobId = posting.Id,
             Posting = posting,
             CoverLetter = request.CoverLetter,
             Status = ApplicationStatus.Pending,
-            LastStatusChangeAt = DateTime.Now,
+            LastStatusChangeAt = DateTime.UtcNow,
             StatusHistory = new List<ApplicationStatusHistory>
             {
                 new()
                 {
                     Status = ApplicationStatus.Pending,
-                    ChangedAt = DateTime.Now,
+                    ChangedAt = DateTime.UtcNow,
                     Note = "Application created"
                 }
             }

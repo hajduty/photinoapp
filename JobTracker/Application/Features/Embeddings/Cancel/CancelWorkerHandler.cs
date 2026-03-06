@@ -5,11 +5,11 @@ namespace JobTracker.Application.Features.SemanticSearch.Cancel;
 
 public class CancelWorkerHandler : RpcHandler<object?, object?>
 {
-    private readonly EmbeddingService _embeddingService;
+    private readonly EmbeddingProcessor _embeddingService;
 
     public override string Command => "semanticSearch.cancel";
 
-    public CancelWorkerHandler(EmbeddingService embeddingService)
+    public CancelWorkerHandler(EmbeddingProcessor embeddingService)
     {
         _embeddingService = embeddingService;
     }

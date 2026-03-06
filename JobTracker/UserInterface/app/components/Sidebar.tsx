@@ -85,11 +85,11 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             className={`sidebar-nav-item ${isActive('/tracked-searches') ? 'active' : ''}`}
           >
             <IconFileText size={16} />
-            <span>Tracked</span>
+            <span>Tracker</span>
           </button>
         </div>
 
-{/*         <div className="sidebar-section">
+        {/*<div className="sidebar-section">
           <span className="sidebar-section-title">Tools</span>
         </div> */}
 
