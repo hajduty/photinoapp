@@ -183,7 +183,7 @@ public class JinaEmbeddingService : IDisposable
         {
             for (int b = 0; b < batchSize; b++)
             {
-                string text = texts[startIdx + b];
+                string text = "Passage: " + texts[startIdx + b];
                 uint[] encoded = _tokenizer.Encode(text);
                 int len = Math.Min(encoded.Length, _maxLength);
                 lengths[b] = len;
@@ -208,6 +208,7 @@ public class JinaEmbeddingService : IDisposable
             using var results = _session.Run(inputs);
             var allTokenEmbeddings = results[0].AsTensor<float>();
 
+            // Process results
             for (int b = 0; b < batchSize; b++)
             {
                 int effectiveLength = lengths[b];

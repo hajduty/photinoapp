@@ -6,6 +6,7 @@ using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace JobTracker.Application.Infrastructure.Data;
 
@@ -61,5 +62,24 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Classification>()
             .HasIndex(c => c.Name)
             .IsUnique();
+        // --------------
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.BlockedKeywords)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.MatchedKeywords)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .HasMany(u => u.SelectedTags)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("UserPreferenceTags"));
     }
 }

@@ -77,9 +77,9 @@ public class SummarizeTest : IDisposable
         // Generate averaged embeddings
         var emailVec = _embeddingService.GenerateEmbeddingFloat(Data.RejectionEmailToClassify);
 
-        var simRejection = Helper.CosineSimilarity(emailVec, _rejectionVec);
-        var simInterview = Helper.CosineSimilarity(emailVec, _interviewVec);
-        var simOffer = Helper.CosineSimilarity(emailVec, _offerVec);
+        var simRejection = Helper.DotProductSimilarity(emailVec, _rejectionVec);
+        var simInterview = Helper.DotProductSimilarity(emailVec, _interviewVec);
+        var simOffer = Helper.DotProductSimilarity(emailVec, _offerVec);
 
         _output.WriteLine($"Rejection: {simRejection:F4}");
         _output.WriteLine($"Interview: {simInterview:F4}");
@@ -101,9 +101,9 @@ public class SummarizeTest : IDisposable
 
         var emailVec = _embeddingService.GenerateEmbeddingFloat(Data.OfferEmailToClassify);
 
-        var simRejection = Helper.CosineSimilarity(emailVec, _rejectionVec);
-        var simInterview = Helper.CosineSimilarity(emailVec, _interviewVec);
-        var simOffer = Helper.CosineSimilarity(emailVec, _offerVec);
+        var simRejection = Helper.DotProductSimilarity(emailVec, _rejectionVec);
+        var simInterview = Helper.DotProductSimilarity(emailVec, _interviewVec);
+        var simOffer = Helper.DotProductSimilarity(emailVec, _offerVec);
 
         _output.WriteLine($"Rejection: {simRejection:F4}");
         _output.WriteLine($"Interview: {simInterview:F4}");

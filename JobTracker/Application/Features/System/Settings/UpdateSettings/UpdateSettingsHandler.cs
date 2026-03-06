@@ -9,8 +9,8 @@ public record UpdateSettingsRequest(
     string? DiscordWebhookUrl,
     bool? DiscordNotificationsEnabled,
     bool? GenerateEmbeddings,
-    string? UserCV
-);
+    bool? FirstStart
+    );
 
 public record UpdateSettingsResponse(Settings Settings);
 
@@ -37,6 +37,9 @@ public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, Up
         }
 
         // Update only provided fields
+        if (request.FirstStart != null)
+            settings.FirstStart = request.FirstStart;
+
         if (request.DiscordWebhookUrl != null)
             settings.DiscordWebhookUrl = request.DiscordWebhookUrl;
         

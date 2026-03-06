@@ -32,13 +32,13 @@ public class UpdateApplicationHandler
         if (application.Status != request.ApplicationStatus)
         {
             application.Status = request.ApplicationStatus;
-            application.LastStatusChangeAt = DateTime.Now;
+            application.LastStatusChangeAt = DateTime.UtcNow;
 
             db.ApplicationStatusHistories.Add(new ApplicationStatusHistory
             {
                 JobApplicationId = application.JobId,
                 Status = request.ApplicationStatus,
-                ChangedAt = DateTime.Now,
+                ChangedAt = DateTime.UtcNow,
                 Note = request.Note
             });
         }

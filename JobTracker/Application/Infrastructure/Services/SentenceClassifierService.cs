@@ -1,4 +1,5 @@
 ﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Embeddings;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,7 @@ public class SentenceClassifierService
 {
     private readonly IDbContextFactory<AppDbContext> _dbContext;
     private readonly Dictionary<string, List<float[]>> _prototypeEmbeddings;
-    private const float SIMILARITY_THRESHOLD = 0.21f;
+    private const float SIMILARITY_THRESHOLD = 0.55f;
 
     public SentenceClassifierService(JinaEmbeddingService embeddingService, IDbContextFactory<AppDbContext> dbContext)
     {
@@ -98,7 +99,7 @@ public class SentenceClassifierService
 
             foreach (var prototypeVector in prototypes)
             {
-                sum += CosineSimilarity(sentenceVector, prototypeVector);
+                sum += Helper.DotProductSimilarity(sentenceVector, prototypeVector);
             }
 
             float avgSim = sum / prototypes.Count;
@@ -119,25 +120,31 @@ public class SentenceClassifierService
         return (bestCategory, bestScore);
     }
 
-    private static float CosineSimilarity(float[] a, float[] b)
+    public (float[]? ClosestVector, float Similarity) FindClosestVector(float[] query, IEnumerable<float[]> candidates)
     {
-        if (a.Length != b.Length)
-            throw new ArgumentException($"Vector length mismatch: {a.Length} vs {b.Length}");
+        if (query == null || query.Length == 0)
+            throw new ArgumentException("Query vector cannot be null or empty");
 
-        float dot = 0f;
-        float magA = 0f;
-        float magB = 0f;
+        if (candidates == null)
+            return (null, -1f);
 
-        for (int i = 0; i < a.Length; i++)
+        float[]? bestVector = null;
+        float bestSimilarity = -1f;
+
+        foreach (var candidate in candidates)
         {
-            dot += a[i] * b[i];
-            magA += a[i] * a[i];
-            magB += b[i] * b[i];
+            if (candidate == null || candidate.Length != query.Length)
+                continue; 
+
+            float sim = Helper.DotProductSimilarity(query, candidate);
+
+            if (sim > bestSimilarity)
+            {
+                bestSimilarity = sim;
+                bestVector = candidate;
+            }
         }
 
-        if (magA == 0 || magB == 0)
-            return 0f;
-
-        return dot / (float)(Math.Sqrt(magA) * Math.Sqrt(magB));
+        return (bestVector, bestSimilarity);
     }
 }

@@ -2,6 +2,7 @@
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Infrastructure.Services;
@@ -27,9 +28,13 @@ public class TrackerService
         var trackedKeywords = await db.JobTrackers.Include(j => j.Tags).ToListAsync();
 
         int totalJobsAdded = 0;
+        var now = DateTime.UtcNow;
 
         foreach (var track in trackedKeywords)
         {
+            if (track.LastCheckedAt.AddHours(track.CheckIntervalHours) > now)
+                continue;
+
             await _scrapeService.Fetch(new LoadJobsRequest(track.Keyword));
 
             var escapedKeyword = track.Keyword
@@ -63,7 +68,7 @@ public class TrackerService
                 ).ToList();
             }
 
-            track.LastCheckedAt = DateTime.Now;
+            track.LastCheckedAt = DateTime.UtcNow;
 
             if (newPostings.Any())
             {

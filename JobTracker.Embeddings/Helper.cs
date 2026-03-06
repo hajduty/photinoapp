@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace JobTracker.Embeddings;
 
@@ -13,17 +14,30 @@ public static class Helper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float CosineSimilarity(float[] a, float[] b)
+    public static float DotProductSimilarity(float[] a, float[] b)
     {
-        if (a.Length != b.Length)
-            throw new ArgumentException("Vector length mismatch");
+        if (a.Length != b.Length) throw new ArgumentException("Length mismatch");
 
-        float dot = 0f;
-        for (int i = 0; i < a.Length; i++)
+        float sum = 0f;
+        int i = 0;
+        int len = a.Length;
+
+        if (Vector.IsHardwareAccelerated && len >= Vector<float>.Count)
         {
-            dot += a[i] * b[i];
+            for (; i <= len - Vector<float>.Count; i += Vector<float>.Count)
+            {
+                var va = new Vector<float>(a, i);
+                var vb = new Vector<float>(b, i);
+                sum += Vector.Dot(va, vb);
+            }
         }
-        return dot;
+
+        for (; i < len; i++)
+        {
+            sum += a[i] * b[i];
+        }
+
+        return sum;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

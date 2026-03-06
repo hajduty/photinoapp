@@ -38,7 +38,7 @@ public class QwenServiceTests : IDisposable
         }
 
         var email = """
-        Dear Hajder,
+        Dear X,
         After careful review, we have decided to move forward with another candidate.
         Thank you for your interest.
         """;

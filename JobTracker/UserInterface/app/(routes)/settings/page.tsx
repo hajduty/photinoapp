@@ -93,8 +93,6 @@ export default function SettingsPage() {
           </Box>
         </Flex>
 
-        <Divider />
-
         <ApiManagement settings={settings} />
 
         <Divider />
@@ -116,26 +114,22 @@ export default function SettingsPage() {
             onUpdate={setSettings}
           />
         </div>
+          <Switch
+            label="Enable AI features"
+            checked={embeddingsEnabled}
+            onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
+            disabled={embeddingsLoading}
+            size="sm"
+            classNames={{
+              label: 'text-neutral-300',
+              track: 'bg-neutral-700'
+            }}
+          />
 
         <Divider />
 
         <TagManagement />
 
-        <Divider />
-
-        <Switch
-          label="Enable AI features"
-          checked={embeddingsEnabled}
-          onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
-          disabled={embeddingsLoading}
-          size="sm"
-          classNames={{
-            label: 'text-neutral-300',
-            track: 'bg-neutral-700'
-          }}
-        />
-
-        <Divider />
       </div>
     </div>
   )
