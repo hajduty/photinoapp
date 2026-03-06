@@ -50,18 +50,12 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
 
   return (
     <>
-      <div>
-        <h1 className="text-lg font-bold text-neutral-200 mb-2">CV MANAGEMENT</h1>
-        <p className="text-neutral-400 mb-4">
-          Manage your CV content for AI-powered job matching and analysis
-        </p>
-        <button 
-          onClick={() => setOpened(true)}
-          className="btn-secondary text-sm"
-        >
-          {settings?.UserCV ? 'Edit CV' : 'Add CV'}
-        </button>
-      </div>
+      <button 
+        onClick={() => setOpened(true)}
+        className="btn-secondary text-sm"
+      >
+        {settings?.UserCV ? 'Edit CV' : 'Add CV'}
+      </button>
 
       <Modal
         lockScroll={false}

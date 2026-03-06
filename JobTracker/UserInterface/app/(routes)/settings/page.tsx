@@ -8,7 +8,8 @@ import {
   Space,
   Flex,
   Switch,
-  Loader
+  Loader,
+  Divider
 } from '@mantine/core'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
@@ -18,6 +19,7 @@ import TagManagement from '../../features/settings/TagManagement'
 import ClassificationManagement from '../../features/settings/ClassificationManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
 import CVManagement from '../../features/settings/CVManagement'
+import UserPreferences from '../../features/settings/UserPreferences'
 
 export default function SettingsPage() {
   const [embeddingsEnabled, setEmbeddingsEnabled] = useState(false);
@@ -31,7 +33,7 @@ export default function SettingsPage() {
       try {
         setSettingsLoading(true);
         setSettingsError(null);
-        
+
         const response = await sendPhotinoRequest<Settings>('settings.getSettings', {});
         setSettings(response);
         setEmbeddingsEnabled(response.GenerateEmbeddings ?? false);
@@ -50,7 +52,7 @@ export default function SettingsPage() {
   const handleEmbeddingsToggle = async (enabled: boolean) => {
     try {
       setEmbeddingsLoading(true);
-      
+
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: settings?.DiscordWebhookUrl ?? '',
         DiscordNotificationsEnabled: settings?.DiscordNotificationsEnabled ?? false,
@@ -59,7 +61,7 @@ export default function SettingsPage() {
       };
 
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
-      
+
       setEmbeddingsEnabled(enabled);
       setSettings(prev => prev ? { ...prev, GenerateEmbeddings: enabled } : null);
     } catch (err) {
@@ -91,22 +93,35 @@ export default function SettingsPage() {
           </Box>
         </Flex>
 
-        <TagManagement />
-
-        <Space h="xl" />
-
-        <ClassificationManagement />
-
-        <Space h="xl" />
+        <Divider />
 
         <ApiManagement settings={settings} />
 
-        <Space h="xl" />
+        <Divider />
 
-        <CVManagement 
-          settings={settings} 
-          onUpdate={setSettings} 
-        />
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-neutral-200 mb-2">CV & JOB PREFERENCES</h1>
+            <p className="text-neutral-400">Manage your job preferences for smarter job recommendations</p>
+          </div>
+        </div>
+        <div className='flex gap-2'>
+          <CVManagement
+            settings={settings}
+            onUpdate={setSettings}
+          />
+          <Space h="md" />
+          <UserPreferences
+            settings={settings}
+            onUpdate={setSettings}
+          />
+        </div>
+
+        <Divider />
+
+        <TagManagement />
+
+        <Divider />
 
         <Switch
           label="Enable AI features"
@@ -119,6 +134,8 @@ export default function SettingsPage() {
             track: 'bg-neutral-700'
           }}
         />
+
+        <Divider />
       </div>
     </div>
   )

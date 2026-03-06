@@ -67,7 +67,8 @@ export default function ApiManagement({ className, settings }: ApiManagementProp
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: discordWebhookUrl,
         DiscordNotificationsEnabled: discordNotificationsEnabled,
-        GenerateEmbeddings: null
+        GenerateEmbeddings: null,
+        UserCV: null
       };
 
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);

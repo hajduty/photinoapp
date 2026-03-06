@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { JobApplication, ApplicationStatus } from '../../types/applications/jobApplication';
 import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconCheck, IconX, IconUser, IconGhost, IconMail, IconTrash } from '@tabler/icons-react';
-import { Modal, Menu, ActionIcon, Group, Text, Badge, Divider, Paper } from '@mantine/core';
+import { Menu, ActionIcon, Group, Text, Badge, Divider, Paper } from '@mantine/core';
+import { CustomModal } from '@/app/components/CustomModal';
 
 // Mock email data type
 interface MockEmail {
@@ -204,14 +205,13 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
         </div>
       </div>
 
-      {/* Mantine Modal for Emails */}
-      <Modal
+      {/* Custom Modal for Emails */}
+      <CustomModal
         opened={emailModalOpened}
         onClose={() => { setEmailModalOpened(false); setSelectedEmail(null); }}
         title="Emails"
         size="lg"
         centered
-        lockScroll={false}
       >
         <div className="space-y-4">
           {mockEmails.length === 0 ? (
@@ -245,7 +245,7 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
             ))
           )}
         </div>
-      </Modal>
+      </CustomModal>
     </>
   );
 }

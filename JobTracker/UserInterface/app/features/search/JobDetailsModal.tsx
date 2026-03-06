@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
 import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark } from '@tabler/icons-react';
-import { Modal, Divider } from '@mantine/core';
+import { Divider } from '@mantine/core';
+import { CustomModal } from '@/app/components/CustomModal';
 import { Classification } from '@/app/types/classifications/classification';
 import { sendPhotinoRequest } from '@/app/utils/photino';
 import { JobSentenceDto } from '@/app/types/jobs/jobsentence';
@@ -101,10 +102,9 @@ export default function JobDetailsModal({
   };
 
   return (
-    <Modal
+    <CustomModal
       opened={opened}
       onClose={onClose}
-      lockScroll={false}
       title={
         <div className="flex items-center gap-3">
           {Posting.CompanyImage && (
@@ -218,6 +218,6 @@ export default function JobDetailsModal({
           </button>
         </div>
       </div>
-    </Modal>
+    </CustomModal>
   );
 }

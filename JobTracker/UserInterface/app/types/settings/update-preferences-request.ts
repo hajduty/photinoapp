@@ -3,18 +3,9 @@
  * Any changes made to this file can be lost when this file is regenerated.
  */
 
-import { Tag } from '../tag/tag';
-
-export interface Settings {
-    Id: number;
-    DiscordWebhookUrl: string;
-    DiscordNotificationsEnabled: boolean;
-    GenerateEmbeddings: boolean;
-    AppVersion: string;
-    LastUpdatedAt: Date;
-    FirstStart: boolean | null;
+export interface UpdatePreferencesRequest {
     UserCV: string | null;
-    SelectedTags: Tag[] | null;
+    SelectedTagIds: number[] | null;
     YearsOfExperience: number | null;
     BlockedKeywords: string[] | null;
     MatchedKeywords: string[] | null;
