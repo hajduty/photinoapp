@@ -12,8 +12,8 @@ public record QueryJobsResponse(List<ExtendedPosting> Postings, int Page, int Pa
 
 public record ExtendedPosting
 {
-    public Posting Posting { get; init; }
-    public List<Tag> Tags { get; init; }
+    public Posting Posting { get; init; } = null!;
+    public List<Tag> Tags { get; init; } = null!;
 }
 
 public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
@@ -45,24 +45,34 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
                 EF.Functions.Like(p.Description, pattern));
 
         if (req.TimeSinceUpload.HasValue)
-        {
             query = query.Where(p => p.PostedDate >= req.TimeSinceUpload.Value);
-        }
 
-        var allTags = await db.Tags.AsNoTracking().ToListAsync();
-        var wantedTags = allTags.Where(t => req.ActiveTagIds.Contains(t.Id)).ToList();
-        var tagNames = wantedTags.Select(t => t.Name).ToList();
+        // Fetch tags and postings in parallel
+        var allTagsTask = db.Tags.AsNoTracking().ToListAsync();
+        var postingsTask = query.ToListAsync();
 
-        var postings = await query.ToListAsync();
+        await Task.WhenAll(allTagsTask, postingsTask);
 
-        foreach (var tagName in tagNames)
+        var allTags = allTagsTask.Result;
+        var postings = postingsTask.Result;
+
+        // Pre-compile all regexes once
+        var allTagRegexes = allTags
+            .ToDictionary(t => t.Id, t => new Regex(CreateTagPattern(t.Name), RegexOptions.IgnoreCase | RegexOptions.Compiled));
+
+        // Filter by active tags using pre-compiled regexes
+        if (req.ActiveTagIds is { Count: > 0 })
         {
-            var patterns = CreateTagPattern(tagName);
-            var regex = new Regex(patterns, RegexOptions.IgnoreCase);
-            postings = postings.Where(p =>
-                (p.Title != null && regex.IsMatch(p.Title)) ||
-                (p.Description != null && regex.IsMatch(p.Description))
-            ).ToList();
+            var activeRegexes = req.ActiveTagIds
+                .Where(allTagRegexes.ContainsKey)
+                .Select(id => allTagRegexes[id])
+                .ToList();
+
+            postings = postings
+                .Where(p => activeRegexes.All(rx =>
+                    (p.Title != null && rx.IsMatch(p.Title)) ||
+                    (p.Description != null && rx.IsMatch(p.Description))))
+                .ToList();
         }
 
         var totalResults = postings.Count;
@@ -70,22 +80,40 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
         int page = Math.Max(req.Page, 1);
         int pageSize = Math.Clamp(req.PageSize, 1, 100);
 
-        postings = postings
+        var pagedPostings = postings
             .OrderByDescending(p => p.PostedDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
-        var extendedPostings = postings.Select(p => new ExtendedPosting
+        var extendedPostings = pagedPostings.Select(p =>
         {
-            Posting = p,
-            Tags = allTags.Where(t =>
+            var matchingTags = allTags
+                .Where(t =>
+                {
+                    var rx = allTagRegexes[t.Id];
+                    return (p.Title != null && rx.IsMatch(p.Title)) ||
+                           (p.Description != null && rx.IsMatch(p.Description));
+                })
+                .ToList();
+
+            var descRaw = p.Description ?? "";
+            var descFmt = p.DescriptionFormatted ?? "";
+
+            return new ExtendedPosting
             {
-                var tagPattern = CreateTagPattern(t.Name);
-                var regex = new Regex(tagPattern, RegexOptions.IgnoreCase);
-                return (p.Title != null && regex.IsMatch(p.Title)) ||
-                       (p.Description != null && regex.IsMatch(p.Description));
-            }).ToList()
+                Posting = new Posting
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Company = p.Company,
+                    Location = p.Location,
+                    PostedDate = p.PostedDate,
+                    Description = descRaw[..Math.Min(descRaw.Length, 400)],
+                    DescriptionFormatted = descFmt[..Math.Min(descFmt.Length, 400)],
+                },
+                Tags = matchingTags
+            };
         }).ToList();
 
         var totalPages = (int)Math.Ceiling((double)totalResults / pageSize);
@@ -101,7 +129,7 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
         );
     }
 
-    private string CreateTagPattern(string tagName)
+    private static string CreateTagPattern(string tagName)
     {
         var escaped = Regex.Escape(tagName);
         return $@"(?:^|[\s,;.!?()\[\]{{}}""""])({escaped})(?:$|[\s,;.!?()\[\]{{}}""""])";

@@ -7,6 +7,8 @@ import { BookmarkJobRequest } from '../types/jobs/bookmark-job-request';
 import { BookmarkJobResponse } from '../types/jobs/bookmark-job-response';
 import { JobSentenceDto } from '../types/jobs/jobsentence';
 import { Classification } from '../types/classifications/classification';
+import { GetFullDescriptionRequest } from '../types/jobs/get-full-description-request';
+import { GetFullDescriptionResponse } from '../types/jobs/get-full-description-response';
 
 export const useJobs = (request: GetJobsRequest) => {
   return useQuery({
@@ -52,5 +54,14 @@ export const useClassifications = () => {
     queryKey: ['classifications'],
     queryFn: () => sendPhotinoRequest<Classification[]>('classifications.get', {hello:"hello"}),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useFullDescription = (jobId: number) => {
+  return useQuery({
+    queryKey: ['full-description', jobId],
+    queryFn: () => sendPhotinoRequest<GetFullDescriptionResponse>('jobs.getFullDescription', { JobId: jobId }),
+    enabled: !!jobId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };

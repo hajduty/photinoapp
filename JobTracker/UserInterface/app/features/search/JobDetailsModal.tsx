@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
 import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark } from '@tabler/icons-react';
-import { Divider } from '@mantine/core';
+import { Divider, Text } from '@mantine/core';
 import { CustomModal } from '@/app/components/CustomModal';
+import { useFullDescription } from '../../hooks/useJobs';
 
 interface JobDetailsModalProps {
   posting: ExtendedPosting;
@@ -23,6 +24,10 @@ export default function JobDetailsModal({
   isBookmarked = false
 }: JobDetailsModalProps) {
   const { Posting, Tags } = posting;
+  
+  // Fetch full description when modal opens
+  const { data: fullDescription, isLoading: loadingFullDescription } = useFullDescription(opened ? posting.Posting.Id : 0);
+
   const handleApply = () => {
     if (onApply) {
       onApply();
@@ -113,22 +118,49 @@ export default function JobDetailsModal({
         {/* Full Description - Scrollable with custom scrollbar */}
         <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
           <h3 className="text-sm font-semibold text-neutral-300 mb-2">Job Description</h3>
-          <div
-            className="text-neutral-300 text-sm leading-relaxed"
-            style={{
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}
-          >
-            {posting.Posting.DescriptionFormatted ? (
+          {loadingFullDescription ? (
+            <Text c="dimmed" size="sm">Loading full description...</Text>
+          ) : fullDescription ? (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
+              {fullDescription.DescriptionFormatted ? (
+                <div
+                  dangerouslySetInnerHTML={{ __html: fullDescription.DescriptionFormatted }}
+                  className="space-y-3"
+                />
+              ) : (
+                fullDescription.Description
+              )}
+            </div>
+          ) : posting.Posting.DescriptionFormatted ? (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
               <div
                 dangerouslySetInnerHTML={{ __html: posting.Posting.DescriptionFormatted }}
                 className="space-y-3"
               />
-            ) : (
-              posting.Posting.Description
-            )}
-          </div>
+            </div>
+          ) : (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
+              {posting.Posting.Description}
+            </div>
+          )}
         </div>
 
         <Divider />
