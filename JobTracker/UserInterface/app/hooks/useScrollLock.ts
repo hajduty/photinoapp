@@ -8,9 +8,6 @@ export function useScrollLock(isLocked: boolean) {
     const originalOverflow = document.body.style.overflow;
     const originalPaddingRight = document.body.style.paddingRight;
     
-    // Get scrollbar width to prevent layout shift
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    
     // Lock scroll
     document.body.style.overflow = 'hidden';
     document.body.style.paddingRight = `0px`;
