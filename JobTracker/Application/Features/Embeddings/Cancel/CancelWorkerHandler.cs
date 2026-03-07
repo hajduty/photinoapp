@@ -14,10 +14,9 @@ public class CancelWorkerHandler : RpcHandler<object?, object?>
         _embeddingService = embeddingService;
     }
 
-    protected async override Task<object?> HandleAsync(object? request)
+    protected override Task<object?> HandleAsync(object? request)
     {
-        _embeddingService.Cancel();
-
-        return null;
+         _embeddingService.Cancel();
+        return null!;
     }
 }

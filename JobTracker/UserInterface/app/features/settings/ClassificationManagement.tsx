@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TextInput,
   Table,
@@ -19,25 +19,16 @@ import {
   IconCheck,
   IconX
 } from '@tabler/icons-react';
-import { sendPhotinoRequest } from '../../utils/photino';
 import { Classification } from '../../types/classifications/classification';
-import { Prototype } from '../../types/prototypes/prototype';
-import { CreateClassificationRequest } from '../../types/classifications/create-classification-request';
-import { CreateClassificationResponse } from '../../types/classifications/create-classification-response';
-import { DeleteClassificationRequest } from '../../types/classifications/delete-classification-request';
-import { DeleteClassificationResponse } from '../../types/classifications/delete-classification-response';
 import { getContrastColor } from '../../utils/getContrastColor';
 import ClassificationPrototypeModal from './ClassificationPrototypeModal';
+import { useClassifications, useCreateClassification, useDeleteClassification } from '../../hooks/useClassifications';
 
 interface ClassificationManagementProps {
   className?: string;
 }
 
 export default function ClassificationManagement({ className }: ClassificationManagementProps) {
-  const [classifications, setClassifications] = useState<Classification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -54,23 +45,10 @@ export default function ClassificationManagement({ className }: ClassificationMa
   const [nameError, setNameError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchClassifications();
-  }, []);
-
-  const fetchClassifications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await sendPhotinoRequest<any>('classifications.get', {});
-      setClassifications(response.Classifications || []);
-    } catch (err) {
-      console.error('Failed to fetch classifications:', err);
-      setError('Failed to load classifications. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query hooks
+  const { data: classifications = [], isLoading, error } = useClassifications();
+  const createClassificationMutation = useCreateClassification();
+  const deleteClassificationMutation = useDeleteClassification();
 
   const validateName = (name: string): string => {
     if (!name.trim()) return 'Classification name is required';
@@ -90,19 +68,15 @@ export default function ClassificationManagement({ className }: ClassificationMa
 
     try {
       setIsSubmitting(true);
-      const request: CreateClassificationRequest = {
+      await createClassificationMutation.mutateAsync({
         Name: newClassificationName.trim(),
         ...(newClassificationColor && { Color: newClassificationColor })
-      };
-
-      const response = await sendPhotinoRequest<CreateClassificationResponse>('classifications.create', request);
-      setClassifications(prev => [...prev, response.Classification]);
+      });
       setCreateModalOpen(false);
       setNewClassificationName('');
       setNameError('');
     } catch (err) {
       console.error('Failed to create classification:', err);
-      setError('Failed to create classification. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -113,17 +87,11 @@ export default function ClassificationManagement({ className }: ClassificationMa
 
     try {
       setIsSubmitting(true);
-      const request: DeleteClassificationRequest = {
-        ClassificationId: classificationToDelete.Id
-      };
-
-      await sendPhotinoRequest<DeleteClassificationResponse>('classifications.delete', request);
-      setClassifications(prev => prev.filter(cls => cls.Id !== classificationToDelete.Id));
+      await deleteClassificationMutation.mutateAsync({ ClassificationId: classificationToDelete.Id });
       setDeleteModalOpen(false);
       setClassificationToDelete(null);
     } catch (err) {
       console.error('Failed to delete classification:', err);
-      setError('Failed to delete classification. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -211,14 +179,14 @@ export default function ClassificationManagement({ className }: ClassificationMa
             </div>
             <div>
               <h3 className="text-red-400 font-medium">Error</h3>
-              <p className="text-neutral-400">{error}</p>
+              <p className="text-neutral-400">{error.message}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Loading State */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader />
         </div>
@@ -323,7 +291,7 @@ export default function ClassificationManagement({ className }: ClassificationMa
           setClassificationToEdit(null);
         }}
         classification={classificationToEdit}
-        onError={setError}
+        onError={(e) => {console.log(e)}}
       />
 
       {/* Delete Classification Modal */}

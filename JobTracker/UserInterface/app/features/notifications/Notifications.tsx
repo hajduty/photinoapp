@@ -15,26 +15,18 @@ import {
   Box
 } from '@mantine/core';
 import { IconBell, IconX, IconCheck } from '@tabler/icons-react';
-import { sendPhotinoRequest, onPhotinoEvent } from '../../utils/photino';
+import { onPhotinoEvent } from '../../utils/photino';
 import { Notification } from '../../types/notifications/notification';
 import { NotificationType } from '../../types/notifications/notification-type';
-import { DeleteNotificationRequest } from '../../types/notifications/delete-notification-request';
-import { DeleteNotificationResponse } from '../../types/notifications/delete-notification-response';
-import { UpdateNotificationRequest } from '../../types/notifications/update-notification-request';
-import { UpdateNotificationResponse } from '../../types/notifications/update-notification-response';
+import { useNotifications, useUpdateNotification, useDeleteNotification } from '../../hooks/useNotifications';
 
 export default function Notifications() {
   const [opened, setOpened] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch notifications when popup opens
-  useEffect(() => {
-    if (opened) {
-      fetchNotifications();
-    }
-  }, [opened]);
+  
+  // Use TanStack Query hooks
+  const { data: notifications = [], isLoading, error } = useNotifications();
+  const updateNotificationMutation = useUpdateNotification();
+  const deleteNotificationMutation = useDeleteNotification();
 
   useEffect(() => {
     if (!opened && notifications.length > 0) {
@@ -49,7 +41,7 @@ export default function Notifications() {
   useEffect(() => {
     const unsubscribe = onPhotinoEvent('notification.new', (newNotification: Notification) => {
       console.log('[Notifications] New notification received:', newNotification);
-      setNotifications(prev => [newNotification, ...prev]);
+      // TanStack Query will handle refetching automatically
     });
 
     return () => {
@@ -57,38 +49,13 @@ export default function Notifications() {
     };
   }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await sendPhotinoRequest<Notification[]>('notification.getNotifications', {});
-      const sorted = (response || []).sort((a, b) => 
-        new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime()
-      );
-      setNotifications(sorted);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
-      setError('Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const markNotificationsAsRead = async (unreadNotifications: Notification[]) => {
     try {
       // Mark all unread notifications as read
       await Promise.all(
         unreadNotifications.map(n => 
-          sendPhotinoRequest<UpdateNotificationResponse>('notification.updateNotification', {
-            Id: n.Id,
-            IsRead: true
-          } as UpdateNotificationRequest)
+          updateNotificationMutation.mutateAsync({ Id: n.Id, IsRead: true })
         )
-      );
-      
-      // Update local state to reflect read status
-      setNotifications(prev => 
-        prev.map(n => ({ ...n, IsRead: true }))
       );
     } catch (err) {
       console.error('Failed to mark notifications as read:', err);
@@ -97,14 +64,7 @@ export default function Notifications() {
 
   const handleDeleteNotification = async (notificationId: number) => {
     try {
-      const request: DeleteNotificationRequest = {
-        NotificationId: notificationId
-      };
-
-      await sendPhotinoRequest<DeleteNotificationResponse>('notification.deleteNotification', request);
-      
-      // Remove the notification from the list
-      setNotifications(prev => prev.filter(n => n.Id !== notificationId));
+      await deleteNotificationMutation.mutateAsync({ NotificationId: notificationId });
     } catch (err) {
       console.error('Failed to delete notification:', err);
     }
@@ -115,12 +75,9 @@ export default function Notifications() {
       // Delete all notifications one by one
       await Promise.all(
         notifications.map(n => 
-          sendPhotinoRequest<DeleteNotificationResponse>('notification.deleteNotification', {
-            NotificationId: n.Id
-          })
+          deleteNotificationMutation.mutateAsync({ NotificationId: n.Id })
         )
       );
-      setNotifications([]);
     } catch (err) {
       console.error('Failed to clear notifications:', err);
     }
@@ -220,20 +177,20 @@ export default function Notifications() {
 
         {/* Content */}
         <ScrollArea.Autosize mah={320}>
-          {loading ? (
+          {isLoading ? (
             <Group justify="center" py="xl">
               <Loader size="sm" color="gray" />
             </Group>
           ) : error ? (
             <Stack align="center" py="xl" px="md" gap="xs">
               <Text size="sm" c="red.4">
-                {error}
+                {error.message}
               </Text>
               <Button
                 variant="subtle"
                 size="compact-xs"
                 color="gray"
-                onClick={fetchNotifications}
+                onClick={() => {}}
               >
                 Try again
               </Button>

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { getContrastColor } from '../../utils/getContrastColor';
 import { JobApplication, ApplicationStatus } from '../../types/applications/jobApplication';
-import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconCheck, IconX, IconUser, IconGhost, IconMail, IconTrash } from '@tabler/icons-react';
-import { Menu, ActionIcon, Group, Text, Badge, Divider, Paper } from '@mantine/core';
+import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconCheck, IconMail, IconTrash } from '@tabler/icons-react';
+import { Menu, Group, Text, Badge, Divider, Paper } from '@mantine/core';
 import { CustomModal } from '@/app/components/CustomModal';
 
 // Mock email data type

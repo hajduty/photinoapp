@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TextInput,
   Space,
-  Alert,
-  Loader,
   Switch
 } from '@mantine/core';
 import {
   IconMessage,
   IconCheck,
   IconX,
-  IconAlertCircle,
   IconKey,
   IconTestPipe,
 } from '@tabler/icons-react';
@@ -22,17 +19,14 @@ import { Settings } from '@/app/types/settings/settings';
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request';
 import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response';
 import { TestConnectionResponse } from '@/app/types/settings/test-connection-response';
+import { useSettings } from '@/app/hooks/useSettings';
 
 interface ApiManagementProps {
   className?: string;
   settings: Settings | null;
 }
 
-export default function ApiManagement({ className, settings }: ApiManagementProps) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Discord State
+export default function ApiManagement({ className }: ApiManagementProps) {
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
   const [discordNotificationsEnabled, setDiscordNotificationsEnabled] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
@@ -41,16 +35,8 @@ export default function ApiManagement({ className, settings }: ApiManagementProp
   // Form validation
   const [discordWebhookUrlError, setDiscordWebhookUrlError] = useState('');
 
-  useEffect(() => {
-    if (settings) {
-      setDiscordWebhookUrl(settings.DiscordWebhookUrl ?? '');
-      setDiscordNotificationsEnabled(settings.DiscordNotificationsEnabled ?? false);
-      setLoading(false);
-    } else if (!settings) {
-      setError('Settings not available');
-      setLoading(false);
-    }
-  }, [settings]);
+  // Use TanStack Query hooks
+  const { data: settings } = useSettings();
 
   const validateDiscordConfig = (): boolean => {
     const error = !discordWebhookUrl.trim() ? 'Webhook URL is required' : '';
@@ -130,14 +116,6 @@ export default function ApiManagement({ className, settings }: ApiManagementProp
     }
   };
 
-  if (loading) {
-    return (
-      <div className={className}>
-        <Loader />
-      </div>
-    );
-  }
-
   return (
     <div className={className}>
       {/* Header */}
@@ -149,18 +127,6 @@ export default function ApiManagement({ className, settings }: ApiManagementProp
           </div>
         </div>
       </div>
-
-      {/* Error State */}
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error"
-          color="red"
-          mb="md"
-        >
-          {error}
-        </Alert>
-      )}
 
       <Space h="md" />
 

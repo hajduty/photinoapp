@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
 import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark } from '@tabler/icons-react';
-import { Divider } from '@mantine/core';
+import { Divider, Text } from '@mantine/core';
 import { CustomModal } from '@/app/components/CustomModal';
-import { Classification } from '@/app/types/classifications/classification';
-import { sendPhotinoRequest } from '@/app/utils/photino';
-import { JobSentenceDto } from '@/app/types/jobs/jobsentence';
+import { useFullDescription } from '../../hooks/useJobs';
 
 interface JobDetailsModalProps {
   posting: ExtendedPosting;
@@ -26,69 +24,9 @@ export default function JobDetailsModal({
   isBookmarked = false
 }: JobDetailsModalProps) {
   const { Posting, Tags } = posting;
-  const [classifications, setClassifications] = useState<Classification[]>();
-  const [sentences, setSentences] = useState<JobSentenceDto[]>();
-
-  const fetchClassifications = async () => {
-    const response = await sendPhotinoRequest("classifications.get", { norequest: "0" })
-    setClassifications(response.Classifications)
-  }
-
-  const fetchSentences = async () => {
-    const response = await sendPhotinoRequest("embeddings.getDescription", { JobId: Posting.Id })
-    setSentences(response.Sentences);
-    console.log(response.Sentences);
-  }
-
-  const descriptionBuilder = () => {
-    if (!sentences || !classifications) return Posting.Description;
-
-    const sortedSentences = [...sentences].sort((a, b) => a.Start - b.Start);
-
-    const nodes: React.ReactNode[] = [];
-    let cursor = 0;
-
-    sortedSentences.forEach((sentence) => {
-      const { Start, Length, Sentence, SentenceType } = sentence;
-
-      if (Start > cursor) {
-        nodes.push(
-          <span key={`text-${cursor}`}>{Posting.Description.slice(cursor, Start)}</span>
-        );
-      }
-
-      const classification = classifications.find(c => c.Name === SentenceType);
-      const bgColor = classification?.Color ?? 'transparent';
-
-      nodes.push(
-        <span
-          key={`sentence-${Start}`}
-          style={{
-            backgroundColor: bgColor,
-            borderRadius: '2px',
-            padding: '0 2px',
-          }}
-        >
-          {Posting.Description.slice(Start, Start + Length)}
-        </span>
-      );
-
-      cursor = Start + Length;
-    });
-
-    if (cursor < Posting.Description.length) {
-      nodes.push(<span key={`text-end`}>{Posting.Description.slice(cursor)}</span>);
-    }
-
-    return nodes;
-  };
-
-  useEffect(() => {
-    if (opened) {
-      fetchClassifications();
-      fetchSentences();
-    }
-  }, [opened])
+  
+  // Fetch full description when modal opens
+  const { data: fullDescription, isLoading: loadingFullDescription } = useFullDescription(opened ? posting.Posting.Id : 0);
 
   const handleApply = () => {
     if (onApply) {
@@ -180,22 +118,49 @@ export default function JobDetailsModal({
         {/* Full Description - Scrollable with custom scrollbar */}
         <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
           <h3 className="text-sm font-semibold text-neutral-300 mb-2">Job Description</h3>
-          <div
-            className="text-neutral-300 text-sm leading-relaxed"
-            style={{
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}
-          >
-            {posting.Posting.DescriptionFormatted ? (
+          {loadingFullDescription ? (
+            <Text c="dimmed" size="sm">Loading full description...</Text>
+          ) : fullDescription ? (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
+              {fullDescription.DescriptionFormatted ? (
+                <div
+                  dangerouslySetInnerHTML={{ __html: fullDescription.DescriptionFormatted }}
+                  className="space-y-3"
+                />
+              ) : (
+                fullDescription.Description
+              )}
+            </div>
+          ) : posting.Posting.DescriptionFormatted ? (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
               <div
                 dangerouslySetInnerHTML={{ __html: posting.Posting.DescriptionFormatted }}
                 className="space-y-3"
               />
-            ) : (
-              posting.Posting.Description
-            )}
-          </div>
+            </div>
+          ) : (
+            <div
+              className="text-neutral-300 text-sm leading-relaxed"
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}
+            >
+              {posting.Posting.Description}
+            </div>
+          )}
         </div>
 
         <Divider />

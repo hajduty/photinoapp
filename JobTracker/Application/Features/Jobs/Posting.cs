@@ -1,6 +1,4 @@
-﻿using JobTracker.Application.Features.Embeddings;
-
-namespace JobTracker.Application.Features.JobSearch;
+﻿namespace JobTracker.Application.Features.JobSearch;
 
 public class Posting
 {

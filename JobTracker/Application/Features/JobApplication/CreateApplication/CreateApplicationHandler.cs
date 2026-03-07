@@ -23,6 +23,9 @@ public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, Cre
 
         var posting = await db.Postings.FindAsync(request.JobId);
 
+        if (posting == null)
+            throw new InvalidOperationException("Posting not found"); // send ui event,
+
         var newApplication = new JobApplication
         {
             AppliedAt = DateTime.UtcNow,

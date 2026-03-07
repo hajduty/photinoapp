@@ -3,48 +3,34 @@
 import { useState, useEffect } from 'react';
 import { Grid, SimpleGrid, Text, Modal, Tooltip } from "@mantine/core";
 import JobPostingPopup from './features/search/JobPostingPopup';
-import { sendPhotinoRequest } from './utils/photino';
 import { CustomHeatmap } from './features/dashboard/Heatmap';
-import { GetDashboardResponse } from './types/dashboard/get-dashboard-response';
 import { IconArrowWaveLeftUp, IconX, IconBriefcase, IconMail, IconClock } from '@tabler/icons-react';
-import { GetHeatmapResponse } from './types/dashboard/get-heatmap-response';
-import { GetHeatmapDateResponse, HeatmapJobData } from './types/dashboard/get-heatmapdate-response';
+import { HeatmapJobData } from './types/dashboard/get-heatmapdate-response';
+import { useDashboardData, useHeatmapData, useHeatmapDateData } from './hooks/useDashboard';
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalOpened, setModalOpened] = useState(false);
-  const [dashboardData, setDashboardData] = useState<GetDashboardResponse | null>(null);
-  const [heatmapData, setHeatmapData] = useState<Record<string, number>>({});
   const [selectedJobs, setSelectedJobs] = useState<HeatmapJobData[]>([]);
 
+  // Use TanStack Query hooks
+  const { data: dashboardData } = useDashboardData();
+  const { data: heatmapData } = useHeatmapData();
+  const { data: heatmapDateData, isLoading: heatmapDateLoading, error: heatmapDateError } = useHeatmapDateData(selectedDate || '');
+
+  const showInfoForDate = (date: string) => {
+    setSelectedDate(date);
+    setModalOpened(true);
+  };
+
+  // Update selected jobs when heatmapDateData changes
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [dashboard, heatmap] = await Promise.all([
-          sendPhotinoRequest<GetDashboardResponse>('dashboard.getInfo', {}),
-          sendPhotinoRequest<GetHeatmapResponse>('dashboard.getHeatmap', {})
-        ]);
-
-        setDashboardData(dashboard);
-        
-        // Transform heatmap API response to Record<string, number> format
-        const transformedData: Record<string, number> = {};
-        heatmap.Heatmaps.forEach((item) => {
-          transformedData[item.Date] = item.Applications;
-        });
-        setHeatmapData(transformedData);
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  const showInfoForDate = async (date: string) => {
-    var response = await sendPhotinoRequest<GetHeatmapDateResponse>("dashboard.getHeatmapDate", {date});
-    setSelectedJobs(response.Jobs);
-  }
+    if (heatmapDateData) {
+      setSelectedJobs(heatmapDateData.Jobs);
+    } else {
+      setSelectedJobs([]);
+    }
+  }, [heatmapDateData]);
 
   const totalApps = dashboardData?.TotalApplications ?? 0;
   const appsThisMonth = dashboardData?.AppsThisMonth ?? 0;
@@ -56,11 +42,19 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 min-h-screen text-neutral-200">
-      <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={`Applications on ${selectedDate}`} centered size="lg">
-        <div className="flex flex-col gap-3">
-          {selectedJobs.length > 0 ? selectedJobs.map((job) => <JobPostingPopup key={job.JobId} job={job} />) : <Text c="dimmed">No applications found for this date.</Text>}
-        </div>
-      </Modal>
+        <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={`Applications on ${selectedDate}`} centered size="lg">
+          <div className="flex flex-col gap-3">
+            {heatmapDateLoading ? (
+              <Text c="dimmed">Loading applications...</Text>
+            ) : heatmapDateError ? (
+              <Text c="red">Error loading applications</Text>
+            ) : selectedJobs.length > 0 ? (
+              selectedJobs.map((job) => <JobPostingPopup key={job.JobId} job={job} />)
+            ) : (
+              <Text c="dimmed">No applications found for this date.</Text>
+            )}
+          </div>
+        </Modal>
 
       <div className="max-w-7xl mx-auto space-y-8">
         <header><h1 className="text-2xl font-bold text-white">OVERVIEW</h1></header>
@@ -117,7 +111,7 @@ export default function Dashboard() {
           <Grid.Col span={{ base: 12, lg: 8 }}>
             <div className="p-6 border border-neutral-800 rounded-xl bg-neutral-900/50">
               <div className="mb-6"><Text size="xs" fw={700} c="dimmed" className="uppercase tracking-widest select-none">Application Activity</Text></div>
-              <CustomHeatmap data={heatmapData} onDateClick={(date) => { setSelectedDate(date); setModalOpened(true); showInfoForDate(date); }} />
+              <CustomHeatmap data={heatmapData || {}} onDateClick={(date) => { setSelectedDate(date); setModalOpened(true); showInfoForDate(date); }} />
             </div>
           </Grid.Col>
           <Grid.Col span={{ base: 12, lg: 4 }}></Grid.Col>
