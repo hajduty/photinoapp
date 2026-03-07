@@ -1,87 +1,27 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
-import { JobApplication, ApplicationStatus } from "@/app/types/applications/jobApplication";
-import { GetApplicationResponse } from "@/app/types/applications/get-application";
-import { UpdateApplicationRequest } from "@/app/types/applications/update-application";
-import { sendPhotinoRequest } from "@/app/utils/photino";
+import React, { useState } from "react";
+import { ApplicationStatus } from "@/app/types/applications/jobApplication";
 import ApplicationJobPosting from "../../features/search/ApplicationJobPosting";
 import { IconAlertCircle, IconBriefcase } from "@tabler/icons-react";
+import { useApplications, useUpdateApplication, useDeleteApplication } from '../../hooks/useApplications';
+import { Pagination, Text, Group, Box } from "@mantine/core";
 
 export default function JobApplicationsPage() {
-  const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const ITEMS_PER_PAGE = 10; // Reduce page size for better performance
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const { data: applications, isLoading, error } = useApplications();
+  const updateApplicationMutation = useUpdateApplication();
+  const deleteApplicationMutation = useDeleteApplication();
 
-  const loadApplications = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await sendPhotinoRequest("applications.get", {hello:"hello"});
-      console.log(response);
-
-      const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const applicationResponse: GetApplicationResponse = data;
-
-      setApplications(applicationResponse.AppliedJobs || []);
-    } catch (err) {
-      console.error('Load applications error:', err);
-      setError('Failed to load applications. Please try again.');
-      setApplications([]);
-    } finally {
-      setLoading(false);
-    }
+  const handleStatusChange = (applicationId: number, newStatus: ApplicationStatus) => {
+    updateApplicationMutation.mutate({ Id: applicationId, ApplicationStatus: newStatus });
   };
 
-  const handleStatusChange = async (applicationId: number, newStatus: ApplicationStatus) => {
-    try {
-      const request: UpdateApplicationRequest = {
-        Id: applicationId,
-        ApplicationStatus: newStatus
-      };
-
-      console.log('Update Status Request:', request);
-
-      const response = await sendPhotinoRequest("applications.update", request);
-
-      console.log('Update Status Response:', response);
-
-      // Update local state
-      setApplications(prev => 
-        prev.map(app => 
-          app.JobId === applicationId 
-            ? { ...app, Status: newStatus, LastStatusChangedAt: new Date() }
-            : app
-        )
-      );
-
-      console.log("Status updated successfully");
-    } catch (err) {
-      console.error('Status update failed:', err);
-    }
+  const handleDelete = (jobId: number) => {
+    deleteApplicationMutation.mutate(jobId);
   };
-
-  const handleDelete = async (jobId: number) => {
-    try {
-      console.log('Delete Application Request:', { JobId: jobId });
-
-      const response = await sendPhotinoRequest("applications.delete", { JobId: jobId });
-
-      console.log('Delete Application Response:', response);
-
-      setApplications(prev => prev.filter(app => app.JobId !== jobId));
-
-      console.log("Application deleted successfully");
-    } catch (err) {
-      console.error('Delete application failed:', err);
-    }
-  };
-
-  useEffect(() => {
-    loadApplications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   return (
     <div className="md:p-8 p-4">
@@ -103,14 +43,14 @@ export default function JobApplicationsPage() {
               </div>
               <div>
                 <h3 className="text-red-400 font-medium">Error</h3>
-                <p className="text-neutral-400">{error}</p>
+                <p className="text-neutral-400">{error.message}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* No Results State */}
-        {!loading && !error && applications.length === 0 && (
+        {!isLoading && !error && (!applications || applications.length === 0) && (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <IconBriefcase className="w-8 h-8 text-neutral-400" />
@@ -123,17 +63,39 @@ export default function JobApplicationsPage() {
         )}
 
         {/* Application Results */}
-        {!loading && applications.length > 0 && (
+        {!isLoading && applications && applications.length > 0 && (
           <div className="space-y-4">
-            {applications.map((application, index) => (
-              <ApplicationJobPosting 
-                key={application.Id || `${application.JobId}-${index}`} 
-                application={application} 
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-              />
-            ))}
+            {applications
+              .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+              .map((application, index) => (
+                <ApplicationJobPosting 
+                  key={application.Id || `${application.JobId}-${index}`} 
+                  application={application} 
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
+                />
+              ))}
           </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && applications && applications.length > 0 && (
+          <Box className="p-6 w-full">
+            <Group justify="space-between" align="center">
+              <Text size="sm" c="dimmed">
+                Page {currentPage} • {applications.length} applications
+              </Text>
+              <Pagination
+                total={Math.ceil(applications.length / ITEMS_PER_PAGE)}
+                value={currentPage}
+                onChange={setCurrentPage}
+                disabled={isLoading}
+                color="gray"
+                size="md"
+                radius="sm"
+              />
+            </Group>
+          </Box>
         )}
       </div>
     </div>

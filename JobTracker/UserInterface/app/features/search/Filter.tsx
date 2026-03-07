@@ -1,8 +1,8 @@
 import { Select } from '@mantine/core'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Tag } from '../../types/tag/tag'
-import { sendPhotinoRequest } from '../../utils/photino'
 import { TagsCombobox } from './TagsCombobox'
+import { useTags } from '../../hooks/useTags'
 
 interface FilterProps {
   onFilterChange: (filters: {
@@ -28,24 +28,8 @@ export default function Filter({ onFilterChange }: FilterProps) {
     tags: [],
   })
 
-  const [tags, setTags] = useState<Tag[]>([])
-
-  useEffect(() => {
-    fetchTags()
-  }, [])
-
-  const fetchTags = async () => {
-    try {
-      const response = await sendPhotinoRequest<Tag[]>(
-        'tags.getTags',
-        { test: 'anything' }
-      )
-      console.log("fetched");
-      setTags(response)
-    } catch (err) {
-      console.error('Failed to fetch tags:', err)
-    }
-  }
+  // Use TanStack Query hooks
+  const { data: tags = [] } = useTags()
 
   const handleStringFilterChange = (
     key: Exclude<keyof Filters, 'tags'>,

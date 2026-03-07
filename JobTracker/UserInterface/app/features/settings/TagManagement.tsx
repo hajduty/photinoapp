@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TextInput,
   Table,
@@ -22,25 +22,15 @@ import {
   IconCheck,
   IconX
 } from '@tabler/icons-react';
-import { sendPhotinoRequest } from '../../utils/photino';
 import { Tag } from '../../types/tag/tag';
-import { CreateTagRequest } from '../../types/tag/create-tag-request';
-import { CreateTagResponse } from '../../types/tag/create-tag-response';
-import { UpdateTagRequest } from '../../types/tag/update-tag-request';
-import { UpdateTagResponse } from '../../types/tag/update-tag-response';
-import { DeleteTagRequest } from '../../types/tag/delete-tag-request';
-import { DeleteTagResponse } from '../../types/tag/delete-tag-response';
 import { getContrastColor } from '../../utils/getContrastColor';
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../../hooks/useTags';
 
 interface TagManagementProps {
   className?: string;
 }
 
 export default function TagManagement({ className }: TagManagementProps) {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -58,24 +48,11 @@ export default function TagManagement({ className }: TagManagementProps) {
   const [nameError, setNameError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  const fetchTags = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await sendPhotinoRequest<any>('tags.getTags', { test: "anything" });
-      console.log(response);
-      setTags(response);
-    } catch (err) {
-      console.error('Failed to fetch tags:', err);
-      setError('Failed to load tags. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query hooks
+  const { data: tags = [], isLoading, error } = useTags();
+  const createTagMutation = useCreateTag();
+  const updateTagMutation = useUpdateTag();
+  const deleteTagMutation = useDeleteTag();
 
   const validateName = (name: string): string => {
     if (!name.trim()) return 'Tag name is required';
@@ -95,22 +72,16 @@ export default function TagManagement({ className }: TagManagementProps) {
 
     try {
       setIsSubmitting(true);
-      const request: CreateTagRequest = {
+      await createTagMutation.mutateAsync({
         Name: newTagName.trim(),
         Color: newTagColor
-      };
-
-
-      const response = await sendPhotinoRequest<CreateTagResponse>('tags.createTag', request);
-      console.log(response);
-      setTags(prev => [...prev, response.CreatedTag]);
+      });
       setCreateModalOpen(false);
       setNewTagName('');
       setNewTagColor('#3b82f6');
       setNameError('');
     } catch (err) {
       console.error('Failed to create tag:', err);
-      setError('Failed to create tag. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -126,16 +97,11 @@ export default function TagManagement({ className }: TagManagementProps) {
 
     try {
       setIsSubmitting(true);
-      const request: UpdateTagRequest = {
+      await updateTagMutation.mutateAsync({
         TagId: editingTag.Id,
         NewName: editTagName.trim(),
         NewColor: editTagColor
-      };
-
-      const response = await sendPhotinoRequest<UpdateTagResponse>('tags.updateTag', request);
-      setTags(prev => prev.map(tag =>
-        tag.Id === editingTag.Id ? response.UpdatedTag : tag
-      ));
+      });
       setEditModalOpen(false);
       setEditingTag(null);
       setEditTagName('');
@@ -143,7 +109,6 @@ export default function TagManagement({ className }: TagManagementProps) {
       setNameError('');
     } catch (err) {
       console.error('Failed to update tag:', err);
-      setError('Failed to update tag. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -154,17 +119,11 @@ export default function TagManagement({ className }: TagManagementProps) {
 
     try {
       setIsSubmitting(true);
-      const request: DeleteTagRequest = {
-        TagId: tagToDelete.Id
-      };
-
-      await sendPhotinoRequest<DeleteTagResponse>('tags.deleteTag', request);
-      setTags(prev => prev.filter(tag => tag.Id !== tagToDelete.Id));
+      await deleteTagMutation.mutateAsync({ TagId: tagToDelete.Id });
       setDeleteModalOpen(false);
       setTagToDelete(null);
     } catch (err) {
       console.error('Failed to delete tag:', err);
-      setError('Failed to delete tag. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -253,14 +212,14 @@ export default function TagManagement({ className }: TagManagementProps) {
             </div>
             <div>
               <h3 className="text-red-400 font-medium">Error</h3>
-              <p className="text-neutral-400">{error}</p>
+              <p className="text-neutral-400">{error.message}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Loading State */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader />
         </div>

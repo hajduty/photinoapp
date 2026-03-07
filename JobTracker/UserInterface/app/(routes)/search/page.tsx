@@ -2,12 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import JobPosting from '../../features/search/JobPosting';
+import { useJobs, useBookmarkJob } from '../../hooks/useJobs';
 import { sendPhotinoRequest } from '../../utils/photino';
 import { SearchAutocomplete } from '../../features/search/SearchAutocomplete';
 import Filter from '../../features/search/Filter';
 import { Pagination, Text, Group, Box } from '@mantine/core';
-import { GetJobsRequest } from '../../types/jobs/get-jobs-request';
-import { GetJobsResponse } from '../../types/jobs/get-jobs-response';
 import { CreateApplicationRequest } from '../../types/applications/create-application';
 import { IconAlertCircle, IconUserSearch } from '@tabler/icons-react';
 
@@ -20,9 +19,6 @@ interface ParentFilters {
 
 export default function JobSearch() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [jobPostings, setJobPostings] = useState<GetJobsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [filters, setFilters] = useState<ParentFilters>({
     source: '',
@@ -33,39 +29,20 @@ export default function JobSearch() {
 
   const ITEMS_PER_PAGE = 20;
 
-  const handleBookmark = async (id: number, targetState: boolean) => {
-    try {
-      const updatedPosting = await sendPhotinoRequest('jobs.bookmark', {
-        PostingId: id,
-        IsBookmarked: targetState
-      });
+  // Use TanStack Query hooks
+  const request = {
+    Keyword: searchTerm.trim(),
+    Page: currentPage + 1,
+    PageSize: ITEMS_PER_PAGE,
+    ActiveTagIds: filters.tags,
+    TimeSinceUpload: filters.date
+  };
 
-      setJobPostings(prev => {
-        if (!prev) return prev;
+  const { data: jobPostings, isLoading, error } = useJobs(request);
+  const bookmarkMutation = useBookmarkJob();
 
-        return {
-          ...prev,
-          // Creating a brand new array reference
-          Postings: prev.Postings.map(item => {
-            if (item.Posting.Id === id) {
-              // We spread the item and the new Posting to ensure 
-              // a new reference is created for the whole ExtendedPosting
-              return {
-                ...item,
-                Posting: { ...updatedPosting.Posting }
-              };
-            }
-            return item;
-          })
-        };
-      });
-
-      console.log(updatedPosting);
-
-      console.log("Update successful");
-    } catch (err) {
-      console.error('Bookmark failed:', err);
-    }
+  const handleBookmark = (id: number, targetState: boolean) => {
+    bookmarkMutation.mutate({ PostingId: id, IsBookmarked: targetState });
   };
 
   const handleApply = async (postingId: number) => {
@@ -89,42 +66,8 @@ export default function JobSearch() {
 
   const searchJobs = async (e?: React.FormEvent, page: number = 0, keyword?: string) => {
     e?.preventDefault();
-
     const term = (keyword ?? searchTerm).trim();
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log(filters.tags);
-
-      const request: GetJobsRequest = {
-        Keyword: term,
-        Page: page,
-        PageSize: ITEMS_PER_PAGE,
-        ActiveTagIds: filters.tags,
-        TimeSinceUpload: filters.date
-      };
-
-      console.log('Search Request:', request);
-
-      const response = await sendPhotinoRequest("jobs.getJobs", request);
-
-      console.log('Search Response:', response);
-
-      const data = typeof response === 'string' ? JSON.parse(response) : response;
-      const jobResponse: GetJobsResponse = data;
-
-      setJobPostings({ ...jobResponse });
-
-      setCurrentPage(page - 1);
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Failed to search. Please try again.');
-      setJobPostings(null);
-    } finally {
-      setLoading(false);
-    }
+    setCurrentPage(page - 1);
   };
 
   useEffect(() => {
@@ -149,7 +92,7 @@ export default function JobSearch() {
         <Filter onFilterChange={setFilters} />
 
         {/* Results Header */}
-        {!loading && jobPostings && jobPostings.TotalResults > 0 && (
+        {!isLoading && jobPostings && jobPostings.TotalResults > 0 && (
           <div className="text-white font-semibold mb-2">
             {jobPostings.TotalResults} job{jobPostings.TotalResults !== 1 ? 's' : ''} found
           </div>
@@ -164,19 +107,19 @@ export default function JobSearch() {
               </div>
               <div>
                 <h3 className="text-red-400 font-medium">Search Error</h3>
-                <p className="text-neutral-400">{error}</p>
+                <p className="text-neutral-400">{error.message}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Loading State */}
-        {loading && (
+        {isLoading && (
           <h3 className="text-white font-medium">Searching for jobs...</h3>
         )}
 
         {/* No Results State */}
-        {!loading && !error && jobPostings && jobPostings.Postings?.length === 0 && searchTerm.trim().length >= 3 && (
+        {!isLoading && !error && jobPostings && jobPostings.Postings?.length === 0 && searchTerm.trim().length >= 3 && (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <IconUserSearch className="w-8 h-8 text-neutral-400" />
@@ -197,7 +140,7 @@ export default function JobSearch() {
         )}
 
         {/* Job Results */}
-        {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
+        {!isLoading && jobPostings && jobPostings.Postings?.length > 0 && (
           <div className="space-y-4">
             {jobPostings.Postings.map((posting, index) => (
               <JobPosting 
@@ -212,7 +155,7 @@ export default function JobSearch() {
         )}
 
         {/* Pagination */}
-        {!loading && jobPostings && jobPostings.Postings?.length > 0 && (
+        {!isLoading && jobPostings && jobPostings.Postings?.length > 0 && (
           <Box className="p-6 w-full">
             <Group justify="space-between" align="center">
               <Text size="sm" c="dimmed">
@@ -225,7 +168,7 @@ export default function JobSearch() {
                   searchJobs(undefined, page);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                disabled={loading}
+                disabled={isLoading}
                 size="md"
                 radius="sm"
               />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   ActionIcon,
@@ -26,19 +26,21 @@ import { sendPhotinoRequest } from '../../utils/photino';
 import { JobTracker } from '../../types/jobs/job-tracker';
 import { Tag } from '../../types/tag/tag';
 import { CreateJobTrackerRequest } from '../../types/jobs/create-job-tracker-request';
-import { CreateJobTrackerResponse } from '../../types/jobs/create-job-tracker-response';
 import { UpdateJobTrackerRequest } from '../../types/jobs/update-job-tracker-request';
-import { DeleteJobTrackerRequest } from '../../types/tag/delete-job-tracker-request';
-import { DeleteJobTrackerResponse } from '../../types/tag/delete-job-tracker-response';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { notifications } from '@mantine/notifications';
+import { useTrackers, useCreateTracker, useUpdateTracker, useDeleteTracker } from '../../hooks/useTrackers';
+import { useTags } from '../../hooks/useTags';
 
 const SOURCES = ['All', 'LinkedIn', 'Arbetsförmedlingen', 'Indeed'];
 
 export default function TrackersPage() {
-  const [trackers, setTrackers] = useState<JobTracker[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  // Use TanStack Query hooks
+  const { data: trackers, isLoading, error } = useTrackers();
+  const { data: availableTags } = useTags();
+  const createTrackerMutation = useCreateTracker();
+  const updateTrackerMutation = useUpdateTracker();
+  const deleteTrackerMutation = useDeleteTracker();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTracker, setEditingTracker] = useState<JobTracker | null>(null);
@@ -54,42 +56,14 @@ export default function TrackersPage() {
     CheckIntervalHours: 1
   });
 
-  useEffect(() => {
-    fetchTrackers();
-    fetchTags();
-  }, []);
-
-  const fetchTrackers = async () => {
-    try {
-      setLoading(true);
-      const response = await sendPhotinoRequest<JobTracker[]>('jobTracker.getTrackers', {});
-      setTrackers(response);
-      console.log(response);
-    } catch (err) {
-      console.error('Failed to fetch trackers:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTags = async () => {
-    try {
-      const response = await sendPhotinoRequest<Tag[]>('tags.getTags', {});
-      setAvailableTags(response);
-    } catch (err) {
-      console.error('Failed to fetch tags:', err);
-    }
-  };
-
   const handleCreate = async () => {
     if (!formData.Keyword.trim()) return;
 
     try {
       setIsSubmitting(true);
-      await sendPhotinoRequest<CreateJobTrackerResponse>('jobTracker.createTracker', formData);
+      await createTrackerMutation.mutateAsync(formData);
       setModalOpen(false);
       resetForm();
-      fetchTrackers();
     } catch (err) {
       console.error('Failed to create tracker:', err);
     } finally {
@@ -112,10 +86,9 @@ export default function TrackersPage() {
         LastCheckedAt: editingTracker.LastCheckedAt,
         CheckIntervalHours: formData.CheckIntervalHours
       };
-      await sendPhotinoRequest('jobTracker.updateTracker', request);
+      await updateTrackerMutation.mutateAsync(request);
       setModalOpen(false);
       resetForm();
-      fetchTrackers();
     } catch (err) {
       console.error('Failed to update tracker:', err);
     } finally {
@@ -125,22 +98,13 @@ export default function TrackersPage() {
 
   const handleDelete = async (tracker: JobTracker) => {
     try {
-      const request: DeleteJobTrackerRequest = {
-        TrackerId: tracker.Id
-      };
-      await sendPhotinoRequest<DeleteJobTrackerResponse>('jobTracker.deleteTracker', request);
-      fetchTrackers();
+      await deleteTrackerMutation.mutateAsync({ TrackerId: tracker.Id });
     } catch (err) {
       console.error('Failed to delete tracker:', err);
     }
   };
 
   const handleToggle = async (tracker: JobTracker) => {
-    // Optimistic update: update local state first so animation plays
-    setTrackers(trackers.map(t => 
-      t.Id === tracker.Id ? { ...t, IsActive: !t.IsActive } : t
-    ));
-
     try {
       const request: UpdateJobTrackerRequest = {
         TrackerId: tracker.Id,
@@ -152,13 +116,9 @@ export default function TrackersPage() {
         LastCheckedAt: tracker.LastCheckedAt,
         CheckIntervalHours: tracker.CheckIntervalHours
       };
-      await sendPhotinoRequest('jobTracker.updateTracker', request);
+      await updateTrackerMutation.mutateAsync(request);
     } catch (err) {
-      // Revert on error
       console.error('Failed to toggle tracker:', err);
-      setTrackers(trackers.map(t => 
-        t.Id === tracker.Id ? { ...t, IsActive: tracker.IsActive } : t
-      ));
     }
   };
 
@@ -172,7 +132,6 @@ export default function TrackersPage() {
         color: 'green',
         icon: <IconCheck size={16} />
       });
-      fetchTrackers();
     } catch (err) {
       console.error('Failed to sync jobs:', err);
       notifications.show({
@@ -242,11 +201,11 @@ export default function TrackersPage() {
           </button>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader />
           </div>
-        ) : trackers.length === 0 ? (
+        ) : (!trackers || trackers.length === 0) ? (
           <div className="card p-8 text-center">
             <IconBell className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
             <p className="text-neutral-400">No trackers yet. Create one to get started.</p>
@@ -381,10 +340,10 @@ export default function TrackersPage() {
             placeholder="Select tags"
             value={formData.Tags.map(t => t.Id.toString())}
             onChange={(selectedIds) => {
-              const selectedTags = availableTags.filter(t => selectedIds.includes(t.Id.toString()));
+              const selectedTags = (availableTags || []).filter(t => selectedIds.includes(t.Id.toString()));
               setFormData({ ...formData, Tags: selectedTags });
             }}
-            data={availableTags.map(t => ({ value: t.Id.toString(), label: t.Name }))}
+            data={(availableTags || []).map(t => ({ value: t.Id.toString(), label: t.Name }))}
             className="mb-6"
             classNames={{
               input: 'bg-neutral-800 border-neutral-700 text-neutral-200',

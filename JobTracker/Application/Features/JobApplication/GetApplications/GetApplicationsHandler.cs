@@ -6,7 +6,7 @@ namespace JobTracker.Application.Features.JobApplication.GetApplications;
 
 public record GetApplicationsResponse(List<JobApplication> AppliedJobs);
 
-public class GetApplicationsHandler : RpcHandler<NoRequest, GetApplicationsResponse>
+public class GetApplicationsHandler : RpcHandler<NoRequest, List<JobApplication>>
 {
     public override string Command => "applications.get";
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
@@ -16,13 +16,13 @@ public class GetApplicationsHandler : RpcHandler<NoRequest, GetApplicationsRespo
         _dbFactory = dbFactory;
     }
 
-    protected override async Task<GetApplicationsResponse> HandleAsync(NoRequest _)
+    protected override async Task<List<JobApplication>> HandleAsync(NoRequest _)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        return new GetApplicationsResponse(await db.JobApplications
+        return await db.JobApplications
             .Include(j => j.Posting)
             .Include(j => j.StatusHistory.OrderByDescending(h => h.ChangedAt))
-            .ToListAsync());
+            .ToListAsync();
     }
 }

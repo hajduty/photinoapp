@@ -4,17 +4,10 @@ import React, { useState, useEffect } from 'react'
 import {
   Modal,
   TextInput,
-  Textarea,
-  Button,
-  Group,
-  Box,
-  Title,
   Text,
-  Select,
   MultiSelect,
   NumberInput,
   Switch,
-  Checkbox,
   TagsInput
 } from '@mantine/core'
 import { sendPhotinoRequest } from '@/app/utils/photino'
@@ -22,6 +15,7 @@ import { Settings } from '@/app/types/settings/settings'
 import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
 import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
 import { Tag } from '@/app/types/tag/tag'
+import { useTags } from '@/app/hooks/useTags'
 
 interface UserPreferencesProps {
   settings: Settings | null
@@ -31,7 +25,6 @@ interface UserPreferencesProps {
 export default function UserPreferences({ settings, onUpdate }: UserPreferencesProps) {
   const [opened, setOpened] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [tags, setTags] = useState<Tag[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
   const [blockedKeywords, setBlockedKeywords] = useState<string[]>([])
@@ -40,6 +33,9 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
   const [alertOnHardMatchingJobs, setAlertOnHardMatchingJobs] = useState(false)
   const [location, setLocation] = useState('')
   const [maxJobAgeDays, setMaxJobAgeDays] = useState<number | null>(null)
+
+  // Use TanStack Query hooks
+  const { data: tags = [] } = useTags()
 
   useEffect(() => {
     if (settings) {
@@ -58,19 +54,6 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
       }
     }
   }, [settings])
-
-  useEffect(() => {
-    fetchTags()
-  }, [])
-
-  const fetchTags = async () => {
-    try {
-      const response = await sendPhotinoRequest<any>('tags.getTags', { test: "anything" })
-      setTags(response)
-    } catch (err) {
-      console.error('Failed to fetch tags:', err)
-    }
-  }
 
   const handleSave = async () => {
     try {

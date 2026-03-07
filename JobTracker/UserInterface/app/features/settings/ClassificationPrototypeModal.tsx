@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Modal,
-  Text,
   Group,
   Loader,
 } from '@mantine/core';
@@ -12,13 +11,7 @@ import {
 } from '@tabler/icons-react';
 import { Classification } from '../../types/classifications/classification';
 import { Prototype } from '../../types/prototypes/prototype';
-import { CreatePrototypeRequest } from '../../types/prototypes/create-prototype-request';
-import { CreatePrototypeResponse } from '../../types/prototypes/create-prototype-response';
-import { DeletePrototypeRequest } from '../../types/prototypes/delete-prototype-request';
-import { DeletePrototypeResponse } from '../../types/prototypes/delete-prototype-response';
-import { GetPrototypesByClassificationRequest } from '../../types/prototypes/get-prototypes-by-classification-request';
-import { GetPrototypesByClassificationResponse } from '../../types/prototypes/get-prototypes-by-classification-response';
-import { sendPhotinoRequest } from '../../utils/photino';
+import { usePrototypesByClassification, useCreatePrototype, useDeletePrototype } from '../../hooks/usePrototypes';
 
 interface ClassificationPrototypeModalProps {
   opened: boolean;
@@ -33,47 +26,24 @@ export default function ClassificationPrototypeModal({
   classification,
   onError
 }: ClassificationPrototypeModalProps) {
-  const [classificationPrototypes, setClassificationPrototypes] = React.useState<Prototype[]>([]);
   const [newPrototypeText, setNewPrototypeText] = React.useState('');
   const [prototypeToDelete, setPrototypeToDelete] = React.useState<Prototype | null>(null);
   const [deletePrototypeModalOpen, setDeletePrototypeModalOpen] = React.useState(false);
-  const [prototypeLoading, setPrototypeLoading] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  React.useEffect(() => {
-    if (opened && classification) {
-      fetchPrototypes(classification.Id);
-    }
-  }, [opened, classification]);
-
-  const fetchPrototypes = async (classificationId: number) => {
-    try {
-      setPrototypeLoading(true);
-      const request: GetPrototypesByClassificationRequest = { ClassificationId: classificationId };
-      const response = await sendPhotinoRequest<GetPrototypesByClassificationResponse>(
-        'prototype.getByClassification',
-        request
-      );
-      setClassificationPrototypes(response.Prototypes || []);
-    } catch (err) {
-      console.error('Failed to fetch prototypes:', err);
-      onError('Failed to load prototypes for this classification.');
-      setClassificationPrototypes([]);
-    } finally {
-      setPrototypeLoading(false);
-    }
-  };
+  // Use TanStack Query hooks
+  const { data: classificationPrototypes = [], isLoading: prototypeLoading } = usePrototypesByClassification(classification?.Id || 0);
+  const createPrototypeMutation = useCreatePrototype();
+  const deletePrototypeMutation = useDeletePrototype();
 
   const handleAddPrototype = async () => {
     if (!classification || !newPrototypeText.trim()) return;
     try {
       setIsSubmitting(true);
-      const request: CreatePrototypeRequest = {
+      await createPrototypeMutation.mutateAsync({
         ClassificationId: classification.Id,
         Text: newPrototypeText.trim()
-      };
-      const response = await sendPhotinoRequest<CreatePrototypeResponse>('prototype.create', request);
-      setClassificationPrototypes(prev => [...prev, response.Prototype]);
+      });
       setNewPrototypeText('');
     } catch (err) {
       console.error('Failed to create prototype:', err);
@@ -87,9 +57,7 @@ export default function ClassificationPrototypeModal({
     if (!prototypeToDelete) return;
     try {
       setIsSubmitting(true);
-      const request: DeletePrototypeRequest = { PrototypeId: prototypeToDelete.Id };
-      await sendPhotinoRequest<DeletePrototypeResponse>('prototype.delete', request);
-      setClassificationPrototypes(prev => prev.filter(p => p.Id !== prototypeToDelete.Id));
+      await deletePrototypeMutation.mutateAsync({ PrototypeId: prototypeToDelete.Id });
       setDeletePrototypeModalOpen(false);
       setPrototypeToDelete(null);
     } catch (err) {

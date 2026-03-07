@@ -9,6 +9,8 @@ import '@mantine/notifications/styles.css';
 import { Notifications } from '@mantine/notifications';
 import Sidebar from "./components/Sidebar";
 import { SystemEventsProvider } from "./features/system-events/SystemEventsContext";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './hooks/useQueryClient';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,9 +29,10 @@ export default function RootLayout({
         <meta name="description" content="Job tracking application" />
       </head>
       <body className={`${inter.className} min-h-screen bg-neutral-950`}>
-        <MantineProvider defaultColorScheme="dark">
-          <SystemEventsProvider>
-            <div className="flex min-h-screen relative">
+        <QueryClientProvider client={queryClient}>
+          <MantineProvider defaultColorScheme="dark">
+            <SystemEventsProvider>
+              <div className="flex min-h-screen relative">
               {/* Desktop Sidebar - hidden on small screens */}
               <aside className="hidden md:block fixed left-0 top-0 bottom-0 w-[220px] z-50">
                 <Sidebar />
@@ -75,6 +78,7 @@ export default function RootLayout({
             </div>
           </SystemEventsProvider>
         </MantineProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );

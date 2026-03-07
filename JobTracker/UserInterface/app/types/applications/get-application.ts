@@ -1,5 +1,5 @@
-import { JobApplication } from "./jobApplication";
+/* import { JobApplication } from "./jobApplication";
 
 export interface GetApplicationResponse {
   AppliedJobs: JobApplication[]
-}
+} */

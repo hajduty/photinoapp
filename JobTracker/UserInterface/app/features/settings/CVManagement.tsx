@@ -4,9 +4,7 @@ import React, { useState } from 'react'
 import {
   Modal,
   Textarea,
-  Text,
-  TextInput
-} from '@mantine/core'
+  Text} from '@mantine/core'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
