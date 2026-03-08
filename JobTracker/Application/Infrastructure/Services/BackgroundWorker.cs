@@ -23,12 +23,14 @@ public class BackgroundWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        bool firstStart = true;
         while (!stoppingToken.IsCancellationRequested)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var settings = await db.Settings.FirstOrDefaultAsync();
 
-            await _trackerService.Run();
+            await _trackerService.Run(firstStart);
+            firstStart = false;
 
             if (settings != null && settings.GenerateEmbeddings)
             {

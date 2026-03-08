@@ -21,7 +21,7 @@ public class TrackerService
         _eventPublisher = eventPublisher;
     }
 
-    public async Task<int> Run()
+    public async Task<int> Run(bool skipTime = false)
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
@@ -32,7 +32,7 @@ public class TrackerService
 
         foreach (var track in trackedKeywords)
         {
-            if (track.LastCheckedAt.AddHours(track.CheckIntervalHours) > now)
+            if (track.LastCheckedAt.AddHours(track.CheckIntervalHours) > now && skipTime == false)
                 continue;
 
             await _scrapeService.Fetch(new LoadJobsRequest(track.Keyword));

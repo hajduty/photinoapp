@@ -5,11 +5,18 @@
 		<TargetFramework>net8.0-windows</TargetFramework>
 		<Platforms>AnyCPU</Platforms>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>0.0.0-$([System.DateTime]::Now.ToString(yyyyMMddHms))</Version>
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ApplicationIcon>app.ico</ApplicationIcon>
     	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+		<DebugType>embedded</DebugType>
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+		<EnableDefaultContent>false</EnableDefaultContent>
+		<EnableDefaultContentItems>false</EnableDefaultContentItems>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -34,6 +41,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Include="wwwroot/**" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+	
+	<ItemGroup>
 	  <Compile Remove="Models\**" />
 	  <Compile Remove="Tests\obj\**" />
 	  <EmbeddedResource Remove="Models\**" />
@@ -47,9 +58,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="app.ico">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
+		<Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>
