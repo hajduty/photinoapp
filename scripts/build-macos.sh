@@ -62,6 +62,11 @@ echo "  Published"
 
 # Step 4: Assemble .app bundle
 echo "[4/5] Assembling .app bundle..."
+
+echo "Templates:"
+ls -la "$TEMPLATES/"
+ls -la "$TEMPLATES/JobTracker.app/Contents/MacOS/"
+
 cp -r "$TEMPLATES/JobTracker.app" "$APP_BUNDLE"
 echo "Contents of publish output:"
 ls -la "$OUT_DIR/publish/"
