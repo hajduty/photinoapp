@@ -96,7 +96,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-13       # x64 runner
+            runner: macos-12       # x64 runner
           - arch: arm64
             runner: macos-latest   # Apple Silicon runner
     runs-on: ${{ matrix.runner }}

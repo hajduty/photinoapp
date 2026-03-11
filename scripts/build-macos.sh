@@ -63,6 +63,8 @@ echo "  Published"
 # Step 4: Assemble .app bundle
 echo "[4/5] Assembling .app bundle..."
 cp -r "$TEMPLATES/JobTracker.app" "$APP_BUNDLE"
+echo "Contents of publish output:"
+ls -la "$OUT_DIR/publish/"
 cp "$OUT_DIR/publish/JobTracker" "$APP_BUNDLE/Contents/MacOS/JobTracker"
 chmod +x "$APP_BUNDLE/Contents/MacOS/JobTracker"
 
