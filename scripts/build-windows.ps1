@@ -17,10 +17,7 @@ $Templates = "$RepoRoot\templates\win"
 $OutDir = "$RepoRoot\publish\out\$RID"
 $DistDir = "$RepoRoot\publish\dist"
 
-# Get version via dotnet (evaluates MSBuild expressions correctly)
-$Version = dotnet build "$Project" -getProperty:Version 2>$null | Select-Object -Last 1
-if (-not $Version) { $Version = "0.0.0" }
-
+$Version = "0.0.0-$(Get-Date -Format 'yyyyMMddHHmmss')"
 $PackageName = "JobTracker-$Version-$RID"
 $Staging = "$OutDir\staging"
 
