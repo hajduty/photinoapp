@@ -32,17 +32,21 @@ class Program
     private const int SW_HIDE = 0;
     private const int SW_SHOW = 5;
 
+#if WINDOWS
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+#endif
 
     private static volatile bool _shouldExit = false;
     private static volatile bool _windowHidden = false;
 
+#if WINDOWS
     private static NotifyIcon? _notifyIcon;
     private static ToolStripMenuItem? _showHideItem;
+#endif
+
     private static PhotinoWindow? _window;
     private static IHost? _host;
     private static string? _appUrl;
@@ -56,23 +60,42 @@ class Program
             .CreateStaticFileServer(args, out string baseUrl)
             .RunAsync();
 
+        var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        var appStart = DateTime.UtcNow;
+        if (Directory.Exists(wwwroot)
+            && !Directory.EnumerateFileSystemEntries(wwwroot).Any()
+            && Directory.GetCreationTimeUtc(wwwroot) >= appStart.AddSeconds(-5))
+        {
+            Directory.Delete(wwwroot);
+        }
+
         _host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((Action<IServiceCollection>)(services =>
             {
                 services.AddDbContextFactory<AppDbContext>(options =>
                 {
-                    var dbPath = Path.Combine(AppContext.BaseDirectory, "app.db");
+                    var appDataDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                        "JobTracker"
+                    );
+
+                    Directory.CreateDirectory(appDataDir);
+
+                    var dbPath = Path.Combine(appDataDir, "app.db");
+
                     options.UseSqlite($"Data Source={dbPath}");
-                    options.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Warning);
+                    options.LogTo(Console.WriteLine,
+                        new[] { DbLoggerCategory.Database.Command.Name },
+                        LogLevel.Warning);
                 });
 
                 services.AddRpcSystem();
                 services.AddSingleton<RpcDispatcher>();
-                ServiceCollectionHostedServiceExtensions.AddHostedService<BackgroundWorker>(services);
+                services.AddSingleton<BackgroundWorker>();
+                services.AddHostedService(sp => sp.GetRequiredService<BackgroundWorker>());
                 services.AddSingleton<IUiEventEmitter, UiEventEmitter>();
                 services.AddSingleton<IDiscordWebhookService, DiscordWebhookService>();
                 services.AddSingleton<IEventPublisher, DomainEventPublisher>();
-                services.AddSingleton<BertService>();
                 services.AddSingleton<JinaEmbeddingService>();
                 services.AddSingleton<JobTechScraper>();
                 services.AddSingleton<ScrapeService>();
@@ -104,10 +127,11 @@ class Program
         _eventEmitter = _host.Services.GetRequiredService<IUiEventEmitter>();
         _dispatcher = _host.Services.GetRequiredService<RpcDispatcher>();
 
-        if (IsWindows)
-            RunWindows();
-        else
-            RunCrossPlatform();
+        #if WINDOWS
+                RunWindows();
+        #else
+                RunCrossPlatform();
+        #endif
 
         _host.StopAsync().Wait();
     }
@@ -118,13 +142,6 @@ class Program
         _window!.WaitForClose();
     }
 
-    private static void RunWindows()
-    {
-        SetupTrayIcon();
-        CreateWindow();
-        _window!.WaitForClose();
-        _notifyIcon?.Dispose();
-    }
 
     private static void CreateWindow()
     {
@@ -132,48 +149,58 @@ class Program
 
         _window = new PhotinoWindow();
 
+        _window.WindowCreated += (sender, args) =>
+        {
+            _eventEmitter?.RegisterWindow(_window);
+            _host.Services.GetRequiredService<BackgroundWorker>().NotifyWindowReady();
+        };
+
         if (File.Exists(iconPath))
             _window.SetIconFile(iconPath);
 
         _window
             .SetTitle("JobTracker V1 (RELEASE)")
             .SetUseOsDefaultSize(false)
-            .SetSize(new Size(1200, 800))
+            .SetSize(new System.Drawing.Size(1200, 800))
             .Center()
             .SetResizable(true)
             .SetWebSecurityEnabled(true)
-            .SetContextMenuEnabled(IsDebugMode)
-            .SetDevToolsEnabled(IsDebugMode)
+            .SetContextMenuEnabled(true)
+            .SetDevToolsEnabled(true)
             .RegisterWebMessageReceivedHandler(async (sender, message) =>
             {
                 var win = (PhotinoWindow)sender;
                 try
                 {
                     var responseJson = await _dispatcher!.DispatchAsync(message);
-                    win.SendWebMessage(responseJson);
+                    win.Invoke(() => win.SendWebMessage(responseJson));
                 }
                 catch (Exception ex)
                 {
-                    win.SendWebMessage(JsonSerializer.Serialize(new { success = false, error = ex.Message }));
+                    win.Invoke(() => win.SendWebMessage(
+                        JsonSerializer.Serialize(new { success = false, error = ex.Message })
+                    ));
                 }
             })
             .Load(_appUrl!);
 
-        if (IsWindows)
-        {
+    #if WINDOWS
             _window.WindowClosing += (sender, args) =>
             {
                 if (_shouldExit)
-                    return false; // allow real destruction
-
+                {
+                    _eventEmitter?.UnregisterWindow();
+                    return false;
+                }
                 HideWindow();
-                return true; // cancel destruction
+                return true;
             };
-        }
+    #endif
 
-        _eventEmitter?.RegisterWindow(_window);
+        //_eventEmitter?.RegisterWindow(_window);
     }
 
+#if WINDOWS
     private static void HideWindow()
     {
         if (_window == null) return;
@@ -233,10 +260,27 @@ class Program
         _notifyIcon.DoubleClick += (s, e) => ToggleWindowVisibility();
     }
 
+    private static void RunWindows()
+    {
+        SetupTrayIcon();
+        CreateWindow();
+        _window!.WaitForClose();
+        _notifyIcon?.Dispose();
+    }
+#endif
+
     private static void ExitApp()
     {
         _shouldExit = true;
-        _notifyIcon?.Dispose();
+
+    #if WINDOWS
+        if (_notifyIcon != null)
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            _notifyIcon = null;
+        }
+    #endif
 
         try { _window?.Close(); }
         catch (Exception ex) { Console.WriteLine($"Error closing window: {ex.Message}"); }

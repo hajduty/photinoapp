@@ -15,63 +15,90 @@ public class JinaEmbeddingService : IDisposable
     private readonly int _maxLength = 2048;
     private readonly int _hiddenSize;
     private readonly bool _useGpu;
-
+    private readonly bool _enabled;
     private readonly long[] _inputIdsBuffer;
     private readonly long[] _attentionMaskBuffer;
     private readonly int[] _singleDimensions;
+
+    public bool Enabled => _enabled;
 
     public JinaEmbeddingService(int maxLength = 2048, bool forceCpu = false)
     {
         _maxLength = maxLength;
 
-        string modelPath = "Models/jina-embeddings-v5-text-nano-classification/model.onnx";
-        string tokenizerJsonPath = "Models/jina-embeddings-v5-text-nano-classification/tokenizer.json";
+        var appDataDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "JobTracker"
+        );
 
-        _tokenizer = new Tokenizer(tokenizerJsonPath);
+        var modelsDir = Path.Combine(appDataDir, "Models", "jina-embeddings-v5-text-nano-classification");
 
-        var options = new SessionOptions();
-        options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
-        options.EnableCpuMemArena = true;
-        options.EnableMemoryPattern = true;
-        options.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+        Directory.CreateDirectory(modelsDir);
 
-        options.AddSessionConfigEntry("session.intra_op.allow_spinning", "1");
-        options.AddSessionConfigEntry("session.inter_op.allow_spinning", "1");
-        options.AddSessionConfigEntry("session.set_denormal_as_zero", "1");
+        string modelPath = Path.Combine(modelsDir, "model.onnx");
+        string tokenizerJsonPath = Path.Combine(modelsDir, "tokenizer.json");
 
-        _useGpu = !forceCpu;
-        if (_useGpu)
+        if (!File.Exists(modelPath) || !File.Exists(tokenizerJsonPath))
         {
-            try
+            Console.WriteLine("Jina embeddings disabled (model files not found)");
+            _enabled = false;
+            return;
+        }
+
+        try
+        {
+            _tokenizer = new Tokenizer(tokenizerJsonPath);
+
+            var options = new SessionOptions();
+            options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
+            options.EnableCpuMemArena = true;
+            options.EnableMemoryPattern = true;
+            options.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
+
+            options.AddSessionConfigEntry("session.intra_op.allow_spinning", "1");
+            options.AddSessionConfigEntry("session.inter_op.allow_spinning", "1");
+            options.AddSessionConfigEntry("session.set_denormal_as_zero", "1");
+
+            _useGpu = !forceCpu;
+
+            if (_useGpu)
             {
-                options.AppendExecutionProvider_DML(0);
-                Console.WriteLine("Using GPU (DirectML)");
+                try
+                {
+                    options.AppendExecutionProvider_DML(0);
+                    Console.WriteLine("Using GPU (DirectML)");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"GPU initialization failed: {ex.Message}, falling back to CPU");
+                    options.AppendExecutionProvider_CPU(0);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"GPU initialization failed: {ex.Message}, falling back to CPU");
                 options.AppendExecutionProvider_CPU(0);
-                _useGpu = false;
+                Console.WriteLine("Using CPU");
             }
+
+            _session = new InferenceSession(modelPath, options);
+
+            _hiddenSize = _session.OutputMetadata.TryGetValue("last_hidden_state", out var metadata)
+                ? (int)metadata.Dimensions[2]
+                : 768;
+
+            _inputIdsBuffer = new long[_maxLength];
+            _attentionMaskBuffer = new long[_maxLength];
+            _singleDimensions = new[] { 1, _maxLength };
+
+            _enabled = true;
+
+            Warmup();
         }
-        else
+        catch (Exception ex)
         {
-            options.AppendExecutionProvider_CPU(0);
-            Console.WriteLine("Using CPU");
+            Console.WriteLine($"Jina embeddings disabled: {ex.Message}");
+            _enabled = false;
         }
-
-        _session = new InferenceSession(modelPath, options);
-
-        _hiddenSize = _session.OutputMetadata.TryGetValue("last_hidden_state", out var metadata)
-            ? (int)metadata.Dimensions[2]
-            : 768; 
-
-        _inputIdsBuffer = new long[_maxLength];
-        _attentionMaskBuffer = new long[_maxLength];
-
-        _singleDimensions = new[] { 1, _maxLength };
-
-        Warmup();
     }
 
     private void Warmup()
@@ -90,6 +117,9 @@ public class JinaEmbeddingService : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float[] GenerateEmbeddingInternal(string text)
     {
+        if (!_enabled)
+            return Array.Empty<float>();
+
         uint[] encoded = _tokenizer.Encode(text);
         int tokenCount = encoded.Length;
         if (tokenCount == 0)
@@ -156,6 +186,9 @@ public class JinaEmbeddingService : IDisposable
 
     public float[][] GenerateEmbeddingsBatch(string[] texts)
     {
+        if (!_enabled)
+            return Array.Empty<float[]>();
+
         if (texts == null || texts.Length == 0)
             return Array.Empty<float[]>();
 
