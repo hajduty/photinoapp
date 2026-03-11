@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 jobs:
   build-frontend:
@@ -92,14 +93,10 @@ jobs:
 
   build-macos:
     needs: build-frontend
+    runs-on: macos-latest
     strategy:
       matrix:
-        include:
-          - arch: x64
-            runner: macos-12       # x64 runner
-          - arch: arm64
-            runner: macos-latest   # Apple Silicon runner
-    runs-on: ${{ matrix.runner }}
+        arch: [x64, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
