@@ -18,7 +18,7 @@ OUT_DIR="$REPO_ROOT/publish/out/$RID"
 DIST_DIR="$REPO_ROOT/publish/dist"
 
 # Get version via dotnet (evaluates MSBuild expressions correctly)
-VERSION=$(dotnet build "$PROJECT" -getProperty:Version 2>/dev/null | tail -1)
+VERSION=$(dotnet build "$PROJECT" -getProperty:Version -f net8.0 2>/dev/null | tail -1)
 if [ -z "$VERSION" ]; then
     VERSION="0.0.0"
 fi
