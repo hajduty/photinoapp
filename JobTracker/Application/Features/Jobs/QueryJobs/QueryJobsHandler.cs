@@ -111,6 +111,14 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
                     PostedDate = p.PostedDate,
                     Description = descRaw[..Math.Min(descRaw.Length, 400)],
                     DescriptionFormatted = descFmt[..Math.Min(descFmt.Length, 400)],
+                    Bookmarked = p.Bookmarked,
+                    CompanyImage = p.CompanyImage,
+                    CreatedAt = p.CreatedAt,
+                    OriginUrl = p.OriginUrl,
+                    LastApplicationDate = p.LastApplicationDate,
+                    YearsOfExperience = p.YearsOfExperience,
+                    Source = p.Source,
+                    Url = p.Url
                 },
                 Tags = matchingTags
             };

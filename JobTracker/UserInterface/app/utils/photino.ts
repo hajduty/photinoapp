@@ -39,6 +39,8 @@ if (isBrowser && window.external?.receiveMessage) {
       const { resolve, reject } = pendingRequests.get(id)!;
       pendingRequests.delete(id);
 
+        console.log(response.data);
+
       if (response.success === false) {
         reject(new Error(response.error ?? "RPC error"));
       } else {

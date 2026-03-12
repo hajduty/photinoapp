@@ -18,6 +18,6 @@ public class ProcessJobTrackerHandler
 
     protected async override Task<ProcessJobTrackerResponse> HandleAsync(object? request)
     {
-        return new ProcessJobTrackerResponse(await _trackerService.Run());
+        return new ProcessJobTrackerResponse(await _trackerService.Run(true));
     }
 }

@@ -32,8 +32,36 @@ export const useBookmarkJob = () => {
   return useMutation({
     mutationFn: (request: BookmarkJobRequest) => 
       sendPhotinoRequest<BookmarkJobResponse>('jobs.bookmark', request),
-    onSuccess: () => {
-      // Invalidate relevant queries to refetch data
+    onMutate: async ({ PostingId, IsBookmarked }) => {
+      // Cancel in-flight queries to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['bookmarked-jobs'] });
+      await queryClient.cancelQueries({ queryKey: ['jobs'] });
+
+      // Snapshot previous values for rollback
+      const previousBookmarked = queryClient.getQueryData(['bookmarked-jobs']);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(['bookmarked-jobs'], (old: GetBookmarkedJobsResponse) => {
+        if (!old) return old;
+        return {
+          ...old,
+          TaggedPostings: old.TaggedPostings.map((posting) =>
+            posting.Posting.Id === PostingId
+              ? { ...posting, Posting: { ...posting.Posting, Bookmarked: IsBookmarked } }
+              : posting
+          ),
+        };
+      });
+
+      return { previousBookmarked };
+    },
+    onError: (_err, _vars, context) => {
+      // Roll back on error
+      if (context?.previousBookmarked) {
+        queryClient.setQueryData(['bookmarked-jobs'], context.previousBookmarked);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['bookmarked-jobs'] });
     },

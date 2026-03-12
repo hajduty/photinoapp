@@ -19,7 +19,13 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
     onNavigate?.()
   }
 
-  const isActive = (path: string) => pathname === path
+  const isActive = (path: string) => {
+    // For root path, check if pathname is exactly '/' or empty
+    if (path === '/') {
+      return pathname === '/' || pathname === ''
+    }
+    return pathname === path
+  }
 
   return (
     <div className="h-full flex flex-col bg-neutral-950/20 border-r border-neutral-800">

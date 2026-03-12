@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useCallback, useRef, React
 import { notifications } from '@mantine/notifications';
 import { onPhotinoEvent, sendPhotinoRequest } from '../../utils/photino';
 import { Button } from '@mantine/core';
+import { queryClient } from '../../hooks/useQueryClient';
 
 const SystemEventsContext = createContext<{ onSystemEvent: (handler: (name: string, data: unknown) => void) => () => void } | null>(null);
 
@@ -64,6 +65,10 @@ function showToast(eventName: string, data: unknown) {
     case 'jobs.tracking.error':
       notifications.show({ title: title || 'Error', message, color: 'red' });
       break;
+    case 'jobs.invalidate':
+      console.log("invalidating...");
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      break;
   }
 }
 
@@ -85,7 +90,7 @@ export function SystemEventsProvider({ children }: { children: ReactNode }) {
   }, [cancelEmbeddings]);
 
   useEffect(() => {
-    const events = ['notification.new', 'jobs.added', 'embeddings.started', 'embeddings.generating', 'embeddings.completed', 'embeddings.error', 'jobs.tracking.started', 'jobs.tracking.completed', 'jobs.tracking.error'];
+    const events = ['notification.new', 'jobs.added', 'embeddings.started', 'embeddings.generating', 'embeddings.completed', 'embeddings.error', 'jobs.tracking.started', 'jobs.tracking.completed', 'jobs.tracking.error', 'jobs.invalidate'];
     const unsubs = events.map(e => onPhotinoEvent(e, d => dispatch(e, d)));
     return () => unsubs.forEach(u => u());
   }, [dispatch]);

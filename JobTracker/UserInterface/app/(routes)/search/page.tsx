@@ -9,6 +9,7 @@ import Filter from '../../features/search/Filter';
 import { Pagination, Text, Group, Box } from '@mantine/core';
 import { CreateApplicationRequest } from '../../types/applications/create-application';
 import { IconAlertCircle, IconUserSearch } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ParentFilters {
   source: string;
@@ -26,6 +27,7 @@ export default function JobSearch() {
     location: '',
     tags: [],
   });
+  const queryClient = useQueryClient();
 
   const ITEMS_PER_PAGE = 20;
 
@@ -59,6 +61,9 @@ export default function JobSearch() {
       console.log('Application Response:', response);
 
       console.log("Application created successfully");
+      
+      // Invalidate the applications query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
     } catch (err) {
       console.error('Apply failed:', err);
     }

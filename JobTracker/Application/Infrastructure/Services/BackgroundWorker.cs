@@ -12,6 +12,9 @@ public class BackgroundWorker : BackgroundService
     private readonly TrackerService _trackerService;
     private readonly EmbeddingProcessor _embeddingProcessor;
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly TaskCompletionSource _windowReady = new();
+
+    public void NotifyWindowReady() => _windowReady.TrySetResult();
 
     public BackgroundWorker(IServiceProvider serviceProvider, IUiEventEmitter events, TrackerService trackerService, EmbeddingProcessor embeddingProcessor, IDbContextFactory<AppDbContext> dbContextFactory)
     {
@@ -23,12 +26,16 @@ public class BackgroundWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await _windowReady.Task.WaitAsync(stoppingToken);
+
+        bool firstStart = true;
         while (!stoppingToken.IsCancellationRequested)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             var settings = await db.Settings.FirstOrDefaultAsync();
 
-            await _trackerService.Run();
+            await _trackerService.Run(firstStart);
+            firstStart = false;
 
             if (settings != null && settings.GenerateEmbeddings)
             {

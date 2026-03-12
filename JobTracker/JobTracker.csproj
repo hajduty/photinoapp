@@ -1,15 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<OutputType Condition="'$(TargetFramework)' == 'net8.0-windows'">WinExe</OutputType>
+		<OutputType Condition="'$(TargetFramework)' != 'net8.0-windows'">Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
+		
+		<TargetFrameworks Condition="'$(RuntimeIdentifier)' == 'linux-x64' 
+		    OR '$(RuntimeIdentifier)' == 'linux-arm64'
+		    OR '$(RuntimeIdentifier)' == 'osx-x64'
+		    OR '$(RuntimeIdentifier)' == 'osx-arm64'">net8.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net8.0-windows</TargetFrameworks>
+		<UseWindowsForms Condition="'$(TargetFramework)' == 'net8.0-windows'">true</UseWindowsForms>		
+		
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>0.0.0-$([System.DateTime]::Now.ToString(yyyyMMddHms))</Version>
 		<Nullable>enable</Nullable>
-		<UseWindowsForms>true</UseWindowsForms>
 		<ApplicationIcon>app.ico</ApplicationIcon>
-    	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+		
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+		
+		<SelfContained>true</SelfContained>
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+		<InvariantGlobalization>true</InvariantGlobalization>
+		
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	
+		<EnableDefaultContent>false</EnableDefaultContent>
+		<EnableDefaultContentItems>false</EnableDefaultContentItems>
+
+		<EnableWindowsTargeting Condition="'$(TargetFramework)' == 'net8.0-windows'">true</EnableWindowsTargeting>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -26,19 +51,22 @@
 		<PackageReference Include="Photino.NET.Server" Version="3.0.11" />
 		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
 		<PackageReference Include="TypeGen" Version="6.0.4" />
-		<PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
+		<PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<EmbeddedResource Include="Resources\**" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 	  <Compile Remove="Models\**" />
+	  <Compile Remove="publish\build\**" />
 	  <Compile Remove="Tests\obj\**" />
 	  <EmbeddedResource Remove="Models\**" />
+	  <EmbeddedResource Remove="publish\build\**" />
 	  <EmbeddedResource Remove="Tests\obj\**" />
 	  <None Remove="Models\**" />
+	  <None Remove="publish\build\**" />
 	  <None Remove="Tests\obj\**" />
 	</ItemGroup>
 
@@ -47,9 +75,27 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="app.ico">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
+		<Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="publish\templates\linux\" />
+	  <Folder Include="publish\templates\win\" />
+	  <Folder Include="publish\templates\osx\" />
+	</ItemGroup>
+
+	<Target AfterTargets="Publish" Name="MovePublishedSingleFile">
+		<PropertyGroup>
+			<PublishDest>$(ProjectDir)publish\build\$(AssemblyName).$(Version).$(RuntimeIdentifier)</PublishDest>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(PublishDest)" />
+
+		<ItemGroup>
+			<PublishFile Include="$(PublishDir)**\*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(PublishFile)" DestinationFolder="$(PublishDest)\%(RecursiveDir)" />
+	</Target>
 
 </Project>
