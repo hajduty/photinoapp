@@ -1,30 +1,41 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using Tokenizers.DotNet;
 
 namespace JobTracker.Embeddings.Services;
 
-// DeepSeek cooked here
-
 public class JinaEmbeddingService : IDisposable
 {
-    private readonly InferenceSession _session;
-    private readonly Tokenizer _tokenizer;
+    private readonly object _lock = new object();
     private readonly int _maxLength = 2048;
     private readonly int _hiddenSize;
-    private readonly bool _useGpu;
+    private readonly bool _forceCpu;
     private readonly bool _enabled;
     private readonly long[] _inputIdsBuffer;
     private readonly long[] _attentionMaskBuffer;
     private readonly int[] _singleDimensions;
+    private readonly string _modelPath;
+    private readonly string _tokenizerPath;
+    private readonly TimeSpan _idleTimeout;
+    private readonly Timer _idleTimer;
+
+    // These are now nullable and can be unloaded
+    private InferenceSession? _session;
+    private Tokenizer? _tokenizer;
+    private DateTime _lastUsedTime;
+    private bool _isDisposed;
 
     public bool Enabled => _enabled;
 
-    public JinaEmbeddingService(int maxLength = 2048, bool forceCpu = false)
+    public JinaEmbeddingService(
+        int maxLength = 2048,
+        bool forceCpu = false,
+        TimeSpan? idleTimeout = null)
     {
         _maxLength = maxLength;
+        _forceCpu = forceCpu;
+        _idleTimeout = idleTimeout ?? TimeSpan.FromSeconds(30);
 
         var appDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -32,13 +43,12 @@ public class JinaEmbeddingService : IDisposable
         );
 
         var modelsDir = Path.Combine(appDataDir, "Models", "jina-embeddings-v5-text-nano-classification");
-
         Directory.CreateDirectory(modelsDir);
 
-        string modelPath = Path.Combine(modelsDir, "model.onnx");
-        string tokenizerJsonPath = Path.Combine(modelsDir, "tokenizer.json");
+        _modelPath = Path.Combine(modelsDir, "model.onnx");
+        _tokenizerPath = Path.Combine(modelsDir, "tokenizer.json");
 
-        if (!File.Exists(modelPath) || !File.Exists(tokenizerJsonPath))
+        if (!File.Exists(_modelPath) || !File.Exists(_tokenizerPath))
         {
             Console.WriteLine("Jina embeddings disabled (model files not found)");
             _enabled = false;
@@ -47,7 +57,55 @@ public class JinaEmbeddingService : IDisposable
 
         try
         {
-            _tokenizer = new Tokenizer(tokenizerJsonPath);
+            // Get hidden size without loading full model
+            _hiddenSize = GetHiddenSizeFromModel();
+
+            _inputIdsBuffer = new long[_maxLength];
+            _attentionMaskBuffer = new long[_maxLength];
+            _singleDimensions = new[] { 1, _maxLength };
+
+            // Setup idle timer
+            _idleTimer = new Timer(CheckIdle, null, _idleTimeout, _idleTimeout);
+
+            _enabled = true;
+
+            // Don't load model in constructor anymore
+            Console.WriteLine("Jina embedding service initialized (model will load on first request)");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Jina embeddings disabled: {ex.Message}");
+            _enabled = false;
+        }
+    }
+
+    private int GetHiddenSizeFromModel()
+    {
+        // Quick load just to get metadata, then unload
+        var options = new SessionOptions();
+        options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL;
+
+        using var tempSession = new InferenceSession(_modelPath, options);
+        return tempSession.OutputMetadata.TryGetValue("last_hidden_state", out var metadata)
+            ? (int)metadata.Dimensions[2]
+            : 768;
+    }
+
+    private void EnsureLoaded()
+    {
+        if (!_enabled) return;
+
+        lock (_lock)
+        {
+            if (_session != null)
+            {
+                _lastUsedTime = DateTime.UtcNow;
+                return;
+            }
+
+            Console.WriteLine($"[{DateTime.Now:T}] Loading model into memory...");
+
+            _tokenizer = new Tokenizer(_tokenizerPath);
 
             var options = new SessionOptions();
             options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
@@ -59,9 +117,7 @@ public class JinaEmbeddingService : IDisposable
             options.AddSessionConfigEntry("session.inter_op.allow_spinning", "1");
             options.AddSessionConfigEntry("session.set_denormal_as_zero", "1");
 
-            _useGpu = !forceCpu;
-
-            if (_useGpu)
+            if (!_forceCpu)
             {
                 try
                 {
@@ -80,24 +136,36 @@ public class JinaEmbeddingService : IDisposable
                 Console.WriteLine("Using CPU");
             }
 
-            _session = new InferenceSession(modelPath, options);
-
-            _hiddenSize = _session.OutputMetadata.TryGetValue("last_hidden_state", out var metadata)
-                ? (int)metadata.Dimensions[2]
-                : 768;
-
-            _inputIdsBuffer = new long[_maxLength];
-            _attentionMaskBuffer = new long[_maxLength];
-            _singleDimensions = new[] { 1, _maxLength };
-
-            _enabled = true;
+            _session = new InferenceSession(_modelPath, options);
+            _lastUsedTime = DateTime.UtcNow;
 
             Warmup();
         }
-        catch (Exception ex)
+    }
+
+    private void CheckIdle(object? state)
+    {
+        if (_isDisposed) return;
+
+        lock (_lock)
         {
-            Console.WriteLine($"Jina embeddings disabled: {ex.Message}");
-            _enabled = false;
+            if (_session == null) return;
+
+            var idleTime = DateTime.UtcNow - _lastUsedTime;
+            if (idleTime > _idleTimeout)
+            {
+                Console.WriteLine($"[{DateTime.Now:T}] Unloading model after {idleTime.TotalMinutes:F1} minutes idle");
+
+                _session?.Dispose();
+                _session = null;
+
+                // Tokenizer might need disposal depending on implementation
+                _tokenizer = null;
+
+                // Force GC to help release resources
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
         }
     }
 
@@ -120,7 +188,10 @@ public class JinaEmbeddingService : IDisposable
         if (!_enabled)
             return Array.Empty<float>();
 
-        uint[] encoded = _tokenizer.Encode(text);
+        EnsureLoaded(); // This will load if needed
+
+        // Safe to use null-forgiving operator because EnsureLoaded guarantees non-null if enabled
+        uint[] encoded = _tokenizer!.Encode(text);
         int tokenCount = encoded.Length;
         if (tokenCount == 0)
         {
@@ -150,7 +221,7 @@ public class JinaEmbeddingService : IDisposable
             NamedOnnxValue.CreateFromTensor("attention_mask", maskTensor)
         };
 
-        using var results = _session.Run(inputs);
+        using var results = _session!.Run(inputs);
         var tokenEmbeddings = results[0].AsTensor<float>();
 
         return LastTokenPooling(tokenEmbeddings, effectiveLength);
@@ -192,10 +263,12 @@ public class JinaEmbeddingService : IDisposable
         if (texts == null || texts.Length == 0)
             return Array.Empty<float[]>();
 
+        EnsureLoaded(); // Load if needed
+
         int count = texts.Length;
         var allEmbeddings = new float[count][];
 
-        int batchSize = _useGpu ? 4 : 2;
+        int batchSize = !_forceCpu ? 4 : 2; // Use GPU batch size if not forced to CPU
 
         for (int i = 0; i < count; i += batchSize)
         {
@@ -217,7 +290,7 @@ public class JinaEmbeddingService : IDisposable
             for (int b = 0; b < batchSize; b++)
             {
                 string text = "Passage: " + texts[startIdx + b];
-                uint[] encoded = _tokenizer.Encode(text);
+                uint[] encoded = _tokenizer!.Encode(text);
                 int len = Math.Min(encoded.Length, _maxLength);
                 lengths[b] = len;
 
@@ -238,7 +311,7 @@ public class JinaEmbeddingService : IDisposable
                 NamedOnnxValue.CreateFromTensor("attention_mask", batchMaskTensor)
             };
 
-            using var results = _session.Run(inputs);
+            using var results = _session!.Run(inputs);
             var allTokenEmbeddings = results[0].AsTensor<float>();
 
             // Process results
@@ -279,7 +352,7 @@ public class JinaEmbeddingService : IDisposable
 
     public byte[] GenerateEmbedding(string text)
     {
-        float[] embedding = GenerateEmbeddingInternal(text);
+        float[] embedding = GenerateEmbeddingFloat(text);
         return Helper.ToBytes(embedding);
     }
 
@@ -290,6 +363,15 @@ public class JinaEmbeddingService : IDisposable
 
     public void Dispose()
     {
-        _session?.Dispose();
+        if (_isDisposed) return;
+
+        lock (_lock)
+        {
+            _idleTimer?.Dispose();
+            _session?.Dispose();
+            _session = null;
+            _tokenizer = null;
+            _isDisposed = true;
+        }
     }
 }
