@@ -191,7 +191,7 @@ export default function TagManagement({ className }: TagManagementProps) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-lg font-bold text-neutral-200 mb-2">TAG MANAGEMENT</h1>
-            <p className="text-neutral-400">Create and manage tags for organizing your job postings</p>
+            <p className="text-neutral-400">Create and manage tags to filter job postings</p>
           </div>
           <button 
             onClick={() => setCreateModalOpen(true)}
