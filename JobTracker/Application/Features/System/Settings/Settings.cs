@@ -16,6 +16,7 @@ public class Settings
     public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
     public bool? FirstStart { get; set; } = true;
     // Preferences
+    public byte[]? UserEmbedding { get; set; } = null!;
     public string? UserCV { get; set; }
     public List<Tag>? SelectedTags { get; set; }
     public int? YearsOfExperience { get; set; }

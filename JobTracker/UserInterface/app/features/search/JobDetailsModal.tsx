@@ -1,18 +1,19 @@
 import React, { useEffect } from 'react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
-import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark } from '@tabler/icons-react';
+import { IconBolt, IconCalendarTime, IconClock, IconLocation, IconZoom, IconBookmark, IconX } from '@tabler/icons-react';
 import { Divider, Text } from '@mantine/core';
 import { CustomModal } from '@/app/components/CustomModal';
 import { useFullDescription } from '../../hooks/useJobs';
 
 interface JobDetailsModalProps {
-  posting: ExtendedPosting;
+  posting?: ExtendedPosting;
   opened: boolean;
   onClose: () => void;
   onApply?: () => void;
   onBookmark?: () => void;
   isBookmarked?: boolean;
+  bookmarkedJobs?: Set<number>;
 }
 
 export default function JobDetailsModal({
@@ -21,10 +22,15 @@ export default function JobDetailsModal({
   onClose,
   onApply,
   onBookmark,
-  isBookmarked = false
+  isBookmarked = false,
+  bookmarkedJobs
 }: JobDetailsModalProps) {
+  if (!posting) {
+    return null;
+  }
+
   const { Posting, Tags } = posting;
-  
+
   // Fetch full description when modal opens
   const { data: fullDescription, isLoading: loadingFullDescription } = useFullDescription(opened ? posting.Posting.Id : 0);
 
@@ -43,32 +49,36 @@ export default function JobDetailsModal({
     <CustomModal
       opened={opened}
       onClose={onClose}
-      title={
-        <div className="flex items-center gap-3">
-          {Posting.CompanyImage && (
-            <img
-              src={Posting.CompanyImage}
-              alt={`${Posting.Company} logo`}
-              className="w-10 h-10 object-contain p-1 rounded-sm bg-white"
-            />
-          )}
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-white pr-4">{Posting.Title}</h2>
-            <p className="text-sm text-neutral-400">{Posting.Company}</p>
-          </div>
-          {onBookmark && (
-            <button
-              onClick={onBookmark}
-              className="flex-shrink-0 p-2 text-neutral-500 hover:text-yellow-500 transition-colors"
-            >
-              <IconBookmark size={24} fill={isBookmarked ? "currentColor" : "none"} />
-            </button>
-          )}
-        </div>
-      }
+      withCloseButton={false}
       size="xl"
       centered
     >
+      <div className="flex items-center gap-3 w-full mb-4">
+        {Posting.CompanyImage && (
+          <img
+            src={Posting.CompanyImage}
+            alt={`${Posting.Company} logo`}
+            className="w-10 h-10 object-contain p-1 rounded-sm bg-white"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-semibold text-white truncate">{Posting.Title}</h2>
+          <p className="text-sm text-neutral-400">{Posting.Company}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {onBookmark && (
+            <button
+              onClick={onBookmark}
+              className="p-1 text-neutral-500 hover:text-yellow-500 transition-colors"
+            >
+              <IconBookmark size={22} fill={(bookmarkedJobs?.has(Posting.Id) ?? isBookmarked) ? "currentColor" : "none"} />
+            </button>
+          )}
+          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white transition-colors">
+            <IconX size={18} />
+          </button>
+        </div>
+      </div>
       <div className="space-y-4">
         {/* Job Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -116,7 +126,7 @@ export default function JobDetailsModal({
         )}
 
         {/* Full Description - Scrollable with custom scrollbar */}
-        <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+        <div className="h-[400px] overflow-y-auto custom-scrollbar pr-2">
           <h3 className="text-sm font-semibold text-neutral-300 mb-2">Job Description</h3>
           {loadingFullDescription ? (
             <Text c="dimmed" size="sm">Loading full description...</Text>

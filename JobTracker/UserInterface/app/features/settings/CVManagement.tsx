@@ -9,6 +9,7 @@ import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
 import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
+import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
 
 interface CVManagementProps {
   settings: Settings | null
@@ -24,14 +25,19 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
     try {
       setLoading(true)
       
-      const request: UpdateSettingsRequest = {
-        DiscordWebhookUrl: settings?.DiscordWebhookUrl ?? '',
-        DiscordNotificationsEnabled: settings?.DiscordNotificationsEnabled ?? false,
-        GenerateEmbeddings: settings?.GenerateEmbeddings ?? false,
-        UserCV: cvContent
+      const request: UpdatePreferencesRequest = {
+        UserCV: cvContent,
+        SelectedTagIds: null,
+        YearsOfExperience: null,
+        BlockedKeywords: null,
+        MatchedKeywords: null,
+        AlertOnAllMatchingJobs: null,
+        AlertOnHardMatchingJobs: null,
+        Location: null,
+        MaxJobAgeDays: null
       }
 
-      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request)
+      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updatePreferences', request)
       
       // Update the parent component with new settings
       if (settings) {

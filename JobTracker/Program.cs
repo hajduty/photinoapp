@@ -142,7 +142,6 @@ class Program
         _window!.WaitForClose();
     }
 
-
     private static void CreateWindow()
     {
         var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");

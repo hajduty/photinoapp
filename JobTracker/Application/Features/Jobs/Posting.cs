@@ -18,4 +18,5 @@ public class Posting
     public bool? Bookmarked { get; set; } = false;
     public int? YearsOfExperience { get; set; } = 0;
     public bool? Alerted { get; set; }
+    public bool? Ignored { get; set; } = false;
 }

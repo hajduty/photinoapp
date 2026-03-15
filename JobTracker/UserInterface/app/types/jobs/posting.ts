@@ -19,4 +19,5 @@ export interface Posting {
     Source: string;
     Bookmarked: boolean;
     YearsOfExperience: number;
+    Ignored: boolean;
 }

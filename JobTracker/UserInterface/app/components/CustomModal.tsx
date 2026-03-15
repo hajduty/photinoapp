@@ -10,6 +10,7 @@ export function CustomModal({
   opened, 
   lockScroll = true, 
   onClose, 
+  transitionProps = { transition: 'fade', duration: 200, timingFunction: 'ease' },
   ...props 
 }: CustomModalProps) {
   useScrollLock(opened && lockScroll);
@@ -18,6 +19,7 @@ export function CustomModal({
     <Modal
       opened={opened}
       onClose={onClose}
+      transitionProps={transitionProps}
       {...props}
     />
   );
