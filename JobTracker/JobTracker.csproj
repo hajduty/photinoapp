@@ -56,17 +56,14 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <Compile Remove="Application\Features\Jobs\NewFolder\**" />
 	  <Compile Remove="Models\**" />
 	  <Compile Remove="publish\**" />
 	  <Compile Remove="Tests\obj\**" />
 	  <Compile Remove="UserInterface\**" />
-	  <EmbeddedResource Remove="Application\Features\Jobs\NewFolder\**" />
 	  <EmbeddedResource Remove="Models\**" />
 	  <EmbeddedResource Remove="publish\**" />
 	  <EmbeddedResource Remove="Tests\obj\**" />
 	  <EmbeddedResource Remove="UserInterface\**" />
-	  <None Remove="Application\Features\Jobs\NewFolder\**" />
 	  <None Remove="Models\**" />
 	  <None Remove="publish\**" />
 	  <None Remove="Tests\obj\**" />

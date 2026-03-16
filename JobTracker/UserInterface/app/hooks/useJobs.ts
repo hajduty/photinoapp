@@ -5,6 +5,7 @@ import { GetJobsResponse } from '../types/jobs/get-jobs-response';
 import { GetBookmarkedJobsResponse } from '../types/jobs/get-bookmarked-jobs-response';
 import { BookmarkJobRequest } from '../types/jobs/bookmark-job-request';
 import { BookmarkJobResponse } from '../types/jobs/bookmark-job-response';
+import { GetIgnoredJobsResponse } from '../types/jobs/get-ignored-jobs-response';
 import { JobSentenceDto } from '../types/jobs/jobsentence';
 import { Classification } from '../types/classifications/classification';
 import { GetFullDescriptionRequest } from '../types/jobs/get-full-description-request';
@@ -101,5 +102,13 @@ export const useMatchingJobs = () => {
     queryKey: ['matching-jobs'],
     queryFn: () => sendPhotinoRequest<ExtendedPosting[]>('jobs.getMatchingJobs', {}),
     staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useGetIgnoredJobs = () => {
+  return useQuery({
+    queryKey: ['ignored-jobs'],
+    queryFn: () => sendPhotinoRequest<GetIgnoredJobsResponse>('jobs.getIgnored', { hello: "hello" }),
+    staleTime: 3 * 60 * 1000, // 3 minutes
   });
 };

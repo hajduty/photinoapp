@@ -78,7 +78,7 @@ export default function Dashboard() {
 
         {/* Page header */}
         <header>
-          <h1 className="text-xl font-medium text-white tracking-tight">Overview</h1>
+            <h1 className="text-2xl font-bold text-neutral-200 mb-2">OVERVIEW</h1>
         </header>
 
         {/* Stat cards */}

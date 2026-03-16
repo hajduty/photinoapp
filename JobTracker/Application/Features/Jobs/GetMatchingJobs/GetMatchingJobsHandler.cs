@@ -113,8 +113,8 @@ public class GetMatchingJobsHandler : RpcHandler<GetMatchingJobsRequest, GetMatc
                 : 0f;
 
             float score =
-                semantic * 0.75f +
-                keywordBoost * 0.15f +
+                semantic * 0.65f +
+                keywordBoost * 0.25f +
                 freshnessBoost * 0.10f -
                 negativePenalty * 0.40f; // subtract similarity to ignored jobs
 
@@ -205,8 +205,12 @@ public class GetMatchingJobsHandler : RpcHandler<GetMatchingJobsRequest, GetMatc
         {
             foreach (var k in settings.BlockedKeywords)
             {
-                if (job.Title.Contains(k, StringComparison.OrdinalIgnoreCase) ||
-                    job.Description.Contains(k, StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(k)) continue;
+
+                var pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(k)}(?![a-zA-Z0-9])";
+                var rx = new Regex(pattern, RegexOptions.IgnoreCase);
+
+                if (rx.IsMatch(job.Title ?? "") || rx.IsMatch(job.Description ?? ""))
                     return false;
             }
         }

@@ -1,19 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Popover,
-  ActionIcon,
-  Badge,
-  Text,
-  Stack,
-  Group,
-  Divider,
-  ScrollArea,
-  Loader,
-  Button,
-  Box
-} from '@mantine/core';
+import { Popover } from '@mantine/core';
 import { IconBell, IconX, IconCheck } from '@tabler/icons-react';
 import { onPhotinoEvent } from '../../utils/photino';
 import { Notification } from '../../types/notifications/notification';
@@ -22,49 +10,30 @@ import { useNotifications, useUpdateNotification, useDeleteNotification } from '
 
 export default function Notifications() {
   const [opened, setOpened] = useState(false);
-  
-  // Use TanStack Query hooks
+
   const { data: notifications = [], isLoading, error } = useNotifications();
   const updateNotificationMutation = useUpdateNotification();
   const deleteNotificationMutation = useDeleteNotification();
 
+  // Mark as read when closing
   useEffect(() => {
-    if (!opened && notifications.length > 0) {
-      const unreadNotifications = notifications.filter(n => !n.IsRead);
-      if (unreadNotifications.length > 0) {
-        markNotificationsAsRead(unreadNotifications);
-      }
-    }
+    if (opened) return;
+    const unread = notifications.filter(n => !n.IsRead);
+    if (!unread.length) return;
+    Promise.all(
+      unread.map(n => updateNotificationMutation.mutateAsync({ Id: n.Id, IsRead: true }))
+    ).catch(err => console.error('Failed to mark notifications as read:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
   useEffect(() => {
-    const unsubscribe = onPhotinoEvent('notification.new', (newNotification: Notification) => {
-      console.log('[Notifications] New notification received:', newNotification);
-      // TanStack Query will handle refetching automatically
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    const unsubscribe = onPhotinoEvent('notification.new', (_: Notification) => {});
+    return () => unsubscribe();
   }, []);
 
-  const markNotificationsAsRead = async (unreadNotifications: Notification[]) => {
+  const handleDelete = async (id: number) => {
     try {
-      // Mark all unread notifications as read
-      await Promise.all(
-        unreadNotifications.map(n => 
-          updateNotificationMutation.mutateAsync({ Id: n.Id, IsRead: true })
-        )
-      );
-    } catch (err) {
-      console.error('Failed to mark notifications as read:', err);
-    }
-  };
-
-  const handleDeleteNotification = async (notificationId: number) => {
-    try {
-      await deleteNotificationMutation.mutateAsync({ NotificationId: notificationId });
+      await deleteNotificationMutation.mutateAsync({ NotificationId: id });
     } catch (err) {
       console.error('Failed to delete notification:', err);
     }
@@ -72,38 +41,33 @@ export default function Notifications() {
 
   const handleClearAll = async () => {
     try {
-      // Delete all notifications one by one
-      await Promise.all(
-        notifications.map(n => 
-          deleteNotificationMutation.mutateAsync({ NotificationId: n.Id })
-        )
-      );
+      await Promise.all(notifications.map(n => deleteNotificationMutation.mutateAsync({ NotificationId: n.Id })));
     } catch (err) {
       console.error('Failed to clear notifications:', err);
     }
   };
 
-  const getNotificationColor = (type: NotificationType) => {
+  const dotColor = (type: NotificationType) => {
     switch (type) {
-      case NotificationType.MatchingJob:
-        return 'blue';
-      case NotificationType.JobsAdded:
-        return 'green';
-      default:
-        return 'gray';
+      case NotificationType.MatchingJob: return 'bg-blue-400';
+      case NotificationType.JobsAdded:  return 'bg-green-400';
+      default:                          return 'bg-neutral-500';
     }
   };
 
-  const getNotificationTypeLabel = (type: NotificationType) => {
+  const typeLabel = (type: NotificationType) => {
     switch (type) {
-      case NotificationType.MatchingJob:
-        return 'Matching Job';
-      case NotificationType.JobsAdded:
-        return 'New Jobs';
-      default:
-        return 'Notification';
+      case NotificationType.MatchingJob: return 'Matching job';
+      case NotificationType.JobsAdded:  return 'New jobs';
+      default:                          return 'Notification';
     }
   };
+
+  const formatDate = (date: Date | string) =>
+    new Date(date).toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
 
   const unreadCount = notifications.filter(n => !n.IsRead).length;
 
@@ -113,219 +77,107 @@ export default function Notifications() {
       onChange={setOpened}
       position="right-start"
       offset={8}
-      withArrow
       shadow="md"
+      transitionProps={{ transition: 'fade', duration: 150 }}
     >
       <Popover.Target>
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          size="lg"
+        <button
+          onClick={() => setOpened(o => !o)}
           aria-label="Notifications"
-          onClick={() => setOpened((o) => !o)}
+          className="relative p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
         >
-          <Box pos="relative">
-            <IconBell size={20} />
-            {unreadCount > 0 && (
-              <Badge
-                size="xs"
-                color="red"
-                pos="absolute"
-                top={-8}
-                right={-8}
-                variant="filled"
-                styles={{
-                  root: {
-                    minWidth: '18px',
-                    height: '18px',
-                    padding: '0 4px',
-                    fontSize: '10px',
-                  }
-                }}
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Badge>
-            )}
-          </Box>
-        </ActionIcon>
+          <IconBell size={18} />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
       </Popover.Target>
 
-      <Popover.Dropdown
-        p={0}
-        style={{
-          width: '320px',
-          backgroundColor: '#171717',
-          border: '1px solid #404040',
-        }}
-      >
-        {/* Header */}
-        <Group justify="space-between" p="sm" style={{ borderBottom: '1px solid #262626' }}>
-          <Text size="sm" fw={600} c="white">
-            Notifications
-          </Text>
-          {notifications.length > 0 && (
-            <Button
-              variant="subtle"
-              size="compact-xs"
-              color="gray"
-              onClick={handleClearAll}
-            >
-              Clear all
-            </Button>
-          )}
-        </Group>
+      <Popover.Dropdown p={0} style={{ width: 300, background: 'transparent', border: 'none', boxShadow: 'none' }}>
+        <div className="w-[300px] rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl overflow-hidden">
 
-        {/* Content */}
-        <ScrollArea.Autosize mah={320}>
-          {isLoading ? (
-            <Group justify="center" py="xl">
-              <Loader size="sm" color="gray" />
-            </Group>
-          ) : error ? (
-            <Stack align="center" py="xl" px="md" gap="xs">
-              <Text size="sm" c="red.4">
-                {error.message}
-              </Text>
-              <Button
-                variant="subtle"
-                size="compact-xs"
-                color="gray"
-                onClick={() => {}}
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-neutral-800">
+            <span className="text-[12px] font-medium text-white">Notifications</span>
+            {notifications.length > 0 && (
+              <button
+                onClick={handleClearAll}
+                className="text-[11px] text-neutral-400 hover:text-neutral-300 transition-colors"
               >
-                Try again
-              </Button>
-            </Stack>
-          ) : notifications.length === 0 ? (
-            <Stack align="center" py="xl" gap="xs">
-              <IconCheck size={32} color="#525252" />
-              <Text size="sm" c="dimmed">
-                NO NOTIFICATIONS
-              </Text>
-            </Stack>
-          ) : (
-            <Stack gap={0}>
-              {notifications.map((notification, index) => (
-                <Box key={notification.Id}>
-                  <Group
-                    wrap="nowrap"
-                    align="flex-start"
-                    p="sm"
-                    style={{
-                      backgroundColor: notification.IsRead ? undefined : 'rgba(59, 130, 246, 0.08)',
-                    }}
-                    className="notification-item"
+                Clear all
+              </button>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="w-5 h-5 rounded-full border-2 border-neutral-700 border-t-neutral-400 animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center gap-2 py-10 px-4">
+                <p className="text-[12px] text-red-400">{error.message}</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10">
+                <IconCheck size={28} className="text-neutral-700" />
+                <p className="text-[11px] font-medium text-neutral-500 uppercase tracking-widest">No notifications</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-neutral-800/60">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.Id}
+                    className={`group flex items-start gap-2.5 px-3 py-2.5 transition-colors hover:bg-neutral-900 ${
+                      !notification.IsRead ? 'bg-blue-500/5' : ''
+                    }`}
                   >
-                    <Box mt={4}>
-                      <Badge
-                        size="xs"
-                        color={getNotificationColor(notification.Type)}
-                        variant="filled"
-                        circle
-                        styles={{
-                          root: {
-                            width: '8px',
-                            height: '8px',
-                            minWidth: '8px',
-                            padding: 0,
-                          }
-                        }}
-                      />
-                    </Box>
-                    <Stack gap={4} flex={1} style={{ minWidth: 0 }}>
-                      <Badge
-                        size="xs"
-                        color="gray"
-                        variant="light"
-                        styles={{
-                          root: {
-                            backgroundColor: 'transparent',
-                            padding: 0,
-                            fontWeight: 500,
-                            textTransform: 'none',
-                            alignSelf: 'flex-start',
-                          },
-                          label: {
-                            color: '#737373',
-                            fontSize: '10px',
-                          }
-                        }}
-                      >
-                        {getNotificationTypeLabel(notification.Type)}
-                      </Badge>
-                      <Text 
-                        size="sm" 
-                        fw={notification.IsRead ? 400 : 600} 
-                        c="white" 
-                        truncate
-                      >
+                    <div className="flex-shrink-0 mt-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${dotColor(notification.Type)}`} />
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-[10px] text-neutral-500">{typeLabel(notification.Type)}</p>
+                      <p className={`text-[12px] text-white truncate ${notification.IsRead ? 'font-normal' : 'font-medium'}`}>
                         {notification.Title}
-                      </Text>
-                      <Text size="xs" c="dimmed" lineClamp={2}>
+                      </p>
+                      <p className="text-[11px] text-neutral-500 line-clamp-2 leading-relaxed">
                         {notification.Description}
-                      </Text>
-                      <Text size="xs" c="dimmed" mt={2}>
-                        {notification.CreatedAt instanceof Date 
-                          ? notification.CreatedAt.toLocaleString(undefined, { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              hour: 'numeric', 
-                              minute: '2-digit' 
-                            })
-                          : new Date(notification.CreatedAt).toLocaleString(undefined, { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              hour: 'numeric', 
-                              minute: '2-digit' 
-                            })
-                        }
-                      </Text>
-                    </Stack>
-                    <ActionIcon
-                      variant="subtle"
-                      color="gray"
-                      size="sm"
-                      onClick={() => handleDeleteNotification(notification.Id)}
-                      style={{
-                        opacity: 0,
-                        transition: 'opacity 0.15s ease',
-                      }}
-                      className="dismiss-button"
+                      </p>
+                      <p className="text-[10px] text-neutral-500 pt-0.5">
+                        {formatDate(notification.CreatedAt)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleDelete(notification.Id)}
+                      className="flex-shrink-0 p-0.5 mt-0.5 rounded text-neutral-700 hover:text-neutral-400 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Dismiss"
                     >
-                      <IconX size={14} />
-                    </ActionIcon>
-                  </Group>
-                  {index < notifications.length - 1 && (
-                    <Divider color="dark.6" />
-                  )}
-                </Box>
-              ))}
-            </Stack>
+                      <IconX size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {notifications.length > 0 && (
+            <div className="flex items-center justify-center px-3 py-2 border-t border-neutral-800">
+              <p className="text-[11px] text-neutral-600">
+                {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                {unreadCount > 0 && (
+                  <span className="text-blue-500 ml-1">· {unreadCount} unread</span>
+                )}
+              </p>
+            </div>
           )}
-        </ScrollArea.Autosize>
-
-        {/* Footer */}
-        {notifications.length > 0 && (
-          <Group justify="center" p="xs" style={{ borderTop: '1px solid #262626' }}>
-            <Text size="xs" c="dimmed">
-              {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-              {unreadCount > 0 && (
-                <Text span size="xs" c="blue.4" ml={4}>
-                  ({unreadCount} unread)
-                </Text>
-              )}
-            </Text>
-          </Group>
-        )}
+        </div>
       </Popover.Dropdown>
-
-      <style jsx global>{`
-        .notification-item:hover {
-          background-color: #262626 !important;
-        }
-        .notification-item:hover .dismiss-button {
-          opacity: 1 !important;
-        }
-      `}</style>
     </Popover>
   );
 }

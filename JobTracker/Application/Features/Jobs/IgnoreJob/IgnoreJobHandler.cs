@@ -23,7 +23,7 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
 
         var rows = await db.Postings
             .Where(p => p.Id == request.JobId)
-            .ExecuteUpdateAsync(p => p.SetProperty(x => x.Ignored, true));
+            .ExecuteUpdateAsync(p => p.SetProperty(x => x.Ignored, x => !x.Ignored));
 
         return new IgnoreJobResponse(rows > 0);
     }
