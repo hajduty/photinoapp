@@ -25,24 +25,24 @@ export default function JobDetailsModal({
   isBookmarked = false,
   bookmarkedJobs
 }: JobDetailsModalProps) {
-  if (!posting) {
-    return null;
-  }
 
+  const { data: fullDescription, isLoading: loadingFullDescription } = useFullDescription(
+    opened && posting ? posting.Posting.Id : 0
+  );
+
+  if (!posting) return null;
+ 
   const { Posting, Tags } = posting;
-
-  // Fetch full description when modal opens
-  const { data: fullDescription, isLoading: loadingFullDescription } = useFullDescription(opened ? posting.Posting.Id : 0);
 
   const handleApply = () => {
     if (onApply) {
       onApply();
     }
-    window.open(Posting.Url, '_blank', 'noopener,noreferrer');
+    window.open(Posting!.Url, '_blank', 'noopener,noreferrer');
   };
 
   const handleViewOriginal = () => {
-    window.open(Posting.OriginUrl, '_blank', 'noopener,noreferrer');
+    window.open(Posting!.OriginUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

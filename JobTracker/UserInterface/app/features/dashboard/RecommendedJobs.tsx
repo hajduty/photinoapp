@@ -15,32 +15,27 @@ interface RecommendedJobsProps {
 function JobCardSkeleton() {
   return (
     <div className="relative flex flex-col gap-2 px-3 py-2.5 rounded-xl border border-neutral-800 bg-neutral-900/50 overflow-hidden h-[105px]">
-      {/* Shimmer overlay */}
       <div className="absolute inset-0 animate-pulse bg-neutral-800/30 rounded-xl" />
-
-      {/* Exact same structure as real card, all text invisible */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-[12.5px] font-medium leading-snug line-clamp-2 flex-1 min-w-0 invisible select-none">
+        <h3 className="text-xs font-medium leading-snug line-clamp-2 flex-1 min-w-0 invisible select-none">
           Job title placeholder that wraps
         </h3>
         <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
           <button className="p-1 invisible"><IconBookmark size={13} /></button>
         </div>
       </div>
-
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11.5px] invisible select-none">Company name</span>
-        <span className="text-[11px] flex-shrink-0 invisible select-none">Mar 00</span>
+        <span className="text-xs invisible select-none">Company name</span>
+        <span className="text-xs flex-shrink-0 invisible select-none">Mar 00</span>
       </div>
-
       <div className="flex items-center justify-between gap-2 mt-auto">
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           <IconLocation size={11} className="flex-shrink-0 invisible" />
-          <span className="text-[11px] invisible select-none">Location</span>
+          <span className="text-xs invisible select-none">Location</span>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded invisible select-none">REACT</span>
-          <span className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded invisible select-none">TYPE</span>
+          <span className="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded invisible select-none">REACT</span>
+          <span className="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded invisible select-none">TYPE</span>
         </div>
       </div>
     </div>
@@ -56,12 +51,28 @@ export default function RecommendedJobs({
 }: RecommendedJobsProps) {
   const [selectedJob, setSelectedJob] = useState<ExtendedPosting | null>(null);
   const [modalOpened, setModalOpened] = useState(false);
+  // Local boolean that we flip immediately on bookmark — not derived from the Set
+  const [modalIsBookmarked, setModalIsBookmarked] = useState(false);
+
+  const openModal = (job: ExtendedPosting) => {
+    const currentState = bookmarkedJobs?.has(job.Posting.Id) ?? job.Posting.Bookmarked;
+    setSelectedJob(job);
+    setModalIsBookmarked(currentState);
+    setModalOpened(true);
+  };
+
+  const handleModalBookmark = () => {
+    if (!selectedJob) return;
+    const next = !modalIsBookmarked;
+    setModalIsBookmarked(next);          // update modal immediately
+    onBookmark(selectedJob.Posting.Id, next); // propagate up
+  };
 
   const jobList = Array.isArray(jobs) ? jobs : (jobs?.Jobs ?? []);
 
   return (
     <div>
-      <p className="text-[11px] font-medium text-neutral-500 uppercase tracking-widest mb-3 select-none">
+      <p className="text-xs font-medium text-neutral-500 uppercase tracking-widest mb-3 select-none">
         Recommended Jobs
       </p>
 
@@ -83,11 +94,11 @@ export default function RecommendedJobs({
             return (
               <div
                 key={job.Posting.Id}
-                onClick={() => { setSelectedJob(job); setModalOpened(true); }}
+                onClick={() => openModal(job)}
                 className="group flex flex-col gap-2 px-3 py-2.5 rounded-xl border border-neutral-800 bg-neutral-900/50 hover:border-neutral-700 hover:bg-neutral-800/40 transition-all cursor-pointer h-[105px]"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-[12.5px] font-medium text-white leading-snug line-clamp-2 flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-white leading-snug line-clamp-2 flex-1 min-w-0">
                     {job.Posting.Title}
                   </h3>
                   <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
@@ -111,8 +122,8 @@ export default function RecommendedJobs({
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11.5px] text-neutral-400 truncate">{job.Posting.Company}</span>
-                  <span className="text-[11px] text-neutral-600 flex-shrink-0">
+                  <span className="text-xs text-neutral-400 truncate">{job.Posting.Company}</span>
+                  <span className="text-xs text-neutral-600 flex-shrink-0">
                     {new Date(job.Posting.PostedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
@@ -120,20 +131,20 @@ export default function RecommendedJobs({
                 <div className="flex items-center justify-between gap-2 mt-auto">
                   <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                     <IconLocation size={11} className="flex-shrink-0 text-neutral-600" />
-                    <span className="text-[11px] text-neutral-500 truncate">{job.Posting.Location}</span>
+                    <span className="text-xs text-neutral-500 truncate">{job.Posting.Location}</span>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {job.Tags.slice(0, 2).map((tag) => (
                       <span
                         key={tag.Id}
-                        className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                        className="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: tag.Color, color: getContrastColor(tag.Color) }}
                       >
                         {tag.Name}
                       </span>
                     ))}
                     {job.Tags.length > 2 && (
-                      <span className="text-[10px] text-neutral-500 px-1.5 py-0.5 rounded bg-neutral-800">
+                      <span className="text-xs text-neutral-500 px-1.5 py-0.5 rounded bg-neutral-800">
                         +{job.Tags.length - 2}
                       </span>
                     )}
@@ -145,19 +156,13 @@ export default function RecommendedJobs({
         </div>
       )}
 
-      {selectedJob && (() => {
-        const isBookmarked = bookmarkedJobs?.has(selectedJob.Posting.Id) ?? selectedJob.Posting.Bookmarked;
-        return (
-          <JobDetailsModal
-            posting={selectedJob}
-            opened={modalOpened}
-            onClose={() => setModalOpened(false)}
-            onBookmark={() => onBookmark(selectedJob.Posting.Id, !isBookmarked)}
-            isBookmarked={isBookmarked}
-            bookmarkedJobs={bookmarkedJobs}
-          />
-        );
-      })()}
+      <JobDetailsModal
+        posting={selectedJob ?? undefined}
+        opened={modalOpened}
+        onClose={() => setModalOpened(false)}
+        onBookmark={handleModalBookmark}
+        isBookmarked={modalIsBookmarked}
+      />
     </div>
   );
 }
