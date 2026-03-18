@@ -99,7 +99,7 @@ public class JobTechScraper
             }
 
             apiOffset += LIMIT;
-            await Task.Delay(1000); // be nice to the api
+            await Task.Delay(100); // be nice to the api
         }
 
         return result;

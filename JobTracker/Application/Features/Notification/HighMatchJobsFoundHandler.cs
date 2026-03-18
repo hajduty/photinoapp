@@ -1,18 +1,17 @@
-using JobTracker.Application.Events;
-using JobTracker.Application.Features.JobTracker;
+﻿using JobTracker.Application.Events;
+using JobTracker.Application.Features.Jobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Discord;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.Notification;
-
-public class JobsFoundEventHandler : IEventHandler<JobsFoundEvent>
+public class HighMatchJobsFoundEventHandler : IEventHandler<HighMatchJobsFoundEvent>
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IUiEventEmitter _eventEmitter;
     private readonly IDiscordWebhookService _discord;
 
-    public JobsFoundEventHandler(
+    public HighMatchJobsFoundEventHandler(
         IDbContextFactory<AppDbContext> dbFactory,
         IUiEventEmitter eventEmitter,
         IDiscordWebhookService discord)
@@ -22,17 +21,16 @@ public class JobsFoundEventHandler : IEventHandler<JobsFoundEvent>
         _discord = discord;
     }
 
-    public async Task HandleAsync(JobsFoundEvent domainEvent)
+    public async Task HandleAsync(HighMatchJobsFoundEvent domainEvent)
     {
         var title = domainEvent.JobCount == 1
-            ? "1 new job found!"
-            : $"{domainEvent.JobCount} new jobs found!";
+            ? "1 high-match job found!"
+            : $"{domainEvent.JobCount} high-match jobs found!";
 
         var description = domainEvent.JobCount == 1
-            ? $"A new job matching '{domainEvent.Keyword}' was found."
-            : $"{domainEvent.JobCount} new jobs matching '{domainEvent.Keyword}' were found.";
+            ? $"A job strongly matching your profile was found for '{domainEvent.Keyword}'."
+            : $"{domainEvent.JobCount} jobs strongly matching your profile were found for '{domainEvent.Keyword}'.";
 
-        // Save to database
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
 
         var notification = new Notification
@@ -46,11 +44,9 @@ public class JobsFoundEventHandler : IEventHandler<JobsFoundEvent>
         dbContext.Notifications.Add(notification);
         await dbContext.SaveChangesAsync();
 
-        // Emit to frontend
         _eventEmitter.Emit("notification.new", notification);
 
-        // Send Discord webhook
         var jobTitles = domainEvent.Jobs.Select(j => j.Title).ToArray();
-        await _discord.SendJobAlertAsync(domainEvent.Keyword, domainEvent.JobCount, domainEvent.Jobs);
+        await _discord.SendHighMatchAlertAsync(domainEvent.Keyword, domainEvent.JobCount, domainEvent.Jobs);
     }
 }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Popover } from '@mantine/core';
 import { IconBell, IconX, IconCheck } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { onPhotinoEvent } from '../../utils/photino';
 import { Notification } from '../../types/notifications/notification';
 import { NotificationType } from '../../types/notifications/notification-type';
@@ -10,6 +11,7 @@ import { useNotifications, useUpdateNotification, useDeleteNotification } from '
 
 export default function Notifications() {
   const [opened, setOpened] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading, error } = useNotifications();
   const updateNotificationMutation = useUpdateNotification();
@@ -27,9 +29,11 @@ export default function Notifications() {
   }, [opened]);
 
   useEffect(() => {
-    const unsubscribe = onPhotinoEvent('notification.new', (_: Notification) => {});
+    const unsubscribe = onPhotinoEvent('notification.new', () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
     return () => unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const handleDelete = async (id: number) => {
     try {

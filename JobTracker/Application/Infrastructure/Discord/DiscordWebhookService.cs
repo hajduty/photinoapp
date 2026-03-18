@@ -1,3 +1,4 @@
+using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -21,10 +22,10 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
         var settings = await dbContext.Settings.FirstOrDefaultAsync();
-        
+
         if (settings == null || !settings.DiscordNotificationsEnabled)
             return (null, false);
-            
+
         return (settings.DiscordWebhookUrl, settings.DiscordNotificationsEnabled);
     }
 
@@ -59,7 +60,7 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
         await SendPayloadAsync(webhookUrl!, payload);
     }
 
-    public async Task SendJobAlertAsync(string keyword, int jobCount, string[]? jobTitles = null)
+    public async Task SendJobAlertAsync(string keyword, int jobCount, List<JobInfo> jobInfos)
     {
         var (webhookUrl, enabled) = await GetSettingsAsync();
         if (!enabled || string.IsNullOrEmpty(webhookUrl))
@@ -69,29 +70,79 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
             ? $"Found **1** new job matching `{keyword}`"
             : $"Found **{jobCount}** new jobs matching `{keyword}`";
 
-        if (jobTitles?.Length > 0)
+        if (jobInfos.Count > 0)
         {
-            var titlesList = string.Join("\n• ", jobTitles.Take(10));
+            var titlesList = string.Join("\n• ", jobInfos.Take(10).Select(j => j.Title));
             description += $"\n\n**Jobs:**\n• {titlesList}";
-            if (jobTitles.Length > 10)
-                description += $"\n... and {jobTitles.Length - 10} more";
+            if (jobInfos.Count > 10)
+                description += $"\n*... and {jobInfos.Count - 10} more*";
         }
 
         var payload = new
         {
             embeds = new[]
             {
-                new
-                {
-                    title = "🔔 Job Alert",
-                    description,
-                    color = 0x3498DB,
-                    timestamp = DateTime.UtcNow.ToString("O"),
-                    footer = new { text = "JobTracker" }
-                }
+            new
+            {
+                title = "🔔 Job Alert",
+                description,
+                color = 0x3498DB,
+                timestamp = DateTime.UtcNow.ToString("O"),
+                footer = new { text = "JobTracker" }
             }
+        }
         };
 
+        await SendPayloadAsync(webhookUrl!, payload);
+    }
+
+    public async Task SendHighMatchAlertAsync(string keyword, int jobCount, List<JobInfo> jobInfos)
+    {
+        var (webhookUrl, enabled) = await GetSettingsAsync();
+        if (!enabled || string.IsNullOrEmpty(webhookUrl))
+            return;
+
+        var headerDescription = jobCount == 1
+            ? $"Found **1** job strongly matching your profile for `{keyword}`"
+            : $"Found **{jobCount}** jobs strongly matching your profile for `{keyword}`";
+
+        var embeds = new List<object>
+    {
+        new
+        {
+            title = "⭐ High Match Alert",
+            description = headerDescription,
+            color = 0xF0A500,
+            timestamp = DateTime.UtcNow.ToString("O"),
+            footer = new { text = "JobTracker" }
+        }
+    };
+
+        foreach (var job in jobInfos.Take(9))
+        {
+            embeds.Add(new
+            {
+                title = job.Title,
+                url = job.Url ?? "",
+                description = $"**{job.Company}**",
+                color = 0xF0A500,
+                thumbnail = string.IsNullOrEmpty(job.CompanyImage)
+                    ? null
+                    : new { url = job.CompanyImage },
+                footer = new { text = job.Company }
+            });
+        }
+
+        if (jobInfos.Count > 9)
+        {
+            embeds.Add(new
+            {
+                description = $"*... and {jobInfos.Count - 9} more*",
+                color = 0xF0A500
+            });
+        }
+
+        var payload = new { embeds };
         await SendPayloadAsync(webhookUrl!, payload);
     }
 
@@ -107,6 +158,7 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
         {
             // Log error but don't throw webhook failures shouldn't break the app
             Debug.WriteLine($"Discord webhook error: {ex.Message}");
+            Console.WriteLine($"Discord webhook error: {ex.Message}");
         }
     }
 
@@ -135,7 +187,7 @@ public sealed class DiscordWebhookService : IDiscordWebhookService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(webhookUrl, content);
-            
+
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

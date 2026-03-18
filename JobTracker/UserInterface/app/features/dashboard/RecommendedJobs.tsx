@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
-import { IconLocation, IconBookmark, IconX } from '@tabler/icons-react';
+import { IconLocation, IconBookmark, IconDotsVertical, IconEyeOff, IconBan } from '@tabler/icons-react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import JobDetailsModal from '../search/JobDetailsModal';
 
@@ -9,6 +9,7 @@ interface RecommendedJobsProps {
   bookmarkedJobs?: Set<number>;
   onBookmark: (jobId: number, targetState: boolean) => void;
   onIgnore?: (jobId: number) => void;
+  onSoftIgnore?: (jobId: number) => void;
   isLoading?: boolean;
 }
 
@@ -42,16 +43,76 @@ function JobCardSkeleton() {
   );
 }
 
+interface JobOptionsMenuProps {
+  jobId: number;
+  onSoftIgnore?: (jobId: number) => void;
+  onIgnore?: (jobId: number) => void;
+}
+
+function JobOptionsMenu({ jobId, onSoftIgnore, onIgnore }: JobOptionsMenuProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="p-1 rounded text-neutral-600 hover:text-neutral-400 opacity-0 group-hover:opacity-100 transition-all"
+        aria-label="Job options"
+      >
+        <IconDotsVertical size={13} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl py-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onSoftIgnore && (
+            <button
+              onClick={() => { onSoftIgnore(jobId); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors text-left"
+            >
+              <IconEyeOff size={13} className="text-neutral-500 flex-shrink-0" />
+              Soft ignore this job
+            </button>
+          )}
+          {onIgnore && (
+            <button
+              onClick={() => { onIgnore(jobId); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-red-400 transition-colors text-left"
+            >
+              <IconBan size={13} className="text-neutral-500 flex-shrink-0" />
+              Ignore similar jobs in future
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RecommendedJobs({
   jobs,
   bookmarkedJobs,
   onBookmark,
   onIgnore,
+  onSoftIgnore,
   isLoading = false,
 }: RecommendedJobsProps) {
   const [selectedJob, setSelectedJob] = useState<ExtendedPosting | null>(null);
   const [modalOpened, setModalOpened] = useState(false);
-  // Local boolean that we flip immediately on bookmark — not derived from the Set
   const [modalIsBookmarked, setModalIsBookmarked] = useState(false);
 
   const openModal = (job: ExtendedPosting) => {
@@ -64,8 +125,8 @@ export default function RecommendedJobs({
   const handleModalBookmark = () => {
     if (!selectedJob) return;
     const next = !modalIsBookmarked;
-    setModalIsBookmarked(next);          // update modal immediately
-    onBookmark(selectedJob.Posting.Id, next); // propagate up
+    setModalIsBookmarked(next);
+    onBookmark(selectedJob.Posting.Id, next);
   };
 
   const jobList = Array.isArray(jobs) ? jobs : (jobs?.Jobs ?? []);
@@ -102,15 +163,11 @@ export default function RecommendedJobs({
                     {job.Posting.Title}
                   </h3>
                   <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
-                    {onIgnore && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onIgnore(job.Posting.Id); }}
-                        className="p-1 rounded text-neutral-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                        aria-label="Ignore job"
-                      >
-                        <IconX size={13} />
-                      </button>
-                    )}
+                    <JobOptionsMenu
+                      jobId={job.Posting.Id}
+                      onSoftIgnore={onSoftIgnore}
+                      onIgnore={onIgnore}
+                    />
                     <button
                       onClick={(e) => { e.stopPropagation(); onBookmark(job.Posting.Id, !isBookmarked); }}
                       className={`p-1 rounded transition-colors ${isBookmarked ? 'text-amber-400' : 'text-neutral-600 hover:text-neutral-400'}`}

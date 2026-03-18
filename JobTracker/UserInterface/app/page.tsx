@@ -9,13 +9,14 @@ import { IconArrowWaveLeftUp, IconX } from '@tabler/icons-react';
 import { HeatmapJobData } from './types/dashboard/get-heatmapdate-response';
 import { useDashboardData, useHeatmapData, useHeatmapDateData } from './hooks/useDashboard';
 import { useMatchingJobs, useBookmarkJob } from './hooks/useJobs';
-import { useIgnoreJob } from './hooks/useIgnoreJob';
+import { useIgnoreJob, useSoftIgnoreJob } from './hooks/useIgnoreJob';
 
 export default function Dashboard() {
   const { data: matchingJobs, error: jobsError, isLoading } = useMatchingJobs();
   const { mutate: ignoreJob } = useIgnoreJob();
   const bookmarkMutation = useBookmarkJob();
-
+  
+  const { mutate: softIgnoreJob } = useSoftIgnoreJob();
   const { data: dashboardData } = useDashboardData();
   const { data: heatmapData } = useHeatmapData();
 
@@ -156,6 +157,7 @@ export default function Dashboard() {
           jobs={matchingJobs ?? []}
           onBookmark={handleBookmark}
           onIgnore={(jobId) => ignoreJob({ JobId: jobId })}
+          onSoftIgnore={(jobId) => softIgnoreJob({JobId: jobId})}
           isLoading={isLoading}
         />
 
