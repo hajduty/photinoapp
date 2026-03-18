@@ -22,7 +22,7 @@ public static class JobSearchHelper
             CreatedAt = DateTime.UtcNow,
             LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString()),
             DescriptionFormatted = hit.GetProperty("description").GetProperty("text_formatted").GetString() ?? "",
-            YearsOfExperience = ExtractExperienceYears(GetDescription(hit))
+            YearsOfExperience = ExtractExperienceYears(GetDescription(hit), hit.GetProperty("headline").GetString() ?? "")
         };
     }
 
@@ -51,16 +51,49 @@ public static class JobSearchHelper
     public static string GetOriginUrl(JsonElement hit) =>
         hit.GetProperty("webpage_url").GetString() ?? "";
 
-    public static int? ExtractExperienceYears(string text)
+    private static readonly Dictionary<string, int> WordNumbers = new()
+    {
+        // Swedish
+        { "ett", 1 }, { "två", 2 }, { "tre", 3 }, { "fyra", 4 }, { "fem", 5 },
+        { "sex", 6 }, { "sju", 7 }, { "åtta", 8 }, { "nio", 9 }, { "tio", 10 },
+        // English
+        { "one", 1 }, { "two", 2 }, { "three", 3 }, { "four", 4 }, { "five", 5 },
+        { "six", 6 }, { "seven", 7 }, { "eight", 8 }, { "nine", 9 }, { "ten", 10 }
+    };
+
+    private static readonly Dictionary<string, int> TitleExperienceLevels = new()
+    {
+        { "principal", 8 },
+        { "staff", 7 },
+        { "lead", 6 },
+        { "senior", 5 },
+        { "mid", 3 },
+        { "junior", 1 },
+        { "intern", 0 },
+        { "trainee", 0 },
+    };
+
+    public static int? ExtractExperienceYears(string text, string title)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
 
         var normalized = text.ToLowerInvariant()
                              .Replace("–", "-").Replace("−", "-").Replace("―", "-")
-                             .Replace("år", " years").Replace("års", " years").Replace("årig", " years");
+                             .Replace("års", " years").Replace("år", " years").Replace("årig", " years");
 
-        // Split into approximate sentences
-        var sentences = Regex.Split(normalized, @"(?<=[.!?])\s+")
+        foreach (var (word, num) in WordNumbers)
+        {
+            normalized = Regex.Replace(
+                normalized,
+                $@"\b{word}\b(?=\s*years?\b)",
+                num.ToString(),
+                RegexOptions.IgnoreCase
+            );
+        }
+
+        normalized = Regex.Replace(normalized, @"\bminst\b", "", RegexOptions.IgnoreCase).Trim();
+
+        var sentences = Regex.Split(normalized, @"(?<=[.!?])\s+|[\n\r;]+")
                              .Where(s => s.Trim().Length > 10)
                              .Select(s => s.Trim())
                              .ToList();
@@ -69,58 +102,51 @@ public static class JobSearchHelper
 
         foreach (var sentence in sentences)
         {
-            // Company voice filter - more nuanced
             bool isCompanyIntro = sentence.StartsWith("vi ") || sentence.StartsWith("we ");
             bool hasCompanyReference = sentence.Contains(" vi ") || sentence.Contains(" we ") ||
                                        sentence.Contains(" vår ") || sentence.Contains(" our ");
-
             bool isServiceDescription = sentence.Contains("stöttar") || sentence.Contains("hjälper") ||
-                                       sentence.Contains("erbjuder") || sentence.Contains("offers") ||
-                                       sentence.Contains("levererar") || sentence.Contains("delivers");
-
+                                        sentence.Contains("erbjuder") || sentence.Contains("offers") ||
+                                        sentence.Contains("levererar") || sentence.Contains("delivers");
             bool hasExperienceKeyword = sentence.Contains("erfarenhet") || sentence.Contains("experience");
 
-            // ONLY skip if it's clearly a company intro WITHOUT experience context
             if ((isCompanyIntro || (hasCompanyReference && isServiceDescription)) && !hasExperienceKeyword)
-            {
                 continue;
-            }
 
-            // Handle "över X års" pattern (numbers over 10 should be IGNORED)
-            var overPattern = @"(?:över|mer än|över|over|>)\s*(\d{1,2})\s*years?\b";
-            var overMatches = Regex.Matches(sentence, overPattern, RegexOptions.IgnoreCase);
-
-            foreach (Match m in overMatches)
+            var overPattern = @"(?:över|mer än|over|>)\s*(\d{1,2})\s*years?\b";
+            foreach (Match m in Regex.Matches(sentence, overPattern, RegexOptions.IgnoreCase))
             {
-                if (int.TryParse(m.Groups[1].Value, out int num) && num >= 1 && num <= 10) // Only count if <= 10
-                {
+                if (int.TryParse(m.Groups[1].Value, out int num) && num >= 1 && num <= 10)
                     highest = Math.Max(highest ?? 0, num);
-                }
             }
 
-            // Core pattern: number + years
             var pattern = @"(\d{1,2})\s*[-+–−]?[\s.,;:/]*\s*(?:years?|yrs?)\b";
-            var matches = Regex.Matches(sentence, pattern, RegexOptions.IgnoreCase);
-
-            foreach (Match m in matches)
+            foreach (Match m in Regex.Matches(sentence, pattern, RegexOptions.IgnoreCase))
             {
-                if (int.TryParse(m.Groups[1].Value, out int num) && num >= 1 && num <= 10) // Only count if <= 10
-                {
+                if (int.TryParse(m.Groups[1].Value, out int num) && num >= 1 && num <= 10)
                     highest = Math.Max(highest ?? 0, num);
-                }
             }
 
-            // Range patterns
             var rangePattern = @"(\d{1,2})\s*[-–−]\s*(\d{1,2})\s*(?:years?|yrs?)?\b";
-            var rangeMatches = Regex.Matches(sentence, rangePattern, RegexOptions.IgnoreCase);
-
-            foreach (Match m in rangeMatches)
+            foreach (Match m in Regex.Matches(sentence, rangePattern, RegexOptions.IgnoreCase))
             {
                 if (int.TryParse(m.Groups[1].Value, out int low) &&
                     int.TryParse(m.Groups[2].Value, out int high) &&
-                    high > low && high <= 10) // Only count if <= 10
-                {
+                    high > low && high <= 10)
                     highest = Math.Max(highest ?? 0, high);
+            }
+        }
+
+        // Title fallback — only if description yielded nothing
+        if (highest == null && !string.IsNullOrWhiteSpace(title))
+        {
+            var normalizedTitle = title.ToLowerInvariant();
+            foreach (var (keyword, years) in TitleExperienceLevels)
+            {
+                if (Regex.IsMatch(normalizedTitle, $@"\b{keyword}\b"))
+                {
+                    highest = years;
+                    break;
                 }
             }
         }

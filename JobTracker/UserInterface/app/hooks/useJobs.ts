@@ -5,10 +5,12 @@ import { GetJobsResponse } from '../types/jobs/get-jobs-response';
 import { GetBookmarkedJobsResponse } from '../types/jobs/get-bookmarked-jobs-response';
 import { BookmarkJobRequest } from '../types/jobs/bookmark-job-request';
 import { BookmarkJobResponse } from '../types/jobs/bookmark-job-response';
+import { GetIgnoredJobsResponse } from '../types/jobs/get-ignored-jobs-response';
 import { JobSentenceDto } from '../types/jobs/jobsentence';
 import { Classification } from '../types/classifications/classification';
 import { GetFullDescriptionRequest } from '../types/jobs/get-full-description-request';
 import { GetFullDescriptionResponse } from '../types/jobs/get-full-description-response';
+import { ExtendedPosting } from '../types/jobs/extended-posting';
 
 export const useJobs = (request: GetJobsRequest) => {
   return useQuery({
@@ -64,6 +66,7 @@ export const useBookmarkJob = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['bookmarked-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['matching-jobs'] });
     },
   });
 };
@@ -91,5 +94,21 @@ export const useFullDescription = (jobId: number) => {
     queryFn: () => sendPhotinoRequest<GetFullDescriptionResponse>('jobs.getFullDescription', { JobId: jobId }),
     enabled: !!jobId,
     staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useMatchingJobs = () => {
+  return useQuery({
+    queryKey: ['matching-jobs'],
+    queryFn: () => sendPhotinoRequest<ExtendedPosting[]>('jobs.getMatchingJobs', {}),
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+export const useGetIgnoredJobs = () => {
+  return useQuery({
+    queryKey: ['ignored-jobs'],
+    queryFn: () => sendPhotinoRequest<GetIgnoredJobsResponse>('jobs.getIgnored', { hello: "hello" }),
+    staleTime: 3 * 60 * 1000, // 3 minutes
   });
 };

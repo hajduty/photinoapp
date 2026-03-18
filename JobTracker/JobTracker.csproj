@@ -5,10 +5,7 @@
 		<OutputType Condition="'$(TargetFramework)' != 'net8.0-windows'">Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		
-		<TargetFrameworks Condition="'$(RuntimeIdentifier)' == 'linux-x64' 
-		    OR '$(RuntimeIdentifier)' == 'linux-arm64'
-		    OR '$(RuntimeIdentifier)' == 'osx-x64'
-		    OR '$(RuntimeIdentifier)' == 'osx-arm64'">net8.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(RuntimeIdentifier)' == 'linux-x64' &#xD;&#xA;		    OR '$(RuntimeIdentifier)' == 'linux-arm64'&#xD;&#xA;		    OR '$(RuntimeIdentifier)' == 'osx-x64'&#xD;&#xA;		    OR '$(RuntimeIdentifier)' == 'osx-arm64'">net8.0</TargetFrameworks>
 		<TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net8.0-windows</TargetFrameworks>
 		<UseWindowsForms Condition="'$(TargetFramework)' == 'net8.0-windows'">true</UseWindowsForms>		
 		
@@ -60,14 +57,17 @@
 	
 	<ItemGroup>
 	  <Compile Remove="Models\**" />
-	  <Compile Remove="publish\build\**" />
+	  <Compile Remove="publish\**" />
 	  <Compile Remove="Tests\obj\**" />
+	  <Compile Remove="UserInterface\**" />
 	  <EmbeddedResource Remove="Models\**" />
-	  <EmbeddedResource Remove="publish\build\**" />
+	  <EmbeddedResource Remove="publish\**" />
 	  <EmbeddedResource Remove="Tests\obj\**" />
+	  <EmbeddedResource Remove="UserInterface\**" />
 	  <None Remove="Models\**" />
-	  <None Remove="publish\build\**" />
+	  <None Remove="publish\**" />
 	  <None Remove="Tests\obj\**" />
+	  <None Remove="UserInterface\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -76,12 +76,6 @@
 
 	<ItemGroup>
 		<Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="publish\templates\linux\" />
-	  <Folder Include="publish\templates\win\" />
-	  <Folder Include="publish\templates\osx\" />
 	</ItemGroup>
 
 	<Target AfterTargets="Publish" Name="MovePublishedSingleFile">

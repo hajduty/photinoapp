@@ -4,11 +4,14 @@ import React, { useState } from 'react'
 import {
   Modal,
   Textarea,
-  Text} from '@mantine/core'
+  Text
+} from '@mantine/core'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
 import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
+import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
+import { IconX } from '@tabler/icons-react'
 
 interface CVManagementProps {
   settings: Settings | null
@@ -23,21 +26,26 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
   const handleSave = async () => {
     try {
       setLoading(true)
-      
-      const request: UpdateSettingsRequest = {
-        DiscordWebhookUrl: settings?.DiscordWebhookUrl ?? '',
-        DiscordNotificationsEnabled: settings?.DiscordNotificationsEnabled ?? false,
-        GenerateEmbeddings: settings?.GenerateEmbeddings ?? false,
-        UserCV: cvContent
+
+      const request: UpdatePreferencesRequest = {
+        UserCV: cvContent,
+        SelectedTagIds: null,
+        YearsOfExperience: null,
+        BlockedKeywords: null,
+        MatchedKeywords: null,
+        AlertOnAllMatchingJobs: null,
+        AlertOnHardMatchingJobs: null,
+        Location: null,
+        MaxJobAgeDays: null
       }
 
-      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request)
-      
+      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updatePreferences', request)
+
       // Update the parent component with new settings
       if (settings) {
         onUpdate({ ...settings, UserCV: cvContent })
       }
-      
+
       setOpened(false)
     } catch (err) {
       console.error('Failed to update CV:', err)
@@ -48,7 +56,7 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setOpened(true)}
         className="btn-secondary text-sm"
       >
@@ -59,19 +67,29 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
         lockScroll={false}
         opened={opened}
         onClose={() => setOpened(false)}
-        title="CV Content"
         size="xl"
         centered
-        classNames={{
-          content: 'bg-neutral-900 border border-neutral-800',
-          title: 'text-neutral-200',
-          close: 'text-neutral-400 hover:text-white'
-        }}
+        withCloseButton={false}
       >
         <div>
-          <Text className="text-neutral-300 mb-4">
-            Enter your CV content below. This will be used for AI-powered job matching and analysis.
-          </Text>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-medium text-white">Edit CV</h2>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Paste your CV contents below, this will be used for job recommendations.
+              </p>
+            </div>
+            <button
+              className="p-1 rounded text-neutral-600 hover:text-neutral-300 transition-colors"
+              onClick={() => setOpened(false)}
+            >
+              <IconX></IconX>
+            </button>
+          </div>
+
+          <div className="border-t border-neutral-800 -mx-[var(--modal-padding,1rem)]" />
+
           <Textarea
             value={cvContent}
             onChange={(event) => setCvContent(event.currentTarget.value)}
@@ -84,16 +102,17 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
               input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
               label: 'text-neutral-300'
             }}
+            className='mt-4'
           />
           <div className="flex justify-end gap-3 mt-4">
-            <button 
+            <button
               onClick={() => setOpened(false)}
               disabled={loading}
               className="btn-ghost text-sm"
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={handleSave}
               disabled={loading}
               className="btn-secondary text-sm"

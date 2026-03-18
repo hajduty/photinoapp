@@ -46,6 +46,7 @@ public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, Upd
         settings.AlertOnHardMatchingJobs = request.AlertOnHardMatchingJobs;
         settings.Location = request.Location;
         settings.MaxJobAgeDays = request.MaxJobAgeDays;
+        settings.UserEmbedding = null;
 
         if (request.SelectedTagIds != null)
         {

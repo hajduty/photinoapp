@@ -25,7 +25,7 @@ Grab the latest release for your platform from the [Releases](../../releases) pa
 - Fully local
 
 ## Planned
-- Job recommendations based on CV & keywords
+- --Job recommendations based on CV & keywords--
 - Email API integration, track application status & read email intent to update status "Interview, Offer, Rejected"
 - Configurable scraping, give users ability to add more job boards from the UI & setup scraping rules
 

@@ -1,4 +1,5 @@
 using JobTracker.Application.Events;
+using JobTracker.Application.Features.Jobs;
 using JobTracker.Application.Features.JobSearch.LoadJobs.Scraper;
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Features.Notification;
@@ -103,6 +104,7 @@ class Program
                 services.AddSingleton<EmbeddingProcessor>();
                 services.AddSingleton<SentenceClassifierService>();
 
+                services.AddScoped<IEventHandler<HighMatchJobsFoundEvent>, HighMatchJobsFoundEventHandler>();
                 services.AddScoped<IEventHandler<JobsFoundEvent>, JobsFoundEventHandler>();
                 services.AddScoped<IEventHandler<EmbeddingsCancelled>, EmbeddingsCancelledHandler>();
                 services.AddScoped<IEventHandler<EmbeddingsFinished>, EmbeddingsFinishedHandler>();
@@ -141,7 +143,6 @@ class Program
         CreateWindow();
         _window!.WaitForClose();
     }
-
 
     private static void CreateWindow()
     {

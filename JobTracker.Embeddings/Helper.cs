@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace JobTracker.Embeddings;
 
@@ -11,6 +12,12 @@ public static class Helper
         byte[] buffer = new byte[vector.Length * sizeof(float)];
         Buffer.BlockCopy(vector, 0, buffer, 0, buffer.Length);
         return buffer;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float[] ToFloatArray(byte[] bytes)
+    {
+        return MemoryMarshal.Cast<byte, float>(bytes).ToArray();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

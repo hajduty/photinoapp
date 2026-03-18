@@ -16,6 +16,7 @@ import { UpdatePreferencesRequest } from '@/app/types/settings/update-preference
 import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
 import { Tag } from '@/app/types/tag/tag'
 import { useTags } from '@/app/hooks/useTags'
+import IgnoredJobsModal from './IgnoredJobsModal'
 
 interface UserPreferencesProps {
   settings: Settings | null
@@ -24,6 +25,7 @@ interface UserPreferencesProps {
 
 export default function UserPreferences({ settings, onUpdate }: UserPreferencesProps) {
   const [opened, setOpened] = useState(false)
+  const [ignoredJobsModalOpened, setIgnoredJobsModalOpened] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
@@ -91,12 +93,20 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
 
   return (
     <>
-      <button 
-        onClick={() => setOpened(true)}
-        className="btn-secondary text-sm"
-      >
-        Configure Preferences
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setOpened(true)}
+          className="btn-secondary text-sm"
+        >
+          Configure Preferences
+        </button>
+        <button
+          onClick={() => setIgnoredJobsModalOpened(true)}
+          className="btn-secondary text-sm"
+        >
+          View Ignored Jobs
+        </button>
+      </div>
 
       <Modal
         lockScroll={false}
@@ -243,6 +253,11 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
           </div>
         </div>
       </Modal>
+
+      <IgnoredJobsModal
+        opened={ignoredJobsModalOpened}
+        onClose={() => setIgnoredJobsModalOpened(false)}
+      />
     </>
   )
 }

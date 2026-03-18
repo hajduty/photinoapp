@@ -268,7 +268,7 @@ public class JinaEmbeddingService : IDisposable
         int count = texts.Length;
         var allEmbeddings = new float[count][];
 
-        int batchSize = !_forceCpu ? 4 : 2; // Use GPU batch size if not forced to CPU
+        int batchSize = !_forceCpu ? 3 : 2; // Use GPU batch size if not forced to CPU
 
         for (int i = 0; i < count; i += batchSize)
         {

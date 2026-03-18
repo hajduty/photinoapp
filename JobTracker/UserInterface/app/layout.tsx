@@ -28,7 +28,7 @@ export default function RootLayout({
         <title>JobTracker</title>
         <meta name="description" content="Job tracking application" />
       </head>
-      <body className={`${inter.className} min-h-screen bg-neutral-950`}>
+      <body className={`${inter.className} min-h-screen`}>
         <QueryClientProvider client={queryClient}>
           <MantineProvider defaultColorScheme="dark">
             <SystemEventsProvider>

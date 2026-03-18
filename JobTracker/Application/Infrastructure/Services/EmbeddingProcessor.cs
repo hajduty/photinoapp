@@ -73,7 +73,13 @@ public class EmbeddingProcessor
                 token.ThrowIfCancellationRequested();
 
                 var batch = postings.Skip(i).Take(batchSize).ToList();
-                var texts = batch.Select(p => p.Description).ToArray();
+                var texts = batch.Select(p => string.Join("\n", new[]
+                {
+                    $"Title: {p.Title}",
+                    $"Company: {p.Company}",
+                    $"Location: {p.Location}",
+                    $"Description: {p.Description}"
+                }.Where(s => !string.IsNullOrWhiteSpace(s)))).ToArray();
 
                 var embeddings = _embeddingService.GenerateEmbeddingsBatch(texts);
 

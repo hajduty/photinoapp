@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "JobTracker.sln",
+    "projects": [
+      "JobTracker.Embeddings\\JobTracker.Embeddings.csproj",
+      "JobTracker.Tests\\JobTracker.Tests.csproj",
+      "JobTracker\\JobTracker.csproj"
+    ]
+  }
+}
