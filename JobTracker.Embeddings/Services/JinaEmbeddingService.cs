@@ -8,7 +8,7 @@ namespace JobTracker.Embeddings.Services;
 public class JinaEmbeddingService : IDisposable
 {
     private readonly object _lock = new object();
-    private readonly int _maxLength = 2048;
+    private readonly int _maxLength = 1024;
     private readonly int _hiddenSize;
     private readonly bool _forceCpu;
     private readonly bool _enabled;
@@ -29,7 +29,7 @@ public class JinaEmbeddingService : IDisposable
     public bool Enabled => _enabled;
 
     public JinaEmbeddingService(
-        int maxLength = 2048,
+        int maxLength = 1024,
         bool forceCpu = false,
         TimeSpan? idleTimeout = null)
     {

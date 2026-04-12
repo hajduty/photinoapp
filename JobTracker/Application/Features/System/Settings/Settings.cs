@@ -26,4 +26,8 @@ public class Settings
     public bool? AlertOnHardMatchingJobs { get; set; }
     public string? Location { get; set; }
     public int? MaxJobAgeDays { get; set; }
+    // Aggregated ignore reasons
+    public List<string>? BlockedLocations { get; set; }
+    public List<string>? RejectedSeniorityLevels { get; set; }
+    public List<string>? RejectedTechKeywords { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Features.Classifications;
+using JobTracker.Application.Features.Classifications;
 using JobTracker.Application.Features.Embeddings;
 using JobTracker.Application.Features.JobApplication;
 using JobTracker.Application.Features.JobSearch;
@@ -72,6 +72,27 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.MatchedKeywords)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.BlockedLocations)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.RejectedSeniorityLevels)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Settings>()
+            .Property(u => u.RejectedTechKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)

@@ -34,7 +34,7 @@ public class GetMatchingJobsHandler : RpcHandler<GetMatchingJobsRequest, GetMatc
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        var settings = await db.Settings.AsNoTracking().Include(s => s.SelectedTags).FirstOrDefaultAsync();
         if (settings == null)
             return new GetMatchingJobsResponse([]);
 

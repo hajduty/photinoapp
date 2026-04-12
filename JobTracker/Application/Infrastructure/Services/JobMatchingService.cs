@@ -60,7 +60,6 @@ public class JobMatchingService
             .Where(e => candidates.Select(c => c.Id).Contains(e.JobId))
             .ToDictionaryAsync(e => e.JobId, e => e.EmbeddingData);
 
-        var negativeVector = await BuildNegativeVectorAsync(db);
         var bookmarkVector = await BuildBookmarkVectorAsync(db);
 
         var allTags = await db.Tags.AsNoTracking().ToListAsync();
@@ -81,19 +80,18 @@ public class JobMatchingService
             var jobVector = Helper.ToFloatArray(embeddingBytes);
 
             float semantic = Helper.DotProductSimilarity(userVector, jobVector);
-            float keywordBoost = KeywordBoost(job, settings);
+            float matchedKeywordBoost = MatchedKeywordBoost(job, settings);
+            float selectedTagBoost = SelectedTagBoost(job, jobTags, settings);
             float freshnessBoost = FreshnessBoost(job);
-            float negativePenalty = negativeVector != null
-                ? Helper.DotProductSimilarity(negativeVector, jobVector) : 0f;
             float bookmarkBoost = bookmarkVector != null
                 ? Helper.DotProductSimilarity(bookmarkVector, jobVector) : 0f;
             float yoePenalty = YearsOfExperiencePenalty(job, settings);
 
             float score =
-                semantic * 0.55f +
-                keywordBoost * 0.35f +
-                freshnessBoost * 0.10f -
-                negativePenalty * 0.50f +
+                semantic * 0.35f +
+                matchedKeywordBoost * 0.55f +
+                selectedTagBoost * 0.55f +
+                freshnessBoost * 0.10f +
                 bookmarkBoost * 0.30f -
                 yoePenalty;
 
@@ -101,29 +99,6 @@ public class JobMatchingService
         }
 
         return scored.OrderByDescending(x => x.Score).ToList();
-    }
-
-    private static async Task<float[]?> BuildNegativeVectorAsync(AppDbContext db)
-    {
-        var ignoredIds = await db.Postings
-            .AsNoTracking()
-            .Where(p => p.Ignored == true)
-            .Select(p => p.Id)
-            .ToListAsync();
-
-        if (ignoredIds.Count == 0)
-            return null;
-
-        var ignoredEmbeddings = await db.JobEmbeddings
-            .AsNoTracking()
-            .Where(e => ignoredIds.Contains(e.JobId))
-            .Select(e => e.EmbeddingData)
-            .ToListAsync();
-
-        if (ignoredEmbeddings.Count == 0)
-            return null;
-
-        return BuildCentroid(ignoredEmbeddings);
     }
 
     private static async Task<float[]?> BuildBookmarkVectorAsync(AppDbContext db)
@@ -197,7 +172,43 @@ public class JobMatchingService
                 return false;
         }
 
+        if (settings.BlockedLocations?.Count > 0)
+        {
+            foreach (var loc in settings.BlockedLocations)
+            {
+                if (!string.IsNullOrWhiteSpace(loc) && job.Location.Contains(loc, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+        }
+
+        if (settings.RejectedSeniorityLevels?.Count > 0)
+        {
+            var jobSeniority = DetectSeniorityLevel(job);
+            if (jobSeniority != null && settings.RejectedSeniorityLevels.Contains(jobSeniority, StringComparer.OrdinalIgnoreCase))
+                return false;
+        }
+
+        if (settings.RejectedTechKeywords?.Count > 0)
+        {
+            var jobText = $"{job.Title} {job.Description}".ToLowerInvariant();
+            var matchCount = settings.RejectedTechKeywords.Count(k =>
+                jobText.Contains(k.ToLowerInvariant()));
+
+            if (matchCount >= 2)
+                return false;
+        }
+
         return true;
+    }
+
+    private static string? DetectSeniorityLevel(Posting job)
+    {
+        var years = job.YearsOfExperience ?? 0;
+
+        if (years <= 1) return "junior";
+        if (years <= 4) return "mid";
+        if (years <= 6) return "senior";
+        return "lead";
     }
 
     private static float YearsOfExperiencePenalty(Posting job, Settings settings)
@@ -214,7 +225,7 @@ public class JobMatchingService
         return 0.60f;
     }
 
-    private static float KeywordBoost(Posting job, Settings settings)
+    private static float MatchedKeywordBoost(Posting job, Settings settings)
     {
         if (settings.MatchedKeywords == null)
             return 0f;
@@ -226,6 +237,27 @@ public class JobMatchingService
             if (job.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 boost += 0.2f;
             else if (job.Description.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                boost += 0.1f;
+        }
+
+        return MathF.Min(boost, 0.5f);
+    }
+
+    private static float SelectedTagBoost(Posting job, List<Tag> jobTags, Settings settings)
+    {
+        if (settings.SelectedTags == null || settings.SelectedTags.Count == 0)
+            return 0f;
+
+        float boost = 0;
+        var selectedIds = settings.SelectedTags.Select(t => t.Id).ToHashSet();
+
+        foreach (var tag in jobTags)
+        {
+            if (!selectedIds.Contains(tag.Id)) continue;
+
+            if (job.Title.Contains(tag.Name, StringComparison.OrdinalIgnoreCase))
+                boost += 0.2f;
+            else if (job.Description.Contains(tag.Name, StringComparison.OrdinalIgnoreCase))
                 boost += 0.1f;
         }
 
