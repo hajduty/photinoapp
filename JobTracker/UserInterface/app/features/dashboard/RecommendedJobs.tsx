@@ -108,11 +108,11 @@ function JobOptionsMenu({ jobId, jobTitle, jobTags, onSoftIgnore, onConfirmIgnor
 }
 
 const ignoreReasons: { value: IgnoreReason; label: string; description: string }[] = [
-  { value: 'title', label: "Title mismatch", description: "Doesn't match my skills" },
-  { value: 'location', label: "Too far away", description: "Location not suitable" },
-  { value: 'requirements', label: "Requirements don't fit", description: "Job requirements don't match my experience" },
-  { value: 'experience', label: "Experience mismatch", description: "Seniority level is wrong" },
-  { value: 'tags', label: "Tags don't match", description: "Tech stack doesn't fit" },
+  { value: 'tags', label: "Tech stack mismatch", description: "Penalize similar tech stacks in the future" },
+  { value: 'experience', label: "Seniority mismatch", description: "Block this seniority level for similar jobs" },
+  { value: 'location', label: "Location mismatch", description: "Block this location from showing up again" },
+  { value: 'requirements', label: "Requirements mismatch", description: "Just hide this job, no future penalty" },
+  { value: 'title', label: "Title mismatch", description: "Just hide this job, no future penalty" },
 ];
 
 export default function RecommendedJobs({

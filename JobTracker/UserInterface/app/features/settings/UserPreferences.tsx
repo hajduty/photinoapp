@@ -17,6 +17,8 @@ import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferenc
 import { Tag } from '@/app/types/tag/tag'
 import { useTags } from '@/app/hooks/useTags'
 import IgnoredJobsModal from './IgnoredJobsModal'
+import { RejectedKeywordsManagement } from './RejectedKeywordsManagement'
+import { IconX } from '@tabler/icons-react'
 
 interface UserPreferencesProps {
   settings: Settings | null
@@ -26,6 +28,7 @@ interface UserPreferencesProps {
 export default function UserPreferences({ settings, onUpdate }: UserPreferencesProps) {
   const [opened, setOpened] = useState(false)
   const [ignoredJobsModalOpened, setIgnoredJobsModalOpened] = useState(false)
+  const [penalizedTagsModalOpened, setPenalizedTagsModalOpened] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
@@ -63,10 +66,10 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
       
       const request: UpdatePreferencesRequest = {
         UserCV: settings?.UserCV ?? null,
-        SelectedTagIds: selectedTags.length > 0 ? selectedTags.map(id => parseInt(id)) : null,
+        SelectedTagIds: selectedTags.map(id => parseInt(id)),
         YearsOfExperience: yearsOfExperience,
-        BlockedKeywords: blockedKeywords.length > 0 ? blockedKeywords : null,
-        MatchedKeywords: matchedKeywords.length > 0 ? matchedKeywords : null,
+        BlockedKeywords: blockedKeywords,
+        MatchedKeywords: matchedKeywords,
         AlertOnAllMatchingJobs: alertOnAllMatchingJobs,
         AlertOnHardMatchingJobs: alertOnHardMatchingJobs,
         Location: location || null,
@@ -87,8 +90,8 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
   }
 
   const tagOptions = tags.map(tag => ({
-    value: tag.Id.toString(),
-    label: tag.Name
+    value: tag?.Id?.toString() ?? '',
+    label: tag?.Name ?? ''
   }))
 
   return (
@@ -105,6 +108,12 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
           className="btn-secondary text-sm"
         >
           View Ignored Jobs
+        </button>
+        <button
+          onClick={() => setPenalizedTagsModalOpened(true)}
+          className="btn-secondary text-sm"
+        >
+          View Penalized Tags
         </button>
       </div>
 
@@ -258,6 +267,26 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
         opened={ignoredJobsModalOpened}
         onClose={() => setIgnoredJobsModalOpened(false)}
       />
+
+      <Modal
+        opened={penalizedTagsModalOpened}
+        onClose={() => setPenalizedTagsModalOpened(false)}
+        title="Penalized Tech Tags"
+        size="lg"
+        centered
+        classNames={{
+          content: 'bg-neutral-900 border border-neutral-800',
+          title: 'text-neutral-200',
+          close: 'text-neutral-400 hover:text-white'
+        }}
+      >
+        <div className="p-2">
+            <Text size="sm" color="dimmed" mb="md">
+                These tags give a penalty to the job score, making them appear lower in your recommendations.
+            </Text>
+            <RejectedKeywordsManagement />
+        </div>
+      </Modal>
     </>
   )
 }

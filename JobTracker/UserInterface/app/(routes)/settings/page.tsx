@@ -19,6 +19,7 @@ import TagManagement from '../../features/settings/TagManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
 import CVManagement from '../../features/settings/CVManagement'
 import UserPreferences from '../../features/settings/UserPreferences'
+import { RejectedKeywordsManagement } from '../../features/settings/RejectedKeywordsManagement'
 
 export default function SettingsPage() {
   const [embeddingsEnabled, setEmbeddingsEnabled] = useState(false);

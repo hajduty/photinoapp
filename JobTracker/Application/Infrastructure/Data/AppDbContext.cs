@@ -6,6 +6,7 @@ using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
 
 namespace JobTracker.Application.Infrastructure.Data;
@@ -31,6 +32,16 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        var stringListComparer = new ValueComparer<List<string>>(
+            (c1, c2) => c1!.SequenceEqual(c2!),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList());
+
+        var intListComparer = new ValueComparer<List<int>>(
+            (c1, c2) => c1!.SequenceEqual(c2!),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v)),
+            c => c.ToList());
 
         modelBuilder.Entity<Features.JobTracker.JobTracker>()
             .HasMany(j => j.Tags)
@@ -68,39 +79,58 @@ public class AppDbContext : DbContext
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .HasColumnType("TEXT");
+            .Metadata.SetValueComparer(stringListComparer);
+        modelBuilder.Entity<Settings>().Property(u => u.BlockedKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.MatchedKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .HasColumnType("TEXT");
+            .Metadata.SetValueComparer(stringListComparer);
+        modelBuilder.Entity<Settings>().Property(u => u.MatchedKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.BlockedLocations)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .HasColumnType("TEXT");
+            .Metadata.SetValueComparer(stringListComparer);
+        modelBuilder.Entity<Settings>().Property(u => u.BlockedLocations).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.RejectedSeniorityLevels)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .HasColumnType("TEXT");
+            .Metadata.SetValueComparer(stringListComparer);
+        modelBuilder.Entity<Settings>().Property(u => u.RejectedSeniorityLevels).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.RejectedTechKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .HasColumnType("TEXT");
+                v => SafeDeserializeIntList(v))
+            .Metadata.SetValueComparer(intListComparer);
+        modelBuilder.Entity<Settings>().Property(u => u.RejectedTechKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .HasMany(u => u.SelectedTags)
             .WithMany()
             .UsingEntity(j => j.ToTable("UserPreferenceTags"));
+    }
+
+    private static List<int> SafeDeserializeIntList(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<int>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<int>>(json, JsonSerializerOptions.Default) ?? new List<int>();
+        }
+        catch
+        {
+            // If it was previously a List<string>, return an empty list to avoid crashes
+            return new List<int>();
+        }
     }
 }

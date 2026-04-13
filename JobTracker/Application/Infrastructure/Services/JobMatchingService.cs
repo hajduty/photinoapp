@@ -86,14 +86,16 @@ public class JobMatchingService
             float bookmarkBoost = bookmarkVector != null
                 ? Helper.DotProductSimilarity(bookmarkVector, jobVector) : 0f;
             float yoePenalty = YearsOfExperiencePenalty(job, settings);
+            float rejectedKeywordPenalty = RejectedTechKeywordPenalty(jobTags, settings);
 
             float score =
-                semantic * 0.35f +
+                semantic * 0.15f +
                 matchedKeywordBoost * 0.55f +
                 selectedTagBoost * 0.55f +
                 freshnessBoost * 0.10f +
                 bookmarkBoost * 0.30f -
-                yoePenalty;
+                yoePenalty -
+                rejectedKeywordPenalty;
 
             scored.Add(new ScoredJob(job, jobTags, score));
         }
@@ -152,19 +154,19 @@ public class JobMatchingService
 
     private static bool PassesHardFilters(Posting job, Settings settings)
     {
-        if (settings.BlockedKeywords != null)
-        {
-            foreach (var k in settings.BlockedKeywords)
-            {
-                if (string.IsNullOrWhiteSpace(k)) continue;
-
-                var pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(k)}(?![a-zA-Z0-9])";
-                var rx = new Regex(pattern, RegexOptions.IgnoreCase);
-
-                if (rx.IsMatch(job.Title ?? "") || rx.IsMatch(job.Description ?? ""))
-                    return false;
-            }
-        }
+       //if (settings.BlockedKeywords != null)
+       //{
+       //    foreach (var k in settings.BlockedKeywords)
+       //    {
+       //        if (string.IsNullOrWhiteSpace(k)) continue;
+       //
+       //        var pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(k)}(?![a-zA-Z0-9])";
+       //        var rx = new Regex(pattern, RegexOptions.IgnoreCase);
+       //
+       //        if (rx.IsMatch(job.Title ?? "") || rx.IsMatch(job.Description ?? ""))
+       //            return false;
+       //    }
+       //}
 
         if (!string.IsNullOrWhiteSpace(settings.Location))
         {
@@ -188,17 +190,26 @@ public class JobMatchingService
                 return false;
         }
 
-        if (settings.RejectedTechKeywords?.Count > 0)
-        {
-            var jobText = $"{job.Title} {job.Description}".ToLowerInvariant();
-            var matchCount = settings.RejectedTechKeywords.Count(k =>
-                jobText.Contains(k.ToLowerInvariant()));
+        return true;
+    }
 
-            if (matchCount >= 2)
-                return false;
+    private static float RejectedTechKeywordPenalty(List<Tag> jobTags, Settings settings)
+    {
+        if (settings.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0 || jobTags.Count == 0)
+            return 0f;
+
+        float penalty = 0f;
+        var rejectedIds = settings.RejectedTechKeywords.ToHashSet();
+
+        foreach (var tag in jobTags)
+        {
+            if (rejectedIds.Contains(tag.Id))
+            {
+                penalty += 0.4f; // Significant penalty per rejected tag match
+            }
         }
 
-        return true;
+        return penalty;
     }
 
     private static string? DetectSeniorityLevel(Posting job)

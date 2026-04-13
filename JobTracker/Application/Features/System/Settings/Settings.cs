@@ -29,5 +29,5 @@ public class Settings
     // Aggregated ignore reasons
     public List<string>? BlockedLocations { get; set; }
     public List<string>? RejectedSeniorityLevels { get; set; }
-    public List<string>? RejectedTechKeywords { get; set; }
+    public List<int>? RejectedTechKeywords { get; set; }
 }

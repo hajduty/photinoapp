@@ -30,11 +30,8 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
             return new IgnoreJobResponse(false);
 
         var settings = await db.Settings
-            .Include(s => s.BlockedLocations)
-            .Include(s => s.BlockedKeywords)
-            .Include(s => s.RejectedSeniorityLevels)
-            .Include(s => s.RejectedTechKeywords)
             .FirstOrDefaultAsync();
+
         var allTags = await db.Tags.AsNoTracking().ToListAsync();
 
         if (posting.Ignored == true || posting.SoftIgnore == true)
@@ -104,8 +101,6 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         Settings settings, 
         List<Tag> allTags)
     {
-        db.Settings.Attach(settings);
-
         switch (reason)
         {
             case IgnoreReason.Location:
@@ -127,27 +122,16 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
                 }
                 break;
 
-            case IgnoreReason.Tags when rejectedTags != null && rejectedTags.Count > 0:
-                var tagNames = allTags
-                    .Where(t => rejectedTags.Contains(t.Id))
-                    .Select(t => t.Name)
-                    .ToList();
-
-                if (tagNames.Count > 0)
-                {
-                    settings.RejectedTechKeywords ??= [];
-                    foreach (var tagName in tagNames.Where(tn => !settings.RejectedTechKeywords.Contains(tn, StringComparer.OrdinalIgnoreCase)))
-                        settings.RejectedTechKeywords.Add(tagName);
-                }
-                break;
-
             case IgnoreReason.Tags:
-                var allJobTags = ExtractTechKeywords(posting, allTags);
-                if (allJobTags.Count > 0)
+                settings.RejectedTechKeywords ??= [];
+
+                if (rejectedTags != null && rejectedTags.Count > 0)
                 {
-                    settings.RejectedTechKeywords ??= [];
-                    foreach (var tagName in allJobTags.Where(tn => !settings.RejectedTechKeywords.Contains(tn, StringComparer.OrdinalIgnoreCase)))
-                        settings.RejectedTechKeywords.Add(tagName);
+                    foreach (var tagId in rejectedTags)
+                    {
+                        if (!settings.RejectedTechKeywords.Contains(tagId))
+                            settings.RejectedTechKeywords.Add(tagId);
+                    }
                 }
                 break;
         }
@@ -162,8 +146,6 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         Settings settings,
         List<Tag> allTags)
     {
-        db.Settings.Attach(settings);
-
         switch (reason)
         {
             case IgnoreReason.Location:
@@ -189,24 +171,5 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         if (years <= 4) return "mid";
         if (years <= 6) return "senior";
         return "lead";
-    }
-
-    private static List<string> ExtractTechKeywords(Posting posting, List<Tag> allTags)
-    {
-        if (string.IsNullOrWhiteSpace(posting.Description))
-            return [];
-
-        var text = $"{posting.Title} {posting.Description}";
-
-        return allTags
-            .Where(t => Regex.IsMatch(text, CreateTagPattern(t.Name), RegexOptions.IgnoreCase))
-            .Select(t => t.Name)
-            .ToList();
-    }
-
-    private static string CreateTagPattern(string tagName)
-    {
-        var escaped = Regex.Escape(tagName);
-        return $@"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])";
     }
 }
