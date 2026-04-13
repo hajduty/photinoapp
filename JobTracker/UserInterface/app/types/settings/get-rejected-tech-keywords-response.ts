@@ -1,5 +1,5 @@
-import { Tag } from "../tag/tag";
+import { RejectedTagEntry } from './rejected-tag-rule'
 
 export interface GetRejectedTechKeywordsResponse {
-    RejectedKeywords: Tag[];
+  RejectedKeywords: RejectedTagEntry[]
 }

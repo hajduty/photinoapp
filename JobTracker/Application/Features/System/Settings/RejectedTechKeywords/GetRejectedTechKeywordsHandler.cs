@@ -1,12 +1,12 @@
-using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.System.Settings.RejectedTechKeywords;
 
+public record RejectedTagEntry(int TagId, string TagName, string TagColor, KeywordScope Scope);
 public record GetRejectedTechKeywordsRequest();
-public record GetRejectedTechKeywordsResponse(List<Tag> RejectedKeywords);
+public record GetRejectedTechKeywordsResponse(List<RejectedTagEntry> RejectedKeywords);
 
 public class GetRejectedTechKeywordsHandler : RpcHandler<GetRejectedTechKeywordsRequest, GetRejectedTechKeywordsResponse>
 {
@@ -27,14 +27,20 @@ public class GetRejectedTechKeywordsHandler : RpcHandler<GetRejectedTechKeywords
             .AsNoTracking()
             .FirstOrDefaultAsync();
 
-        if (settings == null || settings.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0)
+        if (settings?.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0)
             return new GetRejectedTechKeywordsResponse([]);
 
-        var rejectedTags = await db.Tags
+        var tagIds = settings.RejectedTechKeywords.Select(r => r.TagId).ToList();
+        var tags = await db.Tags
             .AsNoTracking()
-            .Where(t => settings.RejectedTechKeywords.Contains(t.Id))
-            .ToListAsync();
+            .Where(t => tagIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id);
 
-        return new GetRejectedTechKeywordsResponse(rejectedTags);
+        var result = settings.RejectedTechKeywords
+            .Where(r => tags.ContainsKey(r.TagId))
+            .Select(r => new RejectedTagEntry(r.TagId, tags[r.TagId].Name, tags[r.TagId].Color, r.Scope))
+            .ToList();
+
+        return new GetRejectedTechKeywordsResponse(result);
     }
 }

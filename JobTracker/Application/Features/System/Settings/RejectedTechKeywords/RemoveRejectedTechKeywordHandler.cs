@@ -28,7 +28,7 @@ public class RemoveRejectedTechKeywordHandler : RpcHandler<RemoveRejectedTechKey
         if (settings == null || settings.RejectedTechKeywords == null)
             return new RemoveRejectedTechKeywordResponse(false);
 
-        var removed = settings.RejectedTechKeywords.Remove(request.Id); 
+        var removed = settings.RejectedTechKeywords.RemoveAll(r => r.TagId == request.Id) > 0;
 
         await db.SaveChangesAsync();
 

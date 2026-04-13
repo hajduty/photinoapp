@@ -129,8 +129,8 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
                 {
                     foreach (var tagId in rejectedTags)
                     {
-                        if (!settings.RejectedTechKeywords.Contains(tagId))
-                            settings.RejectedTechKeywords.Add(tagId);
+                        if (!settings.RejectedTechKeywords.Any(r => r.TagId == tagId))
+                            settings.RejectedTechKeywords.Add(new RejectedTagRule(tagId, KeywordScope.Both));
                     }
                 }
                 break;

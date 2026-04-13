@@ -43,6 +43,16 @@ public class AppDbContext : DbContext
             c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v)),
             c => c.ToList());
 
+        var keywordRuleListComparer = new ValueComparer<List<KeywordRule>>(
+            (c1, c2) => c1!.SequenceEqual(c2!),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList());
+
+        var rejectedTagRuleListComparer = new ValueComparer<List<RejectedTagRule>>(
+            (c1, c2) => c1!.SequenceEqual(c2!),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList());
+
         modelBuilder.Entity<Features.JobTracker.JobTracker>()
             .HasMany(j => j.Tags)
             .WithMany(t => t.JobTrackers)
@@ -78,16 +88,16 @@ public class AppDbContext : DbContext
             .Property(u => u.BlockedKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .Metadata.SetValueComparer(stringListComparer);
+                v => SafeDeserializeKeywordRules(v))
+            .Metadata.SetValueComparer(keywordRuleListComparer);
         modelBuilder.Entity<Settings>().Property(u => u.BlockedKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
             .Property(u => u.MatchedKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default)!)
-            .Metadata.SetValueComparer(stringListComparer);
+                v => SafeDeserializeKeywordRules(v))
+            .Metadata.SetValueComparer(keywordRuleListComparer);
         modelBuilder.Entity<Settings>().Property(u => u.MatchedKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
@@ -110,8 +120,8 @@ public class AppDbContext : DbContext
             .Property(u => u.RejectedTechKeywords)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                v => SafeDeserializeIntList(v))
-            .Metadata.SetValueComparer(intListComparer);
+                v => SafeDeserializeRejectedTagRules(v))
+            .Metadata.SetValueComparer(rejectedTagRuleListComparer);
         modelBuilder.Entity<Settings>().Property(u => u.RejectedTechKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<Settings>()
@@ -120,17 +130,41 @@ public class AppDbContext : DbContext
             .UsingEntity(j => j.ToTable("UserPreferenceTags"));
     }
 
-    private static List<int> SafeDeserializeIntList(string json)
+    // Deserializes KeywordRule list, falling back from old List<string> format (scope defaults to Both).
+    private static List<KeywordRule> SafeDeserializeKeywordRules(string json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new List<int>();
+        if (string.IsNullOrWhiteSpace(json)) return [];
         try
         {
-            return JsonSerializer.Deserialize<List<int>>(json, JsonSerializerOptions.Default) ?? new List<int>();
+            return JsonSerializer.Deserialize<List<KeywordRule>>(json, JsonSerializerOptions.Default) ?? [];
         }
         catch
         {
-            // If it was previously a List<string>, return an empty list to avoid crashes
-            return new List<int>();
+            try
+            {
+                var old = JsonSerializer.Deserialize<List<string>>(json, JsonSerializerOptions.Default);
+                return old?.Select(k => new KeywordRule(k, KeywordScope.Both)).ToList() ?? [];
+            }
+            catch { return []; }
+        }
+    }
+
+    // Deserializes RejectedTagRule list, falling back from old List<int> format (scope defaults to Both).
+    private static List<RejectedTagRule> SafeDeserializeRejectedTagRules(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<RejectedTagRule>>(json, JsonSerializerOptions.Default) ?? [];
+        }
+        catch
+        {
+            try
+            {
+                var old = JsonSerializer.Deserialize<List<int>>(json, JsonSerializerOptions.Default);
+                return old?.Select(id => new RejectedTagRule(id, KeywordScope.Both)).ToList() ?? [];
+            }
+            catch { return []; }
         }
     }
 }

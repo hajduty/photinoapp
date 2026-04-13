@@ -86,7 +86,7 @@ public class JobMatchingService
             float bookmarkBoost = bookmarkVector != null
                 ? Helper.DotProductSimilarity(bookmarkVector, jobVector) : 0f;
             float yoePenalty = YearsOfExperiencePenalty(job, settings);
-            float rejectedKeywordPenalty = RejectedTechKeywordPenalty(jobTags, settings);
+            float rejectedKeywordPenalty = RejectedTechKeywordPenalty(job, settings, tagRegexes);
 
             float score =
                 semantic * 0.15f +
@@ -154,19 +154,28 @@ public class JobMatchingService
 
     private static bool PassesHardFilters(Posting job, Settings settings)
     {
-       //if (settings.BlockedKeywords != null)
-       //{
-       //    foreach (var k in settings.BlockedKeywords)
-       //    {
-       //        if (string.IsNullOrWhiteSpace(k)) continue;
-       //
-       //        var pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(k)}(?![a-zA-Z0-9])";
-       //        var rx = new Regex(pattern, RegexOptions.IgnoreCase);
-       //
-       //        if (rx.IsMatch(job.Title ?? "") || rx.IsMatch(job.Description ?? ""))
-       //            return false;
-       //    }
-       //}
+        if (settings.BlockedKeywords != null)
+        {
+            var title = job.Title ?? "";
+            var desc = job.Description ?? "";
+
+            foreach (var rule in settings.BlockedKeywords)
+            {
+                if (string.IsNullOrWhiteSpace(rule.Keyword)) continue;
+
+                var pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(rule.Keyword)}(?![a-zA-Z0-9])";
+                var rx = new Regex(pattern, RegexOptions.IgnoreCase);
+
+                bool blocked = rule.Scope switch
+                {
+                    KeywordScope.TitleOnly       => rx.IsMatch(title),
+                    KeywordScope.DescriptionOnly => rx.IsMatch(desc),
+                    _                            => rx.IsMatch(title) || rx.IsMatch(desc)
+                };
+
+                if (blocked) return false;
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(settings.Location))
         {
@@ -193,20 +202,27 @@ public class JobMatchingService
         return true;
     }
 
-    private static float RejectedTechKeywordPenalty(List<Tag> jobTags, Settings settings)
+    private static float RejectedTechKeywordPenalty(Posting job, Settings settings, Dictionary<int, Regex> tagRegexes)
     {
-        if (settings.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0 || jobTags.Count == 0)
+        if (settings.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0)
             return 0f;
 
         float penalty = 0f;
-        var rejectedIds = settings.RejectedTechKeywords.ToHashSet();
+        var title = job.Title ?? "";
+        var desc = job.Description ?? "";
 
-        foreach (var tag in jobTags)
+        foreach (var rule in settings.RejectedTechKeywords)
         {
-            if (rejectedIds.Contains(tag.Id))
+            if (!tagRegexes.TryGetValue(rule.TagId, out var rx)) continue;
+
+            bool matches = rule.Scope switch
             {
-                penalty += 0.4f; // Significant penalty per rejected tag match
-            }
+                KeywordScope.TitleOnly       => rx.IsMatch(title),
+                KeywordScope.DescriptionOnly => rx.IsMatch(desc),
+                _                            => rx.IsMatch(title) || rx.IsMatch(desc)
+            };
+
+            if (matches) penalty += 0.4f;
         }
 
         return penalty;
@@ -242,13 +258,20 @@ public class JobMatchingService
             return 0f;
 
         float boost = 0;
+        var title = job.Title ?? "";
+        var desc = job.Description ?? "";
 
-        foreach (var keyword in settings.MatchedKeywords)
+        foreach (var rule in settings.MatchedKeywords)
         {
-            if (job.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                boost += 0.2f;
-            else if (job.Description.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                boost += 0.1f;
+            if (string.IsNullOrWhiteSpace(rule.Keyword)) continue;
+
+            bool inTitle = rule.Scope is KeywordScope.Both or KeywordScope.TitleOnly
+                && title.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase);
+            bool inDesc = rule.Scope is KeywordScope.Both or KeywordScope.DescriptionOnly
+                && desc.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase);
+
+            if (inTitle) boost += 0.2f;
+            else if (inDesc) boost += 0.1f;
         }
 
         return MathF.Min(boost, 0.5f);
