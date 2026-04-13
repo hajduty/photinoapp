@@ -2,15 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Title,
-  Text,
-  Space,
-  Flex,
   Switch,
   Loader,
-  Divider
+  Divider,
 } from '@mantine/core'
+import { IconSparkles } from '@tabler/icons-react'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
@@ -19,6 +15,7 @@ import TagManagement from '../../features/settings/TagManagement'
 import ApiManagement from '../../features/settings/ApiManagement'
 import CVManagement from '../../features/settings/CVManagement'
 import UserPreferences from '../../features/settings/UserPreferences'
+import IgnoredJobsSection from '../../features/settings/IgnoredJobsModal'
 
 export default function SettingsPage() {
   const [embeddingsEnabled, setEmbeddingsEnabled] = useState(false);
@@ -73,10 +70,8 @@ export default function SettingsPage() {
   if (settingsLoading) {
     return (
       <div className="p-8">
-        <div className="max-w-7xl mx-auto py-6">
-          <Flex justify="center" align="center" style={{ minHeight: '200px' }}>
-            <Loader />
-          </Flex>
+        <div className="max-w-7xl mx-auto py-6 flex items-center justify-center" style={{ minHeight: '200px' }}>
+          <Loader />
         </div>
       </div>
     );
@@ -85,47 +80,42 @@ export default function SettingsPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <Flex justify="space-between" align="center" mb="md">
-          <Box>
-            <Title order={2} c="white">SETTINGS</Title>
-            <Text c="dimmed">Manage settings and preferences</Text>
-          </Box>
-        </Flex>
+        <div className="mb-2">
+          <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
+          <p className="text-sm text-neutral-500">Manage settings and preferences</p>
+        </div>
 
         <ApiManagement settings={settings} />
 
-        <Divider />
+        <div>
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-neutral-300">CV & Job Preferences</p>
+          </div>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-neutral-200 mb-2">CV & JOB PREFERENCES</h1>
-            <p className="text-neutral-400">Manage your job preferences for smarter job recommendations</p>
+          <div className="space-y-3">
+            <CVManagement settings={settings} onUpdate={setSettings} />
+            <UserPreferences settings={settings} onUpdate={setSettings} />
+            <IgnoredJobsSection />
+
+            {/* AI features — card row matching siblings */}
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <IconSparkles size={16} className="text-neutral-400 flex-shrink-0" />
+                <div>
+                  <span className="text-sm font-medium text-neutral-200">AI Features</span>
+                  <span className="ml-3 text-xs text-neutral-500">Embedding-based job recommendations</span>
+                </div>
+              </div>
+              <Switch
+                checked={embeddingsEnabled}
+                onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
+                disabled={embeddingsLoading}
+                size="sm"
+                classNames={{ track: 'bg-neutral-700' }}
+              />
+            </div>
           </div>
         </div>
-        <div className='flex gap-2'>
-          <CVManagement
-            settings={settings}
-            onUpdate={setSettings}
-          />
-          <Space h="md" />
-          <UserPreferences
-            settings={settings}
-            onUpdate={setSettings}
-          />
-        </div>
-          <Switch
-            label="Enable AI features"
-            checked={embeddingsEnabled}
-            onChange={(event) => handleEmbeddingsToggle(event.currentTarget.checked)}
-            disabled={embeddingsLoading}
-            size="sm"
-            classNames={{
-              label: 'text-neutral-300',
-              track: 'bg-neutral-700'
-            }}
-          />
-
-        <Divider />
 
         <TagManagement />
 

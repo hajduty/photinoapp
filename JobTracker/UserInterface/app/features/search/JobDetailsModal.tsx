@@ -81,7 +81,7 @@ export default function JobDetailsModal({
       </div>
       <div className="space-y-4">
         {/* Job Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="flex justify-between text-sm">
           <div className="flex items-center gap-2 text-neutral-300">
             <IconLocation size={16} />
             <span>{Posting.Location}</span>
@@ -92,14 +92,8 @@ export default function JobDetailsModal({
           </div>
           <div className="flex items-center gap-2 text-neutral-300">
             <IconClock size={16} />
-            <span>Last application: {new Date(Posting.LastApplicationDate).toLocaleDateString()}</span>
+            <span>Expires at: {new Date(Posting.LastApplicationDate).toLocaleDateString()}</span>
           </div>
-          {Posting.Source && (
-            <div className="text-neutral-300">
-              <span className="text-neutral-500">Source: </span>
-              {Posting.Source}
-            </div>
-          )}
         </div>
 
         <Divider />

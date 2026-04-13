@@ -156,7 +156,7 @@ export default function Dashboard() {
         <RecommendedJobs
           jobs={matchingJobs ?? []}
           onBookmark={handleBookmark}
-          onIgnore={(jobId) => ignoreJob({ JobId: jobId })}
+          onIgnore={(request) => ignoreJob(request)}
           onSoftIgnore={(jobId) => softIgnoreJob({JobId: jobId})}
           isLoading={isLoading}
         />

@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+import { Modal } from '@mantine/core';
 import { ExtendedPosting } from '../../types/jobs/extended-posting';
-import { IconLocation, IconBookmark, IconDotsVertical, IconEyeOff, IconBan } from '@tabler/icons-react';
+import { IconLocation, IconBookmark, IconDotsVertical, IconEyeOff, IconBan, IconAlertTriangle, IconX } from '@tabler/icons-react';
 import { getContrastColor } from '../../utils/getContrastColor';
 import JobDetailsModal from '../search/JobDetailsModal';
+import { TagSelectionModal } from '../../components/TagSelectionModal';
+import { IgnoreJobRequest, IgnoreReason } from '../../types/jobs/ignore-job-request';
 
 interface RecommendedJobsProps {
   jobs: ExtendedPosting[] | { Jobs: ExtendedPosting[] };
   bookmarkedJobs?: Set<number>;
   onBookmark: (jobId: number, targetState: boolean) => void;
-  onIgnore?: (jobId: number) => void;
+  onIgnore?: (request: IgnoreJobRequest) => void;
   onSoftIgnore?: (jobId: number) => void;
   isLoading?: boolean;
 }
@@ -45,11 +49,13 @@ function JobCardSkeleton() {
 
 interface JobOptionsMenuProps {
   jobId: number;
+  jobTitle: string;
+  jobTags: { Id: number; Name: string; Color: string }[];
   onSoftIgnore?: (jobId: number) => void;
-  onIgnore?: (jobId: number) => void;
+  onConfirmIgnore: (jobId: number, jobTitle: string, jobTags: { Id: number; Name: string; Color: string }[]) => void;
 }
 
-function JobOptionsMenu({ jobId, onSoftIgnore, onIgnore }: JobOptionsMenuProps) {
+function JobOptionsMenu({ jobId, jobTitle, jobTags, onSoftIgnore, onConfirmIgnore }: JobOptionsMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -81,27 +87,33 @@ function JobOptionsMenu({ jobId, onSoftIgnore, onIgnore }: JobOptionsMenuProps) 
         >
           {onSoftIgnore && (
             <button
-              onClick={() => { onSoftIgnore(jobId); setOpen(false); }}
+              onClick={(e) => { e.stopPropagation(); onSoftIgnore(jobId); setOpen(false); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors text-left"
             >
               <IconEyeOff size={13} className="text-neutral-500 flex-shrink-0" />
-              Soft ignore this job
+              Hide this job
             </button>
           )}
-          {onIgnore && (
-            <button
-              onClick={() => { onIgnore(jobId); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-red-400 transition-colors text-left"
-            >
-              <IconBan size={13} className="text-neutral-500 flex-shrink-0" />
-              Ignore similar jobs in future
-            </button>
-          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(false); onConfirmIgnore(jobId, jobTitle, jobTags); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-red-400 transition-colors text-left"
+          >
+            <IconBan size={13} className="text-neutral-500 flex-shrink-0" />
+            Never show similar
+          </button>
         </div>
       )}
     </div>
   );
 }
+
+const ignoreReasons: { value: IgnoreReason; label: string; description: string }[] = [
+  { value: 'tags', label: "Tech stack mismatch", description: "Penalize similar tech stacks in the future" },
+  { value: 'experience', label: "Seniority mismatch", description: "Block this seniority level for similar jobs" },
+  { value: 'location', label: "Location mismatch", description: "Block this location from showing up again" },
+  { value: 'requirements', label: "Requirements mismatch", description: "Just hide this job, no future penalty" },
+  { value: 'title', label: "Title mismatch", description: "Just hide this job, no future penalty" },
+];
 
 export default function RecommendedJobs({
   jobs,
@@ -114,11 +126,17 @@ export default function RecommendedJobs({
   const [selectedJob, setSelectedJob] = useState<ExtendedPosting | null>(null);
   const [modalOpened, setModalOpened] = useState(false);
   const [modalIsBookmarked, setModalIsBookmarked] = useState(false);
+  const [confirmIgnoreJob, setConfirmIgnoreJob] = useState<{ id: number; title: string; jobTags: { Id: number; Name: string; Color: string }[] } | null>(null);
+  const [selectedReason, setSelectedReason] = useState<IgnoreReason | null>('tags');
+  const [showTagSelection, setShowTagSelection] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const openModal = (job: ExtendedPosting) => {
     const currentState = bookmarkedJobs?.has(job.Posting.Id) ?? job.Posting.Bookmarked;
-    setSelectedJob(job);
-    setModalIsBookmarked(currentState);
+    flushSync(() => {
+      setSelectedJob(job);
+      setModalIsBookmarked(currentState);
+    });
     setModalOpened(true);
   };
 
@@ -127,6 +145,58 @@ export default function RecommendedJobs({
     const next = !modalIsBookmarked;
     setModalIsBookmarked(next);
     onBookmark(selectedJob.Posting.Id, next);
+  };
+
+  const handleConfirmIgnore = (jobId: number, jobTitle: string, jobTags: { Id: number; Name: string; Color: string }[]) => {
+    setConfirmIgnoreJob({ id: jobId, title: jobTitle, jobTags });
+    setSelectedReason('tags');
+    setSelectedTagIds([]);
+  };
+
+  const handleIgnore = () => {
+    if (!confirmIgnoreJob || !selectedReason || !onIgnore) return;
+
+    if (selectedReason === 'tags' && selectedTagIds.length === 0) {
+      setShowTagSelection(true);
+      return;
+    }
+
+    onIgnore({
+      JobId: confirmIgnoreJob.id,
+      Reason: selectedReason,
+      RejectedTags: selectedReason === 'tags' ? selectedTagIds : undefined,
+    });
+
+    setConfirmIgnoreJob(null);
+    setSelectedReason('tags');
+    setSelectedTagIds([]);
+  };
+
+  const handleToggleTag = (tagId: number) => {
+    setSelectedTagIds(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleTagSelectionClose = () => {
+    setShowTagSelection(false);
+  };
+
+  const handleTagSelectionConfirm = () => {
+    if (confirmIgnoreJob && selectedReason && selectedTagIds.length > 0 && onIgnore) {
+      onIgnore({
+        JobId: confirmIgnoreJob.id,
+        Reason: selectedReason,
+        RejectedTags: selectedTagIds,
+      });
+    }
+
+    setConfirmIgnoreJob(null);
+    setSelectedReason('tags');
+    setSelectedTagIds([]);
+    setShowTagSelection(false);
   };
 
   const jobList = Array.isArray(jobs) ? jobs : (jobs?.Jobs ?? []);
@@ -162,11 +232,13 @@ export default function RecommendedJobs({
                   <h3 className="text-sm font-medium text-white leading-snug line-clamp-2 flex-1 min-w-0">
                     {job.Posting.Title}
                   </h3>
-                  <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
+                    <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
                     <JobOptionsMenu
                       jobId={job.Posting.Id}
+                      jobTitle={job.Posting.Title}
+                      jobTags={job.Tags}
                       onSoftIgnore={onSoftIgnore}
-                      onIgnore={onIgnore}
+                      onConfirmIgnore={handleConfirmIgnore}
                     />
                     <button
                       onClick={(e) => { e.stopPropagation(); onBookmark(job.Posting.Id, !isBookmarked); }}
@@ -213,12 +285,83 @@ export default function RecommendedJobs({
         </div>
       )}
 
-      <JobDetailsModal
-        posting={selectedJob ?? undefined}
-        opened={modalOpened}
-        onClose={() => setModalOpened(false)}
-        onBookmark={handleModalBookmark}
-        isBookmarked={modalIsBookmarked}
+      {selectedJob && (
+        <JobDetailsModal
+          posting={selectedJob}
+          opened={modalOpened}
+          onClose={() => setModalOpened(false)}
+          onBookmark={handleModalBookmark}
+          isBookmarked={modalIsBookmarked}
+        />
+      )}
+
+      <Modal
+        opened={confirmIgnoreJob !== null && !showTagSelection}
+        onClose={() => setConfirmIgnoreJob(null)}
+        title={
+          <div className="flex items-center gap-2">
+            <IconAlertTriangle size={18} className="text-amber-500" />
+            <span>Why didn't this job fit?</span>
+          </div>
+        }
+        centered
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-400">
+            Select a reason for hiding <span className="text-white font-medium">&quot;{confirmIgnoreJob?.title}&quot;</span>
+          </p>
+
+          <div className="space-y-2">
+            {ignoreReasons.map((reason) => (
+              <label
+                key={reason.value}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedReason === reason.value
+                    ? 'border-red-500 bg-red-500/10'
+                    : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="ignore-reason"
+                  value={reason.value}
+                  checked={selectedReason === reason.value}
+                  onChange={() => setSelectedReason(reason.value)}
+                  className="mt-0.5 accent-red-500"
+                />
+                <div>
+                  <div className="text-sm text-white font-medium">{reason.label}</div>
+                  <div className="text-xs text-neutral-500">{reason.description}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              onClick={() => setConfirmIgnoreJob(null)}
+              className="px-3 py-1.5 text-xs rounded border border-neutral-700 text-neutral-400 hover:bg-neutral-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleIgnore}
+              className="px-3 py-1.5 text-xs rounded bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              Ignore Job
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <TagSelectionModal
+        opened={showTagSelection}
+        onClose={handleTagSelectionClose}
+        onConfirm={handleTagSelectionConfirm}
+        tags={confirmIgnoreJob?.jobTags || []}
+        selectedTagIds={selectedTagIds}
+        onToggleTag={handleToggleTag}
       />
     </div>
   );

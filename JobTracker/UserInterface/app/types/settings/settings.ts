@@ -4,6 +4,7 @@
  */
 
 import { Tag } from '../tag/tag';
+import { KeywordRule } from './keyword-rule';
 
 export interface Settings {
     Id: number;
@@ -16,8 +17,8 @@ export interface Settings {
     UserCV: string | null;
     SelectedTags: Tag[] | null;
     YearsOfExperience: number | null;
-    BlockedKeywords: string[] | null;
-    MatchedKeywords: string[] | null;
+    BlockedKeywords: KeywordRule[] | null;
+    MatchedKeywords: KeywordRule[] | null;
     AlertOnAllMatchingJobs: boolean | null;
     AlertOnHardMatchingJobs: boolean | null;
     Location: string | null;

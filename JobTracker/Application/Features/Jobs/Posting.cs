@@ -20,4 +20,6 @@ public class Posting
     public bool? Alerted { get; set; }
     public bool? Ignored { get; set; } = false;
     public bool? SoftIgnore { get; set; } = false;
+    public DateTime? IgnoredAt { get; set; }
+    public Jobs.IgnoreReason? Reason { get; set; }
 }

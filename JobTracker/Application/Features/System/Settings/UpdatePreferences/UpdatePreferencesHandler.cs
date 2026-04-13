@@ -1,4 +1,5 @@
 ﻿using JobTracker.Application.Features.System.Settings;
+using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
@@ -9,8 +10,8 @@ public record UpdatePreferencesRequest(
     string? UserCV,
     List<int>? SelectedTagIds,
     int? YearsOfExperience,
-    List<string>? BlockedKeywords,
-    List<string>? MatchedKeywords,
+    List<KeywordRule>? BlockedKeywords,
+    List<KeywordRule>? MatchedKeywords,
     bool? AlertOnAllMatchingJobs,
     bool? AlertOnHardMatchingJobs,
     string? Location,
@@ -54,6 +55,7 @@ public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, Upd
                 .Where(t => request.SelectedTagIds.Contains(t.Id))
                 .ToListAsync();
 
+            settings.SelectedTags ??= new List<Tag>();
             settings.SelectedTags.Clear();
 
             foreach (var tag in tags)

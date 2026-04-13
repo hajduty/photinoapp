@@ -1,17 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import {
-  Modal,
-  Textarea,
-  Text
-} from '@mantine/core'
+import { Textarea } from '@mantine/core'
+import { IconChevronDown, IconChevronUp, IconFileText } from '@tabler/icons-react'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
-import { UpdateSettingsRequest } from '@/app/types/settings/update-settings-request'
-import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
 import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
-import { IconX } from '@tabler/icons-react'
+import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
 
 interface CVManagementProps {
   settings: Settings | null
@@ -19,14 +14,13 @@ interface CVManagementProps {
 }
 
 export default function CVManagement({ settings, onUpdate }: CVManagementProps) {
-  const [opened, setOpened] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [cvContent, setCvContent] = useState(settings?.UserCV || '')
   const [loading, setLoading] = useState(false)
 
   const handleSave = async () => {
     try {
       setLoading(true)
-
       const request: UpdatePreferencesRequest = {
         UserCV: cvContent,
         SelectedTagIds: null,
@@ -36,17 +30,12 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
         AlertOnAllMatchingJobs: null,
         AlertOnHardMatchingJobs: null,
         Location: null,
-        MaxJobAgeDays: null
+        MaxJobAgeDays: null,
       }
-
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updatePreferences', request)
-
-      // Update the parent component with new settings
       if (settings) {
         onUpdate({ ...settings, UserCV: cvContent })
       }
-
-      setOpened(false)
     } catch (err) {
       console.error('Failed to update CV:', err)
     } finally {
@@ -54,74 +43,50 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
     }
   }
 
+  const wordCount = cvContent.trim() ? cvContent.trim().split(/\s+/).length : 0
+
   return (
-    <>
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 overflow-hidden">
       <button
-        onClick={() => setOpened(true)}
-        className="btn-secondary text-sm"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-neutral-800/40 transition-colors text-left"
+        onClick={() => setExpanded(e => !e)}
       >
-        {settings?.UserCV ? 'Edit CV' : 'Add CV'}
+        <div className="flex items-center gap-3">
+          <IconFileText size={16} className="text-neutral-400 flex-shrink-0" />
+          <span className="text-sm font-medium text-neutral-200">Your CV</span>
+          <span className="text-xs text-neutral-500">
+            {settings?.UserCV ? `${wordCount} words` : 'Not added'}
+          </span>
+        </div>
+        {expanded
+          ? <IconChevronUp size={15} className="text-neutral-500" />
+          : <IconChevronDown size={15} className="text-neutral-500" />
+        }
       </button>
 
-      <Modal
-        lockScroll={false}
-        opened={opened}
-        onClose={() => setOpened(false)}
-        size="xl"
-        centered
-        withCloseButton={false}
-      >
-        <div>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-medium text-white">Edit CV</h2>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Paste your CV contents below, this will be used for job recommendations.
-              </p>
-            </div>
-            <button
-              className="p-1 rounded text-neutral-600 hover:text-neutral-300 transition-colors"
-              onClick={() => setOpened(false)}
-            >
-              <IconX></IconX>
-            </button>
-          </div>
-
-          <div className="border-t border-neutral-800 -mx-[var(--modal-padding,1rem)]" />
-
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-neutral-800">
+          <p className="text-xs text-neutral-500 mt-3 mb-3">
+            Paste your CV below — it will be used to generate personalized job recommendations.
+          </p>
           <Textarea
             value={cvContent}
-            onChange={(event) => setCvContent(event.currentTarget.value)}
+            onChange={(e) => setCvContent(e.currentTarget.value)}
             placeholder="Paste your CV content here..."
-            minRows={15}
-            maxRows={25}
+            minRows={12}
+            maxRows={22}
             autosize
-            mb="md"
             classNames={{
-              input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-              label: 'text-neutral-300'
+              input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500 text-sm',
             }}
-            className='mt-4'
           />
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              onClick={() => setOpened(false)}
-              disabled={loading}
-              className="btn-ghost text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="btn-secondary text-sm"
-            >
-              Save CV
+          <div className="flex justify-end mt-3">
+            <button onClick={handleSave} disabled={loading} className="btn-secondary text-sm">
+              {loading ? 'Saving...' : 'Save CV'}
             </button>
           </div>
         </div>
-      </Modal>
-    </>
+      )}
+    </div>
   )
 }

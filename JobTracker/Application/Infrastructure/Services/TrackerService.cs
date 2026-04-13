@@ -35,7 +35,7 @@ public class TrackerService
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        var settings = await db.Settings.AsNoTracking().Include(s => s.SelectedTags).FirstOrDefaultAsync();
         var trackers = await db.JobTrackers.Include(j => j.Tags).ToListAsync();
         var now = DateTime.UtcNow;
 
