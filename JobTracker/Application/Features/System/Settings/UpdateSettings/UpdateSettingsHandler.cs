@@ -29,20 +29,19 @@ public sealed class UpdateSettingsHandler : RpcHandler<UpdateSettingsRequest, Up
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
 
         var settings = await dbContext.Settings.FirstOrDefaultAsync();
-        
+
         if (settings == null)
         {
             settings = new Settings();
             dbContext.Settings.Add(settings);
         }
 
-        // Update only provided fields
         if (request.FirstStart != null)
             settings.FirstStart = request.FirstStart;
 
         if (request.DiscordWebhookUrl != null)
             settings.DiscordWebhookUrl = request.DiscordWebhookUrl;
-        
+
         if (request.DiscordNotificationsEnabled.HasValue)
             settings.DiscordNotificationsEnabled = request.DiscordNotificationsEnabled.Value;
 

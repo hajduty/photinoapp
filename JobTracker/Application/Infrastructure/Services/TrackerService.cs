@@ -1,11 +1,9 @@
-﻿using JobTracker.Application.Events;
+using JobTracker.Application.Events;
 using JobTracker.Application.Features.Jobs;
 using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.JobTracker;
-using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Infrastructure.Services;
@@ -35,7 +33,7 @@ public class TrackerService
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.AsNoTracking().Include(s => s.SelectedTags).FirstOrDefaultAsync();
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
         var trackers = await db.JobTrackers.Include(j => j.Tags).ToListAsync();
         var now = DateTime.UtcNow;
 
@@ -52,8 +50,15 @@ public class TrackerService
 
             await PublishTrackingAlertAsync(tracker, newPostings);
 
-            if (settings != null)
-                await PublishHighMatchAlertsAsync(db, settings, tracker, newPostings);
+            if (settings?.ActiveProfileId != null)
+            {
+                var profile = await db.JobProfiles
+                    .Include(p => p.SelectedTags)
+                    .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
+
+                if (profile != null)
+                    await PublishHighMatchAlertsAsync(db, profile, tracker, newPostings);
+            }
         }
 
         await db.SaveChangesAsync();
@@ -107,13 +112,13 @@ public class TrackerService
 
     private async Task PublishHighMatchAlertsAsync(
         AppDbContext db,
-        Settings settings,
+        Features.System.Profiles.JobProfile profile,
         Features.JobTracker.JobTracker tracker,
         List<Posting> newPostings)
     {
         var newIds = newPostings.Select(p => p.Id).ToHashSet();
 
-        var highMatches = (await _matchingService.GetScoredJobsAsync(db, settings))
+        var highMatches = (await _matchingService.GetScoredJobsAsync(db, profile))
             .Where(x => newIds.Contains(x.Posting.Id) && x.Score >= HighMatchThreshold)
             .ToList();
 

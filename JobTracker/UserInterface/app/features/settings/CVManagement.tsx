@@ -4,18 +4,18 @@ import React, { useState } from 'react'
 import { Textarea } from '@mantine/core'
 import { IconChevronDown, IconChevronUp, IconFileText } from '@tabler/icons-react'
 import { sendPhotinoRequest } from '@/app/utils/photino'
-import { Settings } from '@/app/types/settings/settings'
 import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
-import { UpdateSettingsResponse } from '@/app/types/settings/update-settings-response'
+import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
+import { JobProfile } from '@/app/types/settings/job-profile'
 
 interface CVManagementProps {
-  settings: Settings | null
-  onUpdate: (settings: Settings) => void
+  profile: JobProfile | null
+  onUpdate: (profile: JobProfile) => void
 }
 
-export default function CVManagement({ settings, onUpdate }: CVManagementProps) {
+export default function CVManagement({ profile, onUpdate }: CVManagementProps) {
   const [expanded, setExpanded] = useState(false)
-  const [cvContent, setCvContent] = useState(settings?.UserCV || '')
+  const [cvContent, setCvContent] = useState(profile?.UserCV || '')
   const [loading, setLoading] = useState(false)
 
   const handleSave = async () => {
@@ -32,10 +32,8 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
         Location: null,
         MaxJobAgeDays: null,
       }
-      await sendPhotinoRequest<UpdateSettingsResponse>('settings.updatePreferences', request)
-      if (settings) {
-        onUpdate({ ...settings, UserCV: cvContent })
-      }
+      const response = await sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request)
+      onUpdate(response.Profile)
     } catch (err) {
       console.error('Failed to update CV:', err)
     } finally {
@@ -55,7 +53,7 @@ export default function CVManagement({ settings, onUpdate }: CVManagementProps) 
           <IconFileText size={16} className="text-neutral-400 flex-shrink-0" />
           <span className="text-sm font-medium text-neutral-200">Your CV</span>
           <span className="text-xs text-neutral-500">
-            {settings?.UserCV ? `${wordCount} words` : 'Not added'}
+            {profile?.UserCV ? `${wordCount} words` : 'Not added'}
           </span>
         </div>
         {expanded

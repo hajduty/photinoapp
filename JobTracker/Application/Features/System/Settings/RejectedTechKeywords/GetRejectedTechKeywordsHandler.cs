@@ -23,20 +23,24 @@ public class GetRejectedTechKeywordsHandler : RpcHandler<GetRejectedTechKeywords
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings
-            .AsNoTracking()
-            .FirstOrDefaultAsync();
-
-        if (settings?.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0)
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
             return new GetRejectedTechKeywordsResponse([]);
 
-        var tagIds = settings.RejectedTechKeywords.Select(r => r.TagId).ToList();
+        var profile = await db.JobProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
+
+        if (profile?.RejectedTechKeywords == null || profile.RejectedTechKeywords.Count == 0)
+            return new GetRejectedTechKeywordsResponse([]);
+
+        var tagIds = profile.RejectedTechKeywords.Select(r => r.TagId).ToList();
         var tags = await db.Tags
             .AsNoTracking()
             .Where(t => tagIds.Contains(t.Id))
             .ToDictionaryAsync(t => t.Id);
 
-        var result = settings.RejectedTechKeywords
+        var result = profile.RejectedTechKeywords
             .Where(r => tags.ContainsKey(r.TagId))
             .Select(r => new RejectedTagEntry(r.TagId, tags[r.TagId].Name, tags[r.TagId].Color, r.Scope))
             .ToList();

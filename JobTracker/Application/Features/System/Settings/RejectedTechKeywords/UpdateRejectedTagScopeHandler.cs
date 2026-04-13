@@ -22,17 +22,22 @@ public class UpdateRejectedTagScopeHandler : RpcHandler<UpdateRejectedTagScopeRe
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.FirstOrDefaultAsync();
-
-        if (settings?.RejectedTechKeywords == null)
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
             return new UpdateRejectedTagScopeResponse(false);
 
-        var existing = settings.RejectedTechKeywords.FirstOrDefault(r => r.TagId == request.TagId);
+        var profile = await db.JobProfiles
+            .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
+
+        if (profile?.RejectedTechKeywords == null)
+            return new UpdateRejectedTagScopeResponse(false);
+
+        var existing = profile.RejectedTechKeywords.FirstOrDefault(r => r.TagId == request.TagId);
         if (existing == null)
             return new UpdateRejectedTagScopeResponse(false);
 
-        settings.RejectedTechKeywords.Remove(existing);
-        settings.RejectedTechKeywords.Add(existing with { Scope = request.Scope });
+        profile.RejectedTechKeywords.Remove(existing);
+        profile.RejectedTechKeywords.Add(existing with { Scope = request.Scope });
 
         await db.SaveChangesAsync();
 

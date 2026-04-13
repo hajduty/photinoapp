@@ -11,7 +11,7 @@ interface JobPostingProps extends ExtendedPosting {
 }
 
 export default function JobPosting({ Posting, Tags, onBookmark, onApply, onClick }: JobPostingProps) {
-  const active = Posting.Bookmarked;
+  const active = Posting.Bookmarked ?? false;
   const [modalOpened, setModalOpened] = useState(false);
 
   const handleApply = (e: React.MouseEvent) => {

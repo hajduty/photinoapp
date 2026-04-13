@@ -12,17 +12,17 @@ import {
 } from '@mantine/core'
 import { IconX } from '@tabler/icons-react'
 import { sendPhotinoRequest } from '@/app/utils/photino'
-import { Settings } from '@/app/types/settings/settings'
 import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
 import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
 import { KeywordRule, KeywordScope } from '@/app/types/settings/keyword-rule'
+import { JobProfile } from '@/app/types/settings/job-profile'
 import { Tag } from '@/app/types/tag/tag'
 import { useTags } from '@/app/hooks/useTags'
 import { useRejectedTechKeywords } from '@/app/hooks/useRejectedTechKeywords'
 
 interface UserPreferencesProps {
-  settings: Settings | null
-  onUpdate: (settings: Settings) => void
+  profile: JobProfile | null
+  onUpdate: (profile: JobProfile) => void
 }
 
 const inputCls = {
@@ -65,7 +65,6 @@ function ScopedTagInput({
   const inputRef = useRef<HTMLInputElement>(null)
   const sizerRef = useRef<HTMLSpanElement>(null)
 
-  // Measure the sizer span after every keystroke for pixel-accurate input width
   useEffect(() => {
     if (sizerRef.current) {
       setInputWidth(sizerRef.current.offsetWidth + 1)
@@ -107,7 +106,6 @@ function ScopedTagInput({
       onClick={() => inputRef.current?.focus()}
       className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 flex flex-wrap gap-1.5 min-h-[38px] cursor-text focus-within:border-neutral-500 transition-colors"
     >
-      {/* Off-screen sizer — same font as input, measures actual rendered text width */}
       <span
         ref={sizerRef}
         className="text-xs whitespace-pre"
@@ -157,7 +155,7 @@ function ScopedTagInput({
   )
 }
 
-export default function UserPreferences({ settings, onUpdate }: UserPreferencesProps) {
+export default function UserPreferences({ profile, onUpdate }: UserPreferencesProps) {
   const [loading, setLoading] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
@@ -172,25 +170,27 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
   const { rejectedKeywords, isLoadingRejectedKeywords, removeRejectedKeyword, updateRejectedTagScope } = useRejectedTechKeywords()
 
   useEffect(() => {
-    if (settings) {
-      setYearsOfExperience(settings.YearsOfExperience)
-      setAlertOnAllMatchingJobs(settings.AlertOnAllMatchingJobs ?? false)
-      setAlertOnHardMatchingJobs(settings.AlertOnHardMatchingJobs ?? false)
-      setLocation(settings.Location ?? '')
-      setMaxJobAgeDays(settings.MaxJobAgeDays)
-      setBlockedKeywords(settings.BlockedKeywords ?? [])
-      setMatchedKeywords(settings.MatchedKeywords ?? [])
-      if (settings.SelectedTags && settings.SelectedTags.length > 0) {
-        setSelectedTags(settings.SelectedTags.map((tag: Tag) => tag.Id.toString()))
+    if (profile) {
+      setYearsOfExperience(profile.YearsOfExperience)
+      setAlertOnAllMatchingJobs(profile.AlertOnAllMatchingJobs ?? false)
+      setAlertOnHardMatchingJobs(profile.AlertOnHardMatchingJobs ?? false)
+      setLocation(profile.Location ?? '')
+      setMaxJobAgeDays(profile.MaxJobAgeDays)
+      setBlockedKeywords(profile.BlockedKeywords ?? [])
+      setMatchedKeywords(profile.MatchedKeywords ?? [])
+      if (profile.SelectedTags && profile.SelectedTags.length > 0) {
+        setSelectedTags(profile.SelectedTags.map((tag: Tag) => tag.Id.toString()))
+      } else {
+        setSelectedTags([])
       }
     }
-  }, [settings])
+  }, [profile])
 
   const handleSave = async () => {
     try {
       setLoading(true)
       const request: UpdatePreferencesRequest = {
-        UserCV: settings?.UserCV ?? null,
+        UserCV: profile?.UserCV ?? null,
         SelectedTagIds: selectedTags.map(id => parseInt(id)),
         YearsOfExperience: yearsOfExperience,
         BlockedKeywords: blockedKeywords,
@@ -201,7 +201,7 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
         MaxJobAgeDays: maxJobAgeDays,
       }
       const response = await sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request)
-      onUpdate(response.Settings)
+      onUpdate(response.Profile)
     } catch (err) {
       console.error('Failed to update preferences:', err)
     } finally {

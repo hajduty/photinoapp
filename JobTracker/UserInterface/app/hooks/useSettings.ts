@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sendPhotinoRequest } from '../utils/photino';
-import { Settings } from '../types/settings/settings';
+import { GetSettingsResponse } from '../types/settings/get-settings-response';
 import { UpdateSettingsRequest } from '../types/settings/update-settings-request';
 import { UpdateSettingsResponse } from '../types/settings/update-settings-response';
 import { UpdatePreferencesRequest } from '../types/settings/update-preferences-request';
@@ -11,16 +11,16 @@ import { TestConnectionResponse } from '../types/settings/test-connection-respon
 export const useSettings = () => {
   return useQuery({
     queryKey: ['settings'],
-    queryFn: () => sendPhotinoRequest<Settings>('settings.getSettings', { hello: "hello" }),
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    queryFn: () => sendPhotinoRequest<GetSettingsResponse>('settings.getSettings', {}),
+    staleTime: 10 * 60 * 1000,
   });
 };
 
 export const useUpdateSettings = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (request: UpdateSettingsRequest) => 
+    mutationFn: (request: UpdateSettingsRequest) =>
       sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -30,9 +30,9 @@ export const useUpdateSettings = () => {
 
 export const useUpdatePreferences = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (request: UpdatePreferencesRequest) => 
+    mutationFn: (request: UpdatePreferencesRequest) =>
       sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -42,7 +42,7 @@ export const useUpdatePreferences = () => {
 
 export const useTestConnection = () => {
   return useMutation({
-    mutationFn: (request: TestConnectionRequest) => 
+    mutationFn: (request: TestConnectionRequest) =>
       sendPhotinoRequest<TestConnectionResponse>('settings.testConnection', request),
   });
 };
