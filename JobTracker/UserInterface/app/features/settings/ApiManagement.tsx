@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  TextInput,
-  Space,
-  Switch
-} from '@mantine/core';
+import { TextInput, Switch } from '@mantine/core';
 import {
   IconMessage,
   IconCheck,
@@ -26,16 +22,18 @@ interface ApiManagementProps {
   settings: Settings | null;
 }
 
+const inputCls = {
+  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
+  error: 'text-red-400',
+};
+
 export default function ApiManagement({ className }: ApiManagementProps) {
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
   const [discordNotificationsEnabled, setDiscordNotificationsEnabled] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
   const [discordTesting, setDiscordTesting] = useState(false);
-
-  // Form validation
   const [discordWebhookUrlError, setDiscordWebhookUrlError] = useState('');
 
-  // Use TanStack Query hooks
   const { data: settings } = useSettings();
 
   const validateDiscordConfig = (): boolean => {
@@ -46,24 +44,20 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
   const handleSaveDiscordConfig = async () => {
     if (!validateDiscordConfig()) return;
-
     try {
       setDiscordLoading(true);
-
       const request: UpdateSettingsRequest = {
         DiscordWebhookUrl: discordWebhookUrl,
         DiscordNotificationsEnabled: discordNotificationsEnabled,
         GenerateEmbeddings: null,
-        UserCV: null
+        UserCV: null,
       };
-
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
-
       notifications.show({
         title: 'Success',
         message: 'Discord configuration saved successfully',
         color: 'green',
-        icon: <IconCheck size={16} />
+        icon: <IconCheck size={16} />,
       });
     } catch (err) {
       console.error('Failed to save Discord config:', err);
@@ -71,7 +65,7 @@ export default function ApiManagement({ className }: ApiManagementProps) {
         title: 'Error',
         message: 'Failed to save Discord configuration',
         color: 'red',
-        icon: <IconX size={16} />
+        icon: <IconX size={16} />,
       });
     } finally {
       setDiscordLoading(false);
@@ -81,35 +75,22 @@ export default function ApiManagement({ className }: ApiManagementProps) {
   const handleTestDiscord = async () => {
     try {
       setDiscordTesting(true);
-
-      const request = {
-        WebhookUrl: discordWebhookUrl
-      };
-
-      var response = await sendPhotinoRequest<TestConnectionResponse>('settings.testConnection', request);
-
-      if (response.Success) {
-        notifications.show({
-          title: 'Test Result',
-          message: 'Discord webhook test completed successfully',
-          color: 'green',
-          icon: <IconCheck size={16} />
-        });
-      } else {
-        notifications.show({
-          title: 'Test Result',
-          message: 'Discord webhook test failed',
-          color: 'red',
-          icon: <IconX size={16} />
-        });
-      }
+      const response = await sendPhotinoRequest<TestConnectionResponse>('settings.testConnection', {
+        WebhookUrl: discordWebhookUrl,
+      });
+      notifications.show({
+        title: 'Test Result',
+        message: response.Success ? 'Discord webhook test completed successfully' : 'Discord webhook test failed',
+        color: response.Success ? 'green' : 'red',
+        icon: response.Success ? <IconCheck size={16} /> : <IconX size={16} />,
+      });
     } catch (err) {
       console.error('Failed to test Discord connection:', err);
       notifications.show({
         title: 'Test Failed',
         message: 'Discord webhook test failed',
         color: 'red',
-        icon: <IconX size={16} />
+        icon: <IconX size={16} />,
       });
     } finally {
       setDiscordTesting(false);
@@ -118,74 +99,59 @@ export default function ApiManagement({ className }: ApiManagementProps) {
 
   return (
     <div className={className}>
-      {/* Header */}
-      <div className="py-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-neutral-200 mb-2">API MANAGEMENT</h1>
-            <p className="text-neutral-400">Configure external API integrations for notifications and automation</p>
-          </div>
-        </div>
+      <div className="mb-4">
+        <p className="text-sm font-semibold text-neutral-300">API Management</p>
       </div>
 
-      <Space h="md" />
-
-      {/* Discord Webhook Section */}
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-200 flex items-center gap-2">
-              <IconMessage size={20} />
-              Discord Webhook Integration
-            </h2>
-            <p className="text-neutral-400 text-sm">
-              Configure Discord webhooks for job notifications and updates
-            </p>
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 divide-y divide-neutral-800">
+        {/* Discord header row */}
+        <div className="px-4 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <IconMessage size={16} className="text-neutral-400 flex-shrink-0" />
+            <div>
+              <span className="text-sm font-medium text-neutral-200">Discord Webhook</span>
+              <span className="ml-3 text-xs text-neutral-500">Job notifications via Discord</span>
+            </div>
           </div>
           <Switch
-            label="Enable Discord Integration"
+            label="Enable"
             checked={discordNotificationsEnabled}
             onChange={(event) => setDiscordNotificationsEnabled(event.currentTarget.checked)}
             size="sm"
-            classNames={{
-              label: 'text-neutral-300',
-              track: 'bg-neutral-700'
-            }}
+            classNames={{ label: 'text-neutral-400 text-xs', track: 'bg-neutral-700' }}
           />
         </div>
 
-        <TextInput
-          label="Webhook URL"
-          placeholder="https://discord.com/api/webhooks/..."
-          value={discordWebhookUrl}
-          onChange={(event) => setDiscordWebhookUrl(event.currentTarget.value)}
-          error={discordWebhookUrlError}
-          disabled={!discordNotificationsEnabled}
-          leftSection={<IconKey size={16} />}
-          classNames={{
-            input: 'bg-neutral-800 border-neutral-600 text-neutral-200 placeholder-neutral-500',
-            label: 'text-neutral-300',
-            error: 'text-red-400'
-          }}
-        />
-
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={handleTestDiscord}
-            disabled={!discordNotificationsEnabled || discordTesting || !discordWebhookUrl.trim()}
-            className="btn-ghost text-sm flex items-center gap-2"
-          >
-            <IconTestPipe size={16} />
-            Test Webhook
-          </button>
-          <button
-            onClick={handleSaveDiscordConfig}
-            disabled={discordLoading}
-            className="btn-secondary text-sm flex items-center gap-2"
-          >
-            <IconCheck size={16} />
-            Save Configuration
-          </button>
+        {/* Webhook URL */}
+        <div className="px-4 py-4">
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1.5">Webhook URL</p>
+          <TextInput
+            placeholder="https://discord.com/api/webhooks/..."
+            value={discordWebhookUrl}
+            onChange={(event) => setDiscordWebhookUrl(event.currentTarget.value)}
+            error={discordWebhookUrlError}
+            disabled={!discordNotificationsEnabled}
+            leftSection={<IconKey size={15} />}
+            classNames={inputCls}
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={handleTestDiscord}
+              disabled={!discordNotificationsEnabled || discordTesting || !discordWebhookUrl.trim()}
+              className="btn-ghost text-sm flex items-center gap-2"
+            >
+              <IconTestPipe size={15} />
+              Test Webhook
+            </button>
+            <button
+              onClick={handleSaveDiscordConfig}
+              disabled={discordLoading}
+              className="btn-secondary text-sm flex items-center gap-2"
+            >
+              <IconCheck size={15} />
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>

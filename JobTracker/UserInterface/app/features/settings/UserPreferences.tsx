@@ -2,33 +2,48 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-  Modal,
   TextInput,
-  Text,
   MultiSelect,
   NumberInput,
   Switch,
-  TagsInput
+  TagsInput,
+  Badge,
+  ActionIcon,
+  Group,
 } from '@mantine/core'
+import { IconX } from '@tabler/icons-react'
 import { sendPhotinoRequest } from '@/app/utils/photino'
 import { Settings } from '@/app/types/settings/settings'
 import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
 import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
 import { Tag } from '@/app/types/tag/tag'
 import { useTags } from '@/app/hooks/useTags'
-import IgnoredJobsModal from './IgnoredJobsModal'
-import { RejectedKeywordsManagement } from './RejectedKeywordsManagement'
-import { IconX } from '@tabler/icons-react'
+import { useRejectedTechKeywords } from '@/app/hooks/useRejectedTechKeywords'
 
 interface UserPreferencesProps {
   settings: Settings | null
   onUpdate: (settings: Settings) => void
 }
 
+const inputCls = {
+  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
+  dropdown: 'bg-neutral-800 border-neutral-700',
+  option: 'text-neutral-200 hover:bg-neutral-700',
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-neutral-500 mb-1.5">{children}</p>
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-3">
+      {children}
+    </p>
+  )
+}
+
 export default function UserPreferences({ settings, onUpdate }: UserPreferencesProps) {
-  const [opened, setOpened] = useState(false)
-  const [ignoredJobsModalOpened, setIgnoredJobsModalOpened] = useState(false)
-  const [penalizedTagsModalOpened, setPenalizedTagsModalOpened] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
@@ -39,12 +54,11 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
   const [location, setLocation] = useState('')
   const [maxJobAgeDays, setMaxJobAgeDays] = useState<number | null>(null)
 
-  // Use TanStack Query hooks
   const { data: tags = [] } = useTags()
+  const { rejectedKeywords, isLoadingRejectedKeywords, removeRejectedKeyword } = useRejectedTechKeywords()
 
   useEffect(() => {
     if (settings) {
-      // Initialize form values from settings
       setYearsOfExperience(settings.YearsOfExperience)
       setAlertOnAllMatchingJobs(settings.AlertOnAllMatchingJobs ?? false)
       setAlertOnHardMatchingJobs(settings.AlertOnHardMatchingJobs ?? false)
@@ -52,8 +66,6 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
       setMaxJobAgeDays(settings.MaxJobAgeDays)
       setBlockedKeywords(settings.BlockedKeywords ?? [])
       setMatchedKeywords(settings.MatchedKeywords ?? [])
-      
-      // Convert selected tags to string array for MultiSelect
       if (settings.SelectedTags && settings.SelectedTags.length > 0) {
         setSelectedTags(settings.SelectedTags.map((tag: Tag) => tag.Id.toString()))
       }
@@ -63,7 +75,6 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
   const handleSave = async () => {
     try {
       setLoading(true)
-      
       const request: UpdatePreferencesRequest = {
         UserCV: settings?.UserCV ?? null,
         SelectedTagIds: selectedTags.map(id => parseInt(id)),
@@ -75,13 +86,8 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
         Location: location || null,
         MaxJobAgeDays: maxJobAgeDays,
       }
-
       const response = await sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request)
-      
-      // Update the parent component with new settings
       onUpdate(response.Settings)
-      
-      setOpened(false)
     } catch (err) {
       console.error('Failed to update preferences:', err)
     } finally {
@@ -91,202 +97,155 @@ export default function UserPreferences({ settings, onUpdate }: UserPreferencesP
 
   const tagOptions = tags.map(tag => ({
     value: tag?.Id?.toString() ?? '',
-    label: tag?.Name ?? ''
+    label: tag?.Name ?? '',
   }))
 
   return (
-    <>
-      <div className="flex gap-2">
-        <button
-          onClick={() => setOpened(true)}
-          className="btn-secondary text-sm"
-        >
-          Configure Preferences
-        </button>
-        <button
-          onClick={() => setIgnoredJobsModalOpened(true)}
-          className="btn-secondary text-sm"
-        >
-          View Ignored Jobs
-        </button>
-        <button
-          onClick={() => setPenalizedTagsModalOpened(true)}
-          className="btn-secondary text-sm"
-        >
-          View Penalized Tags
-        </button>
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 divide-y divide-neutral-800">
+
+      {/* Basic Information */}
+      <div className="px-4 py-4">
+        <SectionLabel>Basic Information</SectionLabel>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <FieldLabel>Years of Experience</FieldLabel>
+            <NumberInput
+              placeholder="e.g. 3"
+              value={yearsOfExperience ?? undefined}
+              onChange={(value) => setYearsOfExperience(typeof value === 'number' ? value : null)}
+              min={0}
+              max={50}
+              classNames={inputCls}
+            />
+          </div>
+          <div>
+            <FieldLabel>Preferred Location</FieldLabel>
+            <TextInput
+              placeholder="e.g. Stockholm"
+              value={location}
+              onChange={(e) => setLocation(e.currentTarget.value)}
+              classNames={inputCls}
+            />
+          </div>
+        </div>
       </div>
 
-      <Modal
-        lockScroll={false}
-        opened={opened}
-        onClose={() => setOpened(false)}
-        title="User Preferences"
-        size="xl"
-        centered
-        classNames={{
-          content: 'bg-neutral-900 border border-neutral-800',
-          title: 'text-neutral-200',
-          close: 'text-neutral-400 hover:text-white'
-        }}
-      >
-        <div className="space-y-6">
-          <div>
-            <Text className="text-neutral-300 mb-3 font-medium">Basic Information</Text>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <NumberInput
-                label="Years of Experience"
-                placeholder="Enter years of experience"
-                value={yearsOfExperience ?? undefined}
-                onChange={(value) => setYearsOfExperience(typeof value === 'number' ? value : null)}
-                min={0}
-                max={50}
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300'
-                }}
-              />
-              <TextInput
-                label="Preferred Location"
-                placeholder="Enter your preferred location"
-                value={location}
-                onChange={(event) => setLocation(event.currentTarget.value)}
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300'
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Text className="text-neutral-300 mb-3 font-medium">Job Matching</Text>
-            <div className="space-y-4">
-              <MultiSelect
-                label="Preferred Tags"
-                placeholder="Select tags you're interested in"
-                value={selectedTags}
-                onChange={setSelectedTags}
-                data={tagOptions}
-                searchable
-                nothingFoundMessage="No tags found"
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300',
-                  dropdown: 'bg-neutral-800 border-neutral-700',
-                  option: 'text-neutral-200 hover:bg-neutral-700'
-                }}
-              />
-              <NumberInput
-                label="Maximum Job Age (days)"
-                placeholder="Enter maximum age for jobs to show"
-                value={maxJobAgeDays ?? undefined}
-                onChange={(value) => setMaxJobAgeDays(typeof value === 'number' ? value : null)}
-                min={1}
-                max={365}
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300'
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Text className="text-neutral-300 mb-3 font-medium">Alert Preferences</Text>
-            <div className="space-y-3">
-              <Switch
-                label="Alert on all matching jobs"
-                checked={alertOnAllMatchingJobs}
-                onChange={(event) => setAlertOnAllMatchingJobs(event.currentTarget.checked)}
-                classNames={{
-                  label: 'text-neutral-300',
-                  track: 'bg-neutral-700'
-                }}
-              />
-              <Switch
-                label="Alert on hard matching jobs"
-                checked={alertOnHardMatchingJobs}
-                onChange={(event) => setAlertOnHardMatchingJobs(event.currentTarget.checked)}
-                classNames={{
-                  label: 'text-neutral-300',
-                  track: 'bg-neutral-700'
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Text className="text-neutral-300 mb-3 font-medium">Keywords</Text>
-            <div className="space-y-4">
-              <TagsInput
-                label="Blocked Keywords"
-                placeholder="Add keywords to block"
-                value={blockedKeywords}
-                onChange={setBlockedKeywords}
-                splitChars={[',', ' ', ';']}
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300'
-                }}
-              />
-              <TagsInput
-                label="Matched Keywords"
-                placeholder="Add keywords to match"
-                value={matchedKeywords}
-                onChange={setMatchedKeywords}
-                splitChars={[',', ' ', ';']}
-                classNames={{
-                  input: 'bg-neutral-800 border-neutral-700 text-neutral-200 placeholder-neutral-500',
-                  label: 'text-neutral-300'
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button 
-              onClick={() => setOpened(false)}
-              disabled={loading}
-              className="btn-ghost text-sm"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSave}
-              disabled={loading}
-              className="btn-secondary text-sm"
-            >
-              Save Preferences
-            </button>
-          </div>
+      {/* Job Matching */}
+      <div className="px-4 py-4 space-y-4">
+        <SectionLabel>Job Matching</SectionLabel>
+        <div>
+          <FieldLabel>Preferred Tags</FieldLabel>
+          <MultiSelect
+            placeholder="Select tags you're interested in"
+            value={selectedTags}
+            onChange={setSelectedTags}
+            data={tagOptions}
+            searchable
+            nothingFoundMessage="No tags found"
+            classNames={inputCls}
+          />
         </div>
-      </Modal>
-
-      <IgnoredJobsModal
-        opened={ignoredJobsModalOpened}
-        onClose={() => setIgnoredJobsModalOpened(false)}
-      />
-
-      <Modal
-        opened={penalizedTagsModalOpened}
-        onClose={() => setPenalizedTagsModalOpened(false)}
-        title="Penalized Tech Tags"
-        size="lg"
-        centered
-        classNames={{
-          content: 'bg-neutral-900 border border-neutral-800',
-          title: 'text-neutral-200',
-          close: 'text-neutral-400 hover:text-white'
-        }}
-      >
-        <div className="p-2">
-            <Text size="sm" color="dimmed" mb="md">
-                These tags give a penalty to the job score, making them appear lower in your recommendations.
-            </Text>
-            <RejectedKeywordsManagement />
+        <div>
+          <FieldLabel>Maximum Job Age (days)</FieldLabel>
+          <NumberInput
+            placeholder="e.g. 30"
+            value={maxJobAgeDays ?? undefined}
+            onChange={(value) => setMaxJobAgeDays(typeof value === 'number' ? value : null)}
+            min={1}
+            max={365}
+            classNames={inputCls}
+          />
         </div>
-      </Modal>
-    </>
+      </div>
+
+      {/* Keywords */}
+      <div className="px-4 py-4 space-y-4">
+        <SectionLabel>Keywords</SectionLabel>
+        <div>
+          <FieldLabel>Blocked Keywords</FieldLabel>
+          <TagsInput
+            placeholder="Add keywords to block (space, comma, or semicolon)"
+            value={blockedKeywords}
+            onChange={setBlockedKeywords}
+            splitChars={[',', ' ', ';']}
+            classNames={inputCls}
+          />
+        </div>
+        <div>
+          <FieldLabel>Matched Keywords</FieldLabel>
+          <TagsInput
+            placeholder="Add keywords to match (space, comma, or semicolon)"
+            value={matchedKeywords}
+            onChange={setMatchedKeywords}
+            splitChars={[',', ' ', ';']}
+            classNames={inputCls}
+          />
+        </div>
+      </div>
+
+      {/* Penalized Tags */}
+      <div className="px-4 py-4">
+        <SectionLabel>Penalized Tech Tags</SectionLabel>
+        <p className="text-xs text-neutral-600 mb-3">
+          These tags reduce a job's score, pushing them lower in recommendations.
+        </p>
+        {isLoadingRejectedKeywords ? (
+          <p className="text-xs text-neutral-500">Loading...</p>
+        ) : rejectedKeywords.length === 0 ? (
+          <p className="text-xs text-neutral-600">No penalized tags.</p>
+        ) : (
+          <Group gap="xs">
+            {rejectedKeywords.map(tag => (
+              <Badge
+                key={tag.Id}
+                size="sm"
+                variant="light"
+                color="red"
+                rightSection={
+                  <ActionIcon
+                    size="xs"
+                    color="red"
+                    radius="xl"
+                    variant="transparent"
+                    onClick={() => removeRejectedKeyword(tag.Id)}
+                  >
+                    <IconX size={10} />
+                  </ActionIcon>
+                }
+              >
+                {tag.Name}
+              </Badge>
+            ))}
+          </Group>
+        )}
+      </div>
+
+      {/* Alerts + Save */}
+      <div className="px-4 py-4">
+        <SectionLabel>Alerts</SectionLabel>
+        <div className="space-y-3 mb-5">
+          <Switch
+            label="Alert on all matching jobs"
+            checked={alertOnAllMatchingJobs}
+            onChange={(e) => setAlertOnAllMatchingJobs(e.currentTarget.checked)}
+            size="sm"
+            classNames={{ label: 'text-neutral-300', track: 'bg-neutral-700' }}
+          />
+          <Switch
+            label="Alert on hard matching jobs"
+            checked={alertOnHardMatchingJobs}
+            onChange={(e) => setAlertOnHardMatchingJobs(e.currentTarget.checked)}
+            size="sm"
+            classNames={{ label: 'text-neutral-300', track: 'bg-neutral-700' }}
+          />
+        </div>
+        <div className="flex justify-end">
+          <button onClick={handleSave} disabled={loading} className="btn-secondary text-sm">
+            {loading ? 'Saving...' : 'Save Preferences'}
+          </button>
+        </div>
+      </div>
+
+    </div>
   )
 }
