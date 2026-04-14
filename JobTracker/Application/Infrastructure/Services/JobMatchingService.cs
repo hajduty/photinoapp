@@ -1,12 +1,12 @@
-﻿using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Features.JobSearch;
 using JobTracker.Application.Features.JobSearch.GetJobs;
+using JobTracker.Application.Features.System.Profiles;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Embeddings;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using System.Text.RegularExpressions;
 
 public record ScoredJob(Posting Posting, List<Tag> Tags, float Score);
@@ -24,33 +24,32 @@ public class JobMatchingService
         _embeddingService = embeddingService;
     }
 
-    /// <summary>
-    /// Scores and ranks jobs against the user profile. Returns all scored results —
-    /// callers decide how many to take and what threshold matters to them.
-    /// </summary>
-    public async Task<List<ScoredJob>> GetScoredJobsAsync(AppDbContext db, Settings settings)
+    public async Task<List<ScoredJob>> GetScoredJobsAsync(AppDbContext db, JobProfile profile)
     {
-        var profileText = BuildUserProfile(settings);
+        var profileText = BuildUserProfile(profile);
 
         float[] userVector;
-        if (settings.UserEmbedding == null)
+        if (profile.UserEmbedding == null)
         {
             userVector = _embeddingService.GenerateEmbeddingFloat(profileText);
-            var settingsToUpdate = new Settings { Id = settings.Id };
-            db.Settings.Attach(settingsToUpdate);
-            settingsToUpdate.UserEmbedding = Helper.ToBytes(userVector);
+            var profileToUpdate = new JobProfile { Id = profile.Id };
+            db.JobProfiles.Attach(profileToUpdate);
+            profileToUpdate.UserEmbedding = Helper.ToBytes(userVector);
             await db.SaveChangesAsync();
         }
         else
         {
-            userVector = Helper.ToFloatArray(settings.UserEmbedding);
+            userVector = Helper.ToFloatArray(profile.UserEmbedding);
         }
 
-        var maxAge = settings.MaxJobAgeDays ?? 30;
+        var maxAge = profile.MaxJobAgeDays ?? 30;
+        var cutoff = DateTime.UtcNow.AddDays(-maxAge);
 
         var candidates = await db.Postings
             .AsNoTracking()
-            .Where(p => p.Ignored != true && p.PostedDate >= DateTime.UtcNow.AddDays(-maxAge) && p.SoftIgnore != true)
+            .Where(p =>
+                p.PostedDate >= cutoff &&
+                !db.ProfileIgnoredJobs.Any(pij => pij.ProfileId == profile.Id && pij.PostingId == p.Id))
             .OrderByDescending(p => p.PostedDate)
             .Take(1000)
             .ToListAsync();
@@ -60,7 +59,7 @@ public class JobMatchingService
             .Where(e => candidates.Select(c => c.Id).Contains(e.JobId))
             .ToDictionaryAsync(e => e.JobId, e => e.EmbeddingData);
 
-        var bookmarkVector = await BuildBookmarkVectorAsync(db);
+        var bookmarkVector = await BuildBookmarkVectorAsync(db, profile.Id);
 
         var allTags = await db.Tags.AsNoTracking().ToListAsync();
         var tagRegexes = allTags.ToDictionary(
@@ -73,20 +72,20 @@ public class JobMatchingService
         {
             var jobTags = ExtractTags(job, allTags, tagRegexes);
 
-            if (!ContainsSelectedTag(jobTags, settings)) continue;
-            if (!PassesHardFilters(job, settings)) continue;
+            if (!ContainsSelectedTag(jobTags, profile)) continue;
+            if (!PassesHardFilters(job, profile)) continue;
             if (!embeddings.TryGetValue(job.Id, out var embeddingBytes)) continue;
 
             var jobVector = Helper.ToFloatArray(embeddingBytes);
 
             float semantic = Helper.DotProductSimilarity(userVector, jobVector);
-            float matchedKeywordBoost = MatchedKeywordBoost(job, settings);
-            float selectedTagBoost = SelectedTagBoost(job, jobTags, settings);
+            float matchedKeywordBoost = MatchedKeywordBoost(job, profile);
+            float selectedTagBoost = SelectedTagBoost(job, jobTags, profile);
             float freshnessBoost = FreshnessBoost(job);
             float bookmarkBoost = bookmarkVector != null
                 ? Helper.DotProductSimilarity(bookmarkVector, jobVector) : 0f;
-            float yoePenalty = YearsOfExperiencePenalty(job, settings);
-            float rejectedKeywordPenalty = RejectedTechKeywordPenalty(job, settings, tagRegexes);
+            float yoePenalty = YearsOfExperiencePenalty(job, profile);
+            float rejectedKeywordPenalty = RejectedTechKeywordPenalty(job, profile, tagRegexes);
 
             float score =
                 semantic * 0.15f +
@@ -103,12 +102,12 @@ public class JobMatchingService
         return scored.OrderByDescending(x => x.Score).ToList();
     }
 
-    private static async Task<float[]?> BuildBookmarkVectorAsync(AppDbContext db)
+    private static async Task<float[]?> BuildBookmarkVectorAsync(AppDbContext db, int profileId)
     {
-        var bookmarkedIds = await db.Postings
+        var bookmarkedIds = await db.ProfileBookmarkedJobs
             .AsNoTracking()
-            .Where(p => p.Bookmarked == true)
-            .Select(p => p.Id)
+            .Where(b => b.ProfileId == profileId)
+            .Select(b => b.PostingId)
             .ToListAsync();
 
         if (bookmarkedIds.Count == 0)
@@ -144,22 +143,22 @@ public class JobMatchingService
         return centroid;
     }
 
-    private static string BuildUserProfile(Settings settings)
+    private static string BuildUserProfile(JobProfile profile)
     {
-        if (!string.IsNullOrWhiteSpace(settings.UserCV))
-            return $"CV: {settings.UserCV}";
+        if (!string.IsNullOrWhiteSpace(profile.UserCV))
+            return $"CV: {profile.UserCV}";
 
         return string.Empty;
     }
 
-    private static bool PassesHardFilters(Posting job, Settings settings)
+    private static bool PassesHardFilters(Posting job, JobProfile profile)
     {
-        if (settings.BlockedKeywords != null)
+        if (profile.BlockedKeywords != null)
         {
             var title = job.Title ?? "";
             var desc = job.Description ?? "";
 
-            foreach (var rule in settings.BlockedKeywords)
+            foreach (var rule in profile.BlockedKeywords)
             {
                 if (string.IsNullOrWhiteSpace(rule.Keyword)) continue;
 
@@ -177,41 +176,41 @@ public class JobMatchingService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(settings.Location))
+        if (!string.IsNullOrWhiteSpace(profile.Location))
         {
-            if (!job.Location.Contains(settings.Location, StringComparison.OrdinalIgnoreCase))
+            if (!job.Location.Contains(profile.Location, StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 
-        if (settings.BlockedLocations?.Count > 0)
+        if (profile.BlockedLocations?.Count > 0)
         {
-            foreach (var loc in settings.BlockedLocations)
+            foreach (var loc in profile.BlockedLocations)
             {
                 if (!string.IsNullOrWhiteSpace(loc) && job.Location.Contains(loc, StringComparison.OrdinalIgnoreCase))
                     return false;
             }
         }
 
-        if (settings.RejectedSeniorityLevels?.Count > 0)
+        if (profile.RejectedSeniorityLevels?.Count > 0)
         {
             var jobSeniority = DetectSeniorityLevel(job);
-            if (jobSeniority != null && settings.RejectedSeniorityLevels.Contains(jobSeniority, StringComparer.OrdinalIgnoreCase))
+            if (jobSeniority != null && profile.RejectedSeniorityLevels.Contains(jobSeniority, StringComparer.OrdinalIgnoreCase))
                 return false;
         }
 
         return true;
     }
 
-    private static float RejectedTechKeywordPenalty(Posting job, Settings settings, Dictionary<int, Regex> tagRegexes)
+    private static float RejectedTechKeywordPenalty(Posting job, JobProfile profile, Dictionary<int, Regex> tagRegexes)
     {
-        if (settings.RejectedTechKeywords == null || settings.RejectedTechKeywords.Count == 0)
+        if (profile.RejectedTechKeywords == null || profile.RejectedTechKeywords.Count == 0)
             return 0f;
 
         float penalty = 0f;
         var title = job.Title ?? "";
         var desc = job.Description ?? "";
 
-        foreach (var rule in settings.RejectedTechKeywords)
+        foreach (var rule in profile.RejectedTechKeywords)
         {
             if (!tagRegexes.TryGetValue(rule.TagId, out var rx)) continue;
 
@@ -231,19 +230,18 @@ public class JobMatchingService
     private static string? DetectSeniorityLevel(Posting job)
     {
         var years = job.YearsOfExperience ?? 0;
-
         if (years <= 1) return "junior";
         if (years <= 4) return "mid";
         if (years <= 6) return "senior";
         return "lead";
     }
 
-    private static float YearsOfExperiencePenalty(Posting job, Settings settings)
+    private static float YearsOfExperiencePenalty(Posting job, JobProfile profile)
     {
-        if (settings.YearsOfExperience is null || job.YearsOfExperience is null || job.YearsOfExperience == 0)
+        if (profile.YearsOfExperience is null || job.YearsOfExperience is null || job.YearsOfExperience == 0)
             return 0f;
 
-        var gap = job.YearsOfExperience.Value - settings.YearsOfExperience.Value;
+        var gap = job.YearsOfExperience.Value - profile.YearsOfExperience.Value;
 
         if (gap <= 0) return 0f;
         if (gap == 1) return 0.15f;
@@ -252,16 +250,16 @@ public class JobMatchingService
         return 0.60f;
     }
 
-    private static float MatchedKeywordBoost(Posting job, Settings settings)
+    private static float MatchedKeywordBoost(Posting job, JobProfile profile)
     {
-        if (settings.MatchedKeywords == null)
+        if (profile.MatchedKeywords == null)
             return 0f;
 
         float boost = 0;
         var title = job.Title ?? "";
         var desc = job.Description ?? "";
 
-        foreach (var rule in settings.MatchedKeywords)
+        foreach (var rule in profile.MatchedKeywords)
         {
             if (string.IsNullOrWhiteSpace(rule.Keyword)) continue;
 
@@ -277,13 +275,13 @@ public class JobMatchingService
         return MathF.Min(boost, 0.5f);
     }
 
-    private static float SelectedTagBoost(Posting job, List<Tag> jobTags, Settings settings)
+    private static float SelectedTagBoost(Posting job, List<Tag> jobTags, JobProfile profile)
     {
-        if (settings.SelectedTags == null || settings.SelectedTags.Count == 0)
+        if (profile.SelectedTags == null || profile.SelectedTags.Count == 0)
             return 0f;
 
         float boost = 0;
-        var selectedIds = settings.SelectedTags.Select(t => t.Id).ToHashSet();
+        var selectedIds = profile.SelectedTags.Select(t => t.Id).ToHashSet();
 
         foreach (var tag in jobTags)
         {
@@ -310,23 +308,6 @@ public class JobMatchingService
         return 0f;
     }
 
-    private static List<ExtendedPosting> CreateExtended(
-        List<Posting> jobs,
-        List<Tag> allTags,
-        Dictionary<int, Regex> regexes)
-    {
-        return jobs.Select(job =>
-        {
-            var tags = ExtractTags(job, allTags, regexes);
-
-            return new ExtendedPosting
-            {
-                Posting = job,
-                Tags = tags
-            };
-        }).ToList();
-    }
-
     private static List<Tag> ExtractTags(
         Posting job,
         List<Tag> allTags,
@@ -344,12 +325,12 @@ public class JobMatchingService
             .ToList();
     }
 
-    private static bool ContainsSelectedTag(List<Tag> jobTags, Settings settings)
+    private static bool ContainsSelectedTag(List<Tag> jobTags, JobProfile profile)
     {
-        if (settings.SelectedTags == null || settings.SelectedTags.Count == 0)
+        if (profile.SelectedTags == null || profile.SelectedTags.Count == 0)
             return true;
 
-        var selectedIds = settings.SelectedTags
+        var selectedIds = profile.SelectedTags
             .Select(t => t.Id)
             .ToHashSet();
 

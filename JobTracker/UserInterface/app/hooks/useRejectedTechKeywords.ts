@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sendPhotinoRequest } from "../utils/photino";
 import { notifications } from "@mantine/notifications";
 import { GetRejectedTechKeywordsResponse } from "../types/settings/get-rejected-tech-keywords-response";
-import { RemoveRejectedTechKeywordRequest, RemoveRejectedTechKeywordResponse } from "../types/settings/remove-rejected-tech-keyword-request";
+import { RemoveRejectedTechKeywordRequest } from "../types/settings/remove-rejected-tech-keyword-request";
+import { RemoveRejectedTechKeywordResponse } from "../types/settings/remove-rejected-tech-keyword-response";
 import { KeywordScope } from "../types/settings/keyword-rule";
 
 interface UpdateScopeRequest { TagId: number; Scope: KeywordScope }
@@ -19,7 +20,7 @@ export function useRejectedTechKeywords() {
   const removeKeywordMutation = useMutation<RemoveRejectedTechKeywordResponse, Error, RemoveRejectedTechKeywordRequest>({
     mutationFn: (request) => sendPhotinoRequest("settings.removeRejectedTechKeyword", request),
     onSuccess: (response) => {
-      if (response.Success) {
+      if (response.success) {
         queryClient.invalidateQueries({ queryKey: ["rejectedTechKeywords"] });
       } else {
         notifications.show({ title: "Error", message: "Failed to remove rejected keyword.", color: "red" });

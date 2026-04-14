@@ -1,13 +1,7 @@
-﻿using JobTracker.Application.Features.JobSearch.GetJobs;
-using JobTracker.Application.Features.System.Settings;
-using JobTracker.Application.Features.Tags;
+using JobTracker.Application.Features.JobSearch.GetJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
-using JobTracker.Embeddings;
-using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Features.JobSearch.GetMatchingJobs;
 
@@ -34,15 +28,33 @@ public class GetMatchingJobsHandler : RpcHandler<GetMatchingJobsRequest, GetMatc
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.AsNoTracking().Include(s => s.SelectedTags).FirstOrDefaultAsync();
-        if (settings == null)
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
             return new GetMatchingJobsResponse([]);
 
-        var scored = await _matchingService.GetScoredJobsAsync(db, settings);
+        var profile = await db.JobProfiles
+            .AsNoTracking()
+            .Include(p => p.SelectedTags)
+            .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
+
+        if (profile == null)
+            return new GetMatchingJobsResponse([]);
+
+        var scored = await _matchingService.GetScoredJobsAsync(db, profile);
+
+        var bookmarkedIds = (await db.ProfileBookmarkedJobs
+            .AsNoTracking()
+            .Where(b => b.ProfileId == profile.Id)
+            .Select(b => b.PostingId)
+            .ToListAsync()).ToHashSet();
 
         var extended = scored
             .Take(15)
-            .Select(x => new ExtendedPosting { Posting = x.Posting, Tags = x.Tags })
+            .Select(x =>
+            {
+                x.Posting.Bookmarked = bookmarkedIds.Contains(x.Posting.Id);
+                return new ExtendedPosting { Posting = x.Posting, Tags = x.Tags };
+            })
             .ToList();
 
         return new GetMatchingJobsResponse(extended);

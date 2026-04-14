@@ -1,10 +1,5 @@
-/**
- * This is a TypeGen auto-generated file.
- * Any changes made to this file can be lost when this file is regenerated.
- */
-
-import { Settings } from './settings';
+import { JobProfile } from './job-profile'
 
 export interface UpdatePreferencesResponse {
-    Settings: Settings;
+  Profile: JobProfile
 }

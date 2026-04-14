@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +21,34 @@ public class SoftIgnoreJobHandler : RpcHandler<SoftIgnoreJobRequest, SoftIgnoreJ
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var rows = await db.Postings
-            .Where(p => p.Id == request.JobId)
-            .ExecuteUpdateAsync(p => p.SetProperty(x => x.SoftIgnore, x => x.SoftIgnore == true ? false : true));
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            return new SoftIgnoreJobResponse(false);
 
-        return new SoftIgnoreJobResponse(rows > 0);
+        var profileId = settings.ActiveProfileId.Value;
+
+        var existing = await db.ProfileIgnoredJobs
+            .FirstOrDefaultAsync(pij => pij.ProfileId == profileId && pij.PostingId == request.JobId);
+
+        if (existing == null)
+        {
+            // Not ignored at all — soft-ignore it
+            db.ProfileIgnoredJobs.Add(new ProfileIgnoredJob
+            {
+                ProfileId = profileId,
+                PostingId = request.JobId,
+                SoftIgnore = true,
+                IgnoredAt = DateTime.UtcNow,
+            });
+        }
+        else if (existing.SoftIgnore)
+        {
+            // Already soft-ignored — remove it
+            db.ProfileIgnoredJobs.Remove(existing);
+        }
+        // If hard-ignored (SoftIgnore = false), leave it alone
+
+        await db.SaveChangesAsync();
+        return new SoftIgnoreJobResponse(true);
     }
 }

@@ -23,6 +23,10 @@ public class CreateJobTrackerHandler : RpcHandler<CreateJobTrackerRequest, Creat
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
 
+        var settings = await dbContext.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            throw new InvalidOperationException("No active profile found");
+
         // Get the IDs of tags from the request
         var tagIds = request.Tags.Select(t => t.Id).ToList();
 
@@ -33,13 +37,14 @@ public class CreateJobTrackerHandler : RpcHandler<CreateJobTrackerRequest, Creat
 
         var jobAlert = new JobTracker
         {
+            ProfileId = settings.ActiveProfileId.Value,
             Keyword = request.Keyword,
             Source = request.Source,
             Location = request.Location,
             IsActive = request.IsActive,
             LastCheckedAt = request.LastCheckedAt,
             CheckIntervalHours = request.CheckIntervalHours,
-            Tags = existingTags  // Use tracked entities from database
+            Tags = existingTags
         };
 
         dbContext.JobTrackers.Add(jobAlert);

@@ -1,10 +1,10 @@
 using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Features.System.Profiles;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Features.Jobs.IgnoreJob;
 
@@ -29,86 +29,81 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         if (posting == null)
             return new IgnoreJobResponse(false);
 
-        var settings = await db.Settings
-            .FirstOrDefaultAsync();
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            return new IgnoreJobResponse(false);
 
-        var allTags = await db.Tags.AsNoTracking().ToListAsync();
+        var profileId = settings.ActiveProfileId.Value;
 
-        if (posting.Ignored == true || posting.SoftIgnore == true)
+        var existing = await db.ProfileIgnoredJobs
+            .FirstOrDefaultAsync(pij => pij.ProfileId == profileId && pij.PostingId == request.JobId);
+
+        if (existing != null)
         {
-            await UnignoreJobAsync(db, posting, settings, allTags);
+            // Toggle off — unignore
+            var wasReason = existing.Reason;
+            db.ProfileIgnoredJobs.Remove(existing);
+
+            if (wasReason.HasValue)
+            {
+                var profile = await db.JobProfiles.FirstOrDefaultAsync(p => p.Id == profileId);
+                if (profile != null)
+                {
+                    RemoveFromProfileAggregates(posting, wasReason.Value, profile);
+                    await db.SaveChangesAsync();
+                    return new IgnoreJobResponse(true);
+                }
+            }
         }
         else
         {
-            await IgnoreJobAsync(db, posting, settings, request.Reason, request.RejectedTags, allTags);
+            // Ignore
+            var allTags = await db.Tags.AsNoTracking().ToListAsync();
+            var profile = await db.JobProfiles.FirstOrDefaultAsync(p => p.Id == profileId);
+
+            var ageDays = (DateTime.UtcNow - posting.PostedDate).TotalDays;
+
+            var ignoredJob = new ProfileIgnoredJob
+            {
+                ProfileId = profileId,
+                PostingId = request.JobId,
+                IgnoredAt = DateTime.UtcNow,
+            };
+
+            if (ageDays > 45)
+            {
+                ignoredJob.SoftIgnore = true;
+                ignoredJob.Reason = IgnoreReason.Requirements;
+            }
+            else
+            {
+                ignoredJob.Reason = request.Reason ?? IgnoreReason.Requirements;
+
+                if (profile != null)
+                    UpdateProfileAggregates(posting, request.Reason, request.RejectedTags, profile);
+            }
+
+            db.ProfileIgnoredJobs.Add(ignoredJob);
         }
 
         await db.SaveChangesAsync();
         return new IgnoreJobResponse(true);
     }
 
-    private async Task IgnoreJobAsync(
-        AppDbContext db, 
-        Posting posting, 
-        Settings? settings, 
-        IgnoreReason? reason, 
+    private static void UpdateProfileAggregates(
+        Posting posting,
+        IgnoreReason? reason,
         List<int>? rejectedTags,
-        List<Tag> allTags)
-    {
-        var ageDays = (DateTime.UtcNow - posting.PostedDate).TotalDays;
-
-        if (ageDays > 45)
-        {
-            posting.SoftIgnore = true;
-            posting.Reason = IgnoreReason.Requirements;
-            return;
-        }
-
-        posting.Ignored = true;
-        posting.IgnoredAt = DateTime.UtcNow;
-        posting.Reason = reason ?? IgnoreReason.Requirements;
-
-        if (settings != null)
-        {
-            await UpdateSettingsAggregatesAsync(db, posting, reason, rejectedTags, settings, allTags);
-        }
-    }
-
-    private async Task UnignoreJobAsync(
-        AppDbContext db, 
-        Posting posting, 
-        Settings? settings,
-        List<Tag> allTags)
-    {
-        var wasReason = posting.Reason;
-
-        posting.Ignored = false;
-        posting.SoftIgnore = false;
-        posting.IgnoredAt = null;
-        posting.Reason = null;
-
-        if (wasReason.HasValue && settings != null)
-        {
-            await RemoveFromSettingsAggregatesAsync(db, posting, wasReason.Value, settings, allTags);
-        }
-    }
-
-    private static async Task UpdateSettingsAggregatesAsync(
-        AppDbContext db, 
-        Posting posting, 
-        IgnoreReason? reason, 
-        List<int>? rejectedTags,
-        Settings settings, 
-        List<Tag> allTags)
+        JobProfile profile)
     {
         switch (reason)
         {
             case IgnoreReason.Location:
                 if (!string.IsNullOrWhiteSpace(posting.Location))
                 {
-                    settings.BlockedLocations ??= [];
-                    if (!settings.BlockedLocations.Contains(posting.Location, StringComparer.OrdinalIgnoreCase))
-                        settings.BlockedLocations.Add(posting.Location);
+                    profile.BlockedLocations ??= [];
+                    if (!profile.BlockedLocations.Contains(posting.Location, StringComparer.OrdinalIgnoreCase))
+                        profile.BlockedLocations.Add(posting.Location);
                 }
                 break;
 
@@ -116,57 +111,46 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
                 var seniorityLevel = DetectSeniorityLevel(posting);
                 if (seniorityLevel != null)
                 {
-                    settings.RejectedSeniorityLevels ??= [];
-                    if (!settings.RejectedSeniorityLevels.Contains(seniorityLevel, StringComparer.OrdinalIgnoreCase))
-                        settings.RejectedSeniorityLevels.Add(seniorityLevel);
+                    profile.RejectedSeniorityLevels ??= [];
+                    if (!profile.RejectedSeniorityLevels.Contains(seniorityLevel, StringComparer.OrdinalIgnoreCase))
+                        profile.RejectedSeniorityLevels.Add(seniorityLevel);
                 }
                 break;
 
             case IgnoreReason.Tags:
-                settings.RejectedTechKeywords ??= [];
-
-                if (rejectedTags != null && rejectedTags.Count > 0)
+                profile.RejectedTechKeywords ??= [];
+                if (rejectedTags != null)
                 {
                     foreach (var tagId in rejectedTags)
                     {
-                        if (!settings.RejectedTechKeywords.Any(r => r.TagId == tagId))
-                            settings.RejectedTechKeywords.Add(new RejectedTagRule(tagId, KeywordScope.Both));
+                        if (!profile.RejectedTechKeywords.Any(r => r.TagId == tagId))
+                            profile.RejectedTechKeywords.Add(new RejectedTagRule(tagId, KeywordScope.Both));
                     }
                 }
                 break;
         }
-
-        await Task.CompletedTask;
     }
 
-    private static async Task RemoveFromSettingsAggregatesAsync(
-        AppDbContext db, 
-        Posting posting, 
-        IgnoreReason reason, 
-        Settings settings,
-        List<Tag> allTags)
+    private static void RemoveFromProfileAggregates(Posting posting, IgnoreReason reason, JobProfile profile)
     {
         switch (reason)
         {
             case IgnoreReason.Location:
                 if (!string.IsNullOrWhiteSpace(posting.Location))
-                    settings.BlockedLocations?.RemoveAll(l => string.Equals(l, posting.Location, StringComparison.OrdinalIgnoreCase));
+                    profile.BlockedLocations?.RemoveAll(l => string.Equals(l, posting.Location, StringComparison.OrdinalIgnoreCase));
                 break;
 
             case IgnoreReason.Experience:
                 var seniorityLevel = DetectSeniorityLevel(posting);
                 if (seniorityLevel != null)
-                    settings.RejectedSeniorityLevels?.RemoveAll(s => string.Equals(s, seniorityLevel, StringComparison.OrdinalIgnoreCase));
+                    profile.RejectedSeniorityLevels?.RemoveAll(s => string.Equals(s, seniorityLevel, StringComparison.OrdinalIgnoreCase));
                 break;
         }
-
-        await Task.CompletedTask;
     }
 
     private static string? DetectSeniorityLevel(Posting posting)
     {
         var years = posting.YearsOfExperience ?? 0;
-
         if (years <= 1) return "junior";
         if (years <= 4) return "mid";
         if (years <= 6) return "senior";

@@ -1,10 +1,15 @@
+using JobTracker.Application.Features.System.Profiles;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
+using TypeGen.Core.TypeAnnotations;
 
 namespace JobTracker.Application.Features.System.Settings.GetSettings;
 
-public sealed class GetSettingsHandler : RpcHandler<object?, Settings>
+[ExportTsInterface]
+public record GetSettingsResponse(Settings Settings, JobProfile? ActiveProfile, List<JobProfile> Profiles);
+
+public sealed class GetSettingsHandler : RpcHandler<object?, GetSettingsResponse>
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     public override string Command => "settings.getSettings";
@@ -14,20 +19,41 @@ public sealed class GetSettingsHandler : RpcHandler<object?, Settings>
         _dbFactory = dbFactory;
     }
 
-    protected override async Task<Settings> HandleAsync(object? request)
+    protected override async Task<GetSettingsResponse> HandleAsync(object? request)
     {
-        await using var dbContext = await _dbFactory.CreateDbContextAsync();
-        
-        // Return first settings record or create default if none exists
-        var settings = await dbContext.Settings.Include(s => s.SelectedTags).FirstOrDefaultAsync();
-        
+        await using var db = await _dbFactory.CreateDbContextAsync();
+
+        var settings = await db.Settings.FirstOrDefaultAsync();
+
         if (settings == null)
         {
             settings = new Settings();
-            dbContext.Settings.Add(settings);
-            await dbContext.SaveChangesAsync();
+            db.Settings.Add(settings);
+            await db.SaveChangesAsync();
         }
-        
-        return settings;
+
+        // Ensure an active profile exists
+        if (settings.ActiveProfileId == null)
+        {
+            var fallback = await db.JobProfiles.FirstOrDefaultAsync()
+                           ?? new JobProfile { Name = "Default" };
+
+            if (fallback.Id == 0)
+            {
+                db.JobProfiles.Add(fallback);
+                await db.SaveChangesAsync();
+            }
+
+            settings.ActiveProfileId = fallback.Id;
+            await db.SaveChangesAsync();
+        }
+
+        var profiles = await db.JobProfiles
+            .Include(p => p.SelectedTags)
+            .ToListAsync();
+
+        var activeProfile = profiles.FirstOrDefault(p => p.Id == settings.ActiveProfileId);
+
+        return new GetSettingsResponse(settings, activeProfile, profiles);
     }
 }

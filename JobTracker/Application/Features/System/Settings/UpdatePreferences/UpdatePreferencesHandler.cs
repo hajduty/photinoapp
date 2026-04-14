@@ -1,4 +1,5 @@
-﻿using JobTracker.Application.Features.System.Settings;
+using JobTracker.Application.Features.System.Profiles;
+using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
@@ -19,7 +20,7 @@ public record UpdatePreferencesRequest(
 );
 
 [ExportTsInterface]
-public record UpdatePreferencesResponse(Settings Settings);
+public record UpdatePreferencesResponse(JobProfile Profile);
 
 public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, UpdatePreferencesResponse>
 {
@@ -35,19 +36,23 @@ public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, Upd
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings
-            .Include(s => s.SelectedTags)
-            .FirstAsync();
+        var settings = await db.Settings.FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            throw new InvalidOperationException("No active profile found.");
 
-        settings.UserCV = request.UserCV;
-        settings.YearsOfExperience = request.YearsOfExperience;
-        settings.BlockedKeywords = request.BlockedKeywords;
-        settings.MatchedKeywords = request.MatchedKeywords;
-        settings.AlertOnAllMatchingJobs = request.AlertOnAllMatchingJobs;
-        settings.AlertOnHardMatchingJobs = request.AlertOnHardMatchingJobs;
-        settings.Location = request.Location;
-        settings.MaxJobAgeDays = request.MaxJobAgeDays;
-        settings.UserEmbedding = null;
+        var profile = await db.JobProfiles
+            .Include(p => p.SelectedTags)
+            .FirstAsync(p => p.Id == settings.ActiveProfileId);
+
+        profile.UserCV = request.UserCV;
+        profile.YearsOfExperience = request.YearsOfExperience;
+        profile.BlockedKeywords = request.BlockedKeywords;
+        profile.MatchedKeywords = request.MatchedKeywords;
+        profile.AlertOnAllMatchingJobs = request.AlertOnAllMatchingJobs;
+        profile.AlertOnHardMatchingJobs = request.AlertOnHardMatchingJobs;
+        profile.Location = request.Location;
+        profile.MaxJobAgeDays = request.MaxJobAgeDays;
+        profile.UserEmbedding = null; // invalidate cached embedding
 
         if (request.SelectedTagIds != null)
         {
@@ -55,17 +60,15 @@ public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, Upd
                 .Where(t => request.SelectedTagIds.Contains(t.Id))
                 .ToListAsync();
 
-            settings.SelectedTags ??= new List<Tag>();
-            settings.SelectedTags.Clear();
+            profile.SelectedTags ??= [];
+            profile.SelectedTags.Clear();
 
             foreach (var tag in tags)
-                settings.SelectedTags.Add(tag);
+                profile.SelectedTags.Add(tag);
         }
-
-        settings.LastUpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
 
-        return new UpdatePreferencesResponse(settings);
+        return new UpdatePreferencesResponse(profile);
     }
 }

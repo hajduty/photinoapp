@@ -50,7 +50,7 @@ export default function ApiManagement({ className }: ApiManagementProps) {
         DiscordWebhookUrl: discordWebhookUrl,
         DiscordNotificationsEnabled: discordNotificationsEnabled,
         GenerateEmbeddings: null,
-        UserCV: null,
+        FirstStart: null,
       };
       await sendPhotinoRequest<UpdateSettingsResponse>('settings.updateSettings', request);
       notifications.show({

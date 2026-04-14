@@ -17,6 +17,14 @@ public sealed class GetJobTrackerHandler : RpcHandler<object?, List<JobTracker>>
     protected override async Task<List<JobTracker>> HandleAsync(object? request)
     {
         await using var dbContext = await _dbFactory.CreateDbContextAsync();
-        return await dbContext.JobTrackers.Include(j => j.Tags).ToListAsync();
+
+        var settings = await dbContext.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            return [];
+
+        return await dbContext.JobTrackers
+            .Where(j => j.ProfileId == settings.ActiveProfileId.Value)
+            .Include(j => j.Tags)
+            .ToListAsync();
     }
 }

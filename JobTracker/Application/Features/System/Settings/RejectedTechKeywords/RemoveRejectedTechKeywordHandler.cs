@@ -22,14 +22,17 @@ public class RemoveRejectedTechKeywordHandler : RpcHandler<RemoveRejectedTechKey
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings
-            .FirstOrDefaultAsync();
-
-        if (settings == null || settings.RejectedTechKeywords == null)
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
             return new RemoveRejectedTechKeywordResponse(false);
 
-        var removed = settings.RejectedTechKeywords.RemoveAll(r => r.TagId == request.Id) > 0;
+        var profile = await db.JobProfiles
+            .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
 
+        if (profile?.RejectedTechKeywords == null)
+            return new RemoveRejectedTechKeywordResponse(false);
+
+        var removed = profile.RejectedTechKeywords.RemoveAll(r => r.TagId == request.Id) > 0;
         await db.SaveChangesAsync();
 
         return new RemoveRejectedTechKeywordResponse(removed);

@@ -132,7 +132,7 @@ export default function RecommendedJobs({
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const openModal = (job: ExtendedPosting) => {
-    const currentState = bookmarkedJobs?.has(job.Posting.Id) ?? job.Posting.Bookmarked;
+    const currentState = bookmarkedJobs?.has(job.Posting.Id) ?? (job.Posting.Bookmarked ?? false);
     flushSync(() => {
       setSelectedJob(job);
       setModalIsBookmarked(currentState);
