@@ -36,7 +36,7 @@ public class UpdateApplicationHandler
 
             db.ApplicationStatusHistories.Add(new ApplicationStatusHistory
             {
-                JobApplicationId = application.JobId,
+                JobApplicationId = application.Id,
                 Status = request.ApplicationStatus,
                 ChangedAt = DateTime.UtcNow,
                 Note = request.Note

@@ -30,6 +30,15 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        var bookmarkedPostingIds = settings?.ActiveProfileId != null
+            ? (await db.ProfileBookmarkedJobs
+                .AsNoTracking()
+                .Where(b => b.ProfileId == settings.ActiveProfileId.Value)
+                .Select(b => b.PostingId)
+                .ToListAsync()).ToHashSet()
+            : new HashSet<int>();
+
         var escapedKeyword = req.Keyword
             .Replace("[", "[[]")
             .Replace("%", "[%]")
@@ -111,7 +120,7 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
                     PostedDate = p.PostedDate,
                     Description = descRaw[..Math.Min(descRaw.Length, 400)],
                     DescriptionFormatted = descFmt[..Math.Min(descFmt.Length, 400)],
-                    Bookmarked = p.Bookmarked,
+                    Bookmarked = bookmarkedPostingIds.Contains(p.Id),
                     CompanyImage = p.CompanyImage,
                     CreatedAt = p.CreatedAt,
                     OriginUrl = p.OriginUrl,

@@ -42,9 +42,19 @@ public class GetMatchingJobsHandler : RpcHandler<GetMatchingJobsRequest, GetMatc
 
         var scored = await _matchingService.GetScoredJobsAsync(db, profile);
 
+        var bookmarkedIds = (await db.ProfileBookmarkedJobs
+            .AsNoTracking()
+            .Where(b => b.ProfileId == profile.Id)
+            .Select(b => b.PostingId)
+            .ToListAsync()).ToHashSet();
+
         var extended = scored
             .Take(15)
-            .Select(x => new ExtendedPosting { Posting = x.Posting, Tags = x.Tags })
+            .Select(x =>
+            {
+                x.Posting.Bookmarked = bookmarkedIds.Contains(x.Posting.Id);
+                return new ExtendedPosting { Posting = x.Posting, Tags = x.Tags };
+            })
             .ToList();
 
         return new GetMatchingJobsResponse(extended);

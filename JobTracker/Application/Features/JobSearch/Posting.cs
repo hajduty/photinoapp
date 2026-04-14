@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace JobTracker.Application.Features.JobSearch;
 
 public class Posting
@@ -15,7 +17,8 @@ public class Posting
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastApplicationDate { get; set; } = DateTime.UtcNow;
     public string? Source { get; set; }
-    public bool? Bookmarked { get; set; } = false;
+    [NotMapped]
+    public bool? Bookmarked { get; set; }
     public int? YearsOfExperience { get; set; } = 0;
     public bool? Alerted { get; set; }
 }

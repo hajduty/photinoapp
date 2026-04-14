@@ -21,13 +21,18 @@ public class CreateApplicationHandler : RpcHandler<CreateApplicationRequest, Cre
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            throw new InvalidOperationException("No active profile found");
+
         var posting = await db.Postings.FindAsync(request.JobId);
 
         if (posting == null)
-            throw new InvalidOperationException("Posting not found"); // send ui event,
+            throw new InvalidOperationException("Posting not found");
 
         var newApplication = new JobApplication
         {
+            ProfileId = settings.ActiveProfileId.Value,
             AppliedAt = DateTime.UtcNow,
             JobId = posting.Id,
             Posting = posting,

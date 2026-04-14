@@ -1,11 +1,11 @@
 ﻿using JobTracker.Application.Features.JobSearch;
-using System.ComponentModel.DataAnnotations;
 
 namespace JobTracker.Application.Features.JobApplication;
 
 public class JobApplication
 {
-    [Key]
+    public int Id { get; set; }
+    public int ProfileId { get; set; }
     public int JobId { get; set; }
     public Posting Posting { get; set; } = null!;
     public string CoverLetter { get; set; } = null!;

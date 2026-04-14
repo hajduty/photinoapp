@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<JobEmbedding> JobEmbeddings { get; set; } = null!;
     public DbSet<JobProfile> JobProfiles { get; set; } = null!;
     public DbSet<ProfileIgnoredJob> ProfileIgnoredJobs { get; set; } = null!;
+    public DbSet<ProfileBookmarkedJob> ProfileBookmarkedJobs { get; set; } = null!;
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -58,15 +59,27 @@ public class AppDbContext : DbContext
             .WithMany(t => t.JobTrackers)
             .UsingEntity(j => j.ToTable("JobTrackerTags"));
 
+        modelBuilder.Entity<Features.JobTracker.JobTracker>()
+            .HasOne<JobProfile>()
+            .WithMany()
+            .HasForeignKey(j => j.ProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // --- JobApplication ---
         modelBuilder.Entity<JobApplication>()
-            .HasIndex(je => je.JobId)
+            .HasIndex(je => new { je.ProfileId, je.JobId })
             .IsUnique();
 
         modelBuilder.Entity<JobApplication>()
-            .HasOne<Posting>()
-            .WithOne()
-            .HasForeignKey<JobApplication>(je => je.JobId)
+            .HasOne(je => je.Posting)
+            .WithMany()
+            .HasForeignKey(je => je.JobId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobApplication>()
+            .HasOne<JobProfile>()
+            .WithMany()
+            .HasForeignKey(je => je.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ApplicationStatusHistory>()
@@ -145,6 +158,23 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ProfileIgnoredJob>()
+            .HasOne<Posting>()
+            .WithMany()
+            .HasForeignKey(p => p.PostingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // --- ProfileBookmarkedJob ---
+        modelBuilder.Entity<ProfileBookmarkedJob>()
+            .HasIndex(p => new { p.ProfileId, p.PostingId })
+            .IsUnique();
+
+        modelBuilder.Entity<ProfileBookmarkedJob>()
+            .HasOne(p => p.Profile)
+            .WithMany()
+            .HasForeignKey(p => p.ProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProfileBookmarkedJob>()
             .HasOne<Posting>()
             .WithMany()
             .HasForeignKey(p => p.PostingId)

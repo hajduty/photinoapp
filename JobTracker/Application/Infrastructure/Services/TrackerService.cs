@@ -33,7 +33,7 @@ public class TrackerService
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        // Run all profiles' trackers — scraping is global, but each tracker uses its own profile for alerts
         var trackers = await db.JobTrackers.Include(j => j.Tags).ToListAsync();
         var now = DateTime.UtcNow;
 
@@ -50,15 +50,12 @@ public class TrackerService
 
             await PublishTrackingAlertAsync(tracker, newPostings);
 
-            if (settings?.ActiveProfileId != null)
-            {
-                var profile = await db.JobProfiles
-                    .Include(p => p.SelectedTags)
-                    .FirstOrDefaultAsync(p => p.Id == settings.ActiveProfileId);
+            var profile = await db.JobProfiles
+                .Include(p => p.SelectedTags)
+                .FirstOrDefaultAsync(p => p.Id == tracker.ProfileId);
 
-                if (profile != null)
-                    await PublishHighMatchAlertsAsync(db, profile, tracker, newPostings);
-            }
+            if (profile != null)
+                await PublishHighMatchAlertsAsync(db, profile, tracker, newPostings);
         }
 
         await db.SaveChangesAsync();

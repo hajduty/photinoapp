@@ -33,6 +33,9 @@ export const useSwitchProfile = () => {
       queryClient.invalidateQueries({ queryKey: ['matching-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ignored-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['rejectedTechKeywords'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarked-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['trackers'] });
     },
   });
 };
@@ -48,6 +51,9 @@ export const useDeleteProfile = () => {
       queryClient.invalidateQueries({ queryKey: ['matching-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ignored-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['rejectedTechKeywords'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarked-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['trackers'] });
     },
   });
 };

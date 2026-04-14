@@ -59,7 +59,7 @@ public class JobMatchingService
             .Where(e => candidates.Select(c => c.Id).Contains(e.JobId))
             .ToDictionaryAsync(e => e.JobId, e => e.EmbeddingData);
 
-        var bookmarkVector = await BuildBookmarkVectorAsync(db);
+        var bookmarkVector = await BuildBookmarkVectorAsync(db, profile.Id);
 
         var allTags = await db.Tags.AsNoTracking().ToListAsync();
         var tagRegexes = allTags.ToDictionary(
@@ -102,12 +102,12 @@ public class JobMatchingService
         return scored.OrderByDescending(x => x.Score).ToList();
     }
 
-    private static async Task<float[]?> BuildBookmarkVectorAsync(AppDbContext db)
+    private static async Task<float[]?> BuildBookmarkVectorAsync(AppDbContext db, int profileId)
     {
-        var bookmarkedIds = await db.Postings
+        var bookmarkedIds = await db.ProfileBookmarkedJobs
             .AsNoTracking()
-            .Where(p => p.Bookmarked == true)
-            .Select(p => p.Id)
+            .Where(b => b.ProfileId == profileId)
+            .Select(b => b.PostingId)
             .ToListAsync();
 
         if (bookmarkedIds.Count == 0)

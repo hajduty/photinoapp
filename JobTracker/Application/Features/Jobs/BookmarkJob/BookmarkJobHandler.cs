@@ -1,17 +1,18 @@
-﻿using JobTracker.Application.Infrastructure.Data;
+using JobTracker.Application.Features.Jobs;
+using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobTracker.Application.Features.JobSearch.BookmarkJob;
 
 public record BookmarkJobRequest(int PostingId, bool IsBookmarked);
-public record BookmarkJobResponse(Posting Posting);
-public class BookmarkJobHandler 
-    : RpcHandler<BookmarkJobRequest, BookmarkJobResponse>
+public record BookmarkJobResponse(bool Success);
+
+public class BookmarkJobHandler : RpcHandler<BookmarkJobRequest, BookmarkJobResponse>
 {
     public override string Command => "jobs.bookmark";
-
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
+
     public BookmarkJobHandler(IDbContextFactory<AppDbContext> dbFactory)
     {
         _dbFactory = dbFactory;
@@ -21,17 +22,29 @@ public class BookmarkJobHandler
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
-        var posting = await db.Postings.FindAsync(request.PostingId);
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            return new BookmarkJobResponse(false);
 
-        if (posting == null)
+        var profileId = settings.ActiveProfileId.Value;
+
+        var existing = await db.ProfileBookmarkedJobs
+            .FirstOrDefaultAsync(b => b.ProfileId == profileId && b.PostingId == request.PostingId);
+
+        if (request.IsBookmarked && existing == null)
         {
-            throw new KeyNotFoundException($"Job alert with ID {request.PostingId} not found.");
+            db.ProfileBookmarkedJobs.Add(new ProfileBookmarkedJob
+            {
+                ProfileId = profileId,
+                PostingId = request.PostingId,
+            });
+        }
+        else if (!request.IsBookmarked && existing != null)
+        {
+            db.ProfileBookmarkedJobs.Remove(existing);
         }
 
-        posting.Bookmarked = request.IsBookmarked;
-
         await db.SaveChangesAsync();
-
-        return new BookmarkJobResponse(posting);
+        return new BookmarkJobResponse(true);
     }
 }

@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Features.JobSearch.GetJobs;
+using JobTracker.Application.Features.JobSearch.GetJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
@@ -22,13 +22,28 @@ public class GetBookmarkedJobsHandler : RpcHandler<object?, GetBookmarkedJobsRes
     {
         await using var db = await _dbFactory.CreateDbContextAsync();
 
+        var settings = await db.Settings.AsNoTracking().FirstOrDefaultAsync();
+        if (settings?.ActiveProfileId == null)
+            return new GetBookmarkedJobsResponse([]);
+
+        var profileId = settings.ActiveProfileId.Value;
+
+        var bookmarkedPostingIds = await db.ProfileBookmarkedJobs
+            .AsNoTracking()
+            .Where(b => b.ProfileId == profileId)
+            .Select(b => b.PostingId)
+            .ToListAsync();
+
         var postings = await db.Postings
-            .Where(p => p.Bookmarked == true)
+            .AsNoTracking()
+            .Where(p => bookmarkedPostingIds.Contains(p.Id))
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
+        foreach (var p in postings)
+            p.Bookmarked = true;
+
         var tags = await db.Tags.ToListAsync();
-        var tagNames = tags.Select(t => t.Name).ToList();
 
         var extendedPostings = postings.Select(p => new ExtendedPosting
         {

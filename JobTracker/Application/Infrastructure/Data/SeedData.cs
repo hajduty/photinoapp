@@ -1,4 +1,3 @@
-using JobTracker.Application.Features.Classifications;
 using JobTracker.Application.Features.System.Profiles;
 using JobTracker.Application.Features.System.Settings;
 using JobTracker.Application.Features.Tags;
@@ -22,9 +21,10 @@ public static class SeedData
         if (context.JobTrackers.Any())
             return;
 
+        var defaultProfileId = context.JobProfiles.Select(p => p.Id).First();
         context.JobTrackers.AddRange(
-            new Features.JobTracker.JobTracker { Keyword = "utvecklare" },
-            new Features.JobTracker.JobTracker { Keyword = "developer" }
+            new Features.JobTracker.JobTracker { ProfileId = defaultProfileId, Keyword = "utvecklare" },
+            new Features.JobTracker.JobTracker { ProfileId = defaultProfileId, Keyword = "developer" }
         );
 
         if (!context.Notifications.Any())
