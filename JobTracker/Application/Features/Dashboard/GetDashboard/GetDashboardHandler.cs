@@ -3,7 +3,7 @@ using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.Dashboard.GetInfo;
+namespace JobTracker.Application.Features.Dashboard.GetDashboard;
 
 public record GetDashboardResponse(
     int TotalApplications,

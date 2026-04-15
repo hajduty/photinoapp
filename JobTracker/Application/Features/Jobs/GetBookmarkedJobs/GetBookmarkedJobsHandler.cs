@@ -1,10 +1,10 @@
-using JobTracker.Application.Features.JobSearch.GetJobs;
+using JobTracker.Application.Features.Jobs.GetJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
-namespace JobTracker.Application.Features.JobSearch.GetBookmarkedJobs;
+namespace JobTracker.Application.Features.Jobs.GetBookmarkedJobs;
 
 public record GetBookmarkedJobsResponse(List<ExtendedPosting> TaggedPostings);
 

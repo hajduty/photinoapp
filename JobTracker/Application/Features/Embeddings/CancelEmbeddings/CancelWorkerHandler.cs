@@ -1,0 +1,22 @@
+﻿using JobTracker.Application.Infrastructure.RPC;
+using JobTracker.Application.Infrastructure.Services;
+
+namespace JobTracker.Application.Features.Embeddings.CancelEmbeddings;
+
+public class CancelWorkerHandler : RpcHandler<object?, object?>
+{
+    private readonly EmbeddingProcessor _embeddingService;
+
+    public override string Command => "semanticSearch.cancel";
+
+    public CancelWorkerHandler(EmbeddingProcessor embeddingService)
+    {
+        _embeddingService = embeddingService;
+    }
+
+    protected override Task<object?> HandleAsync(object? request)
+    {
+         _embeddingService.Cancel();
+        return null!;
+    }
+}

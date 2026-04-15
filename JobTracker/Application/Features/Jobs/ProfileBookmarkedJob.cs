@@ -1,4 +1,4 @@
-using JobTracker.Application.Features.System.Profiles;
+using JobTracker.Application.Features.Profiles;
 
 namespace JobTracker.Application.Features.Jobs;
 

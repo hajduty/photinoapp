@@ -1,9 +1,9 @@
-using JobTracker.Application.Features.JobSearch.GetJobs;
+using JobTracker.Application.Features.Jobs.GetJobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.JobSearch.GetMatchingJobs;
+namespace JobTracker.Application.Features.Jobs.GetMatchingJobs;
 
 public record GetMatchingJobsRequest(int Page);
 

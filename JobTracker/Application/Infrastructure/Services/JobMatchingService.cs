@@ -1,7 +1,7 @@
-using JobTracker.Application.Features.JobSearch;
-using JobTracker.Application.Features.JobSearch.GetJobs;
-using JobTracker.Application.Features.System.Profiles;
-using JobTracker.Application.Features.System.Settings;
+using JobTracker.Application.Features.Jobs;
+using JobTracker.Application.Features.Jobs.GetJobs;
+using JobTracker.Application.Features.Profiles;
+using JobTracker.Application.Features.Settings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Embeddings;
