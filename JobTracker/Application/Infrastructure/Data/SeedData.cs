@@ -1,5 +1,5 @@
-using JobTracker.Application.Features.System.Profiles;
-using JobTracker.Application.Features.System.Settings;
+using JobTracker.Application.Features.Profiles;
+using JobTracker.Application.Features.Settings;
 using JobTracker.Application.Features.Tags;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;

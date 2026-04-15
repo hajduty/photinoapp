@@ -1,4 +1,4 @@
-﻿using JobTracker.Application.Features.JobSearch;
+﻿using JobTracker.Application.Features.Jobs;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 

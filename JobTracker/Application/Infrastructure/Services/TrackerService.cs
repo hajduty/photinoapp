@@ -1,6 +1,6 @@
 using JobTracker.Application.Events;
 using JobTracker.Application.Features.Jobs;
-using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Features.Jobs;
 using JobTracker.Application.Features.JobTracker;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -109,7 +109,7 @@ public class TrackerService
 
     private async Task PublishHighMatchAlertsAsync(
         AppDbContext db,
-        Features.System.Profiles.JobProfile profile,
+        Features.Profiles.JobProfile profile,
         Features.JobTracker.JobTracker tracker,
         List<Posting> newPostings)
     {

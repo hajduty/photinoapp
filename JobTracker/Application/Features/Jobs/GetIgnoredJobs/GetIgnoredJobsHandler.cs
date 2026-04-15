@@ -1,4 +1,4 @@
-using JobTracker.Application.Features.JobSearch;
+using JobTracker.Application.Features.Jobs;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;

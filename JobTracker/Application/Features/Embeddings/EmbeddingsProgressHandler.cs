@@ -2,7 +2,7 @@
 using JobTracker.Application.Features.Notification;
 using System.Security.Cryptography.X509Certificates;
 
-namespace JobTracker.Application.Features.SemanticSearch;
+namespace JobTracker.Application.Features.Embeddings;
 
 public record EmbeddingsProgress(
     int EmbeddingsLeft,

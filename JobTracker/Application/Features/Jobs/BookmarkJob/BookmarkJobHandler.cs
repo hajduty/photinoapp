@@ -3,7 +3,7 @@ using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.JobSearch.BookmarkJob;
+namespace JobTracker.Application.Features.Jobs.BookmarkJob;
 
 public record BookmarkJobRequest(int PostingId, bool IsBookmarked);
 public record BookmarkJobResponse(bool Success);

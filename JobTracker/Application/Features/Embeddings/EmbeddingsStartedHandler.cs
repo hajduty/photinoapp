@@ -3,7 +3,7 @@ using JobTracker.Application.Features.Notification;
 using JobTracker.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobTracker.Application.Features.SemanticSearch;
+namespace JobTracker.Application.Features.Embeddings;
 
 public record EmbeddingsStarted()
     : IDomainEvent

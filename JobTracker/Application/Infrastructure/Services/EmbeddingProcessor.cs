@@ -1,6 +1,5 @@
 ﻿using JobTracker.Application.Events;
 using JobTracker.Application.Features.Embeddings;
-using JobTracker.Application.Features.SemanticSearch;
 using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Embeddings.Services;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,5 @@
-﻿using JobTracker.Application.Infrastructure.Data;
+﻿using JobTracker.Application.Features.Jobs;
+using JobTracker.Application.Infrastructure.Data;
 using JobTracker.Application.Infrastructure.Services.Scraper.Util;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;

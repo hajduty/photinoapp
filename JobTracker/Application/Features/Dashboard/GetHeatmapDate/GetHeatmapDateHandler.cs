@@ -3,7 +3,7 @@ using JobTracker.Application.Infrastructure.RPC;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace JobTracker.Application.Features.Dashboard.GetHeatmap;
+namespace JobTracker.Application.Features.Dashboard.GetHeatmapDate;
 
 public record GetHeatmapDateRequest(DateTime Date);
 public record GetHeatmapDateResponse(HeatmapJobData[] Jobs);

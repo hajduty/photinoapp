@@ -2,7 +2,7 @@ using JobTracker.Application.Infrastructure.RPC;
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace JobTracker.Application.Features.JobSearch.GetJobTitles;
+namespace JobTracker.Application.Features.Jobs.GetJobTitles;
 
 public record GetJobTitlesRequest(string keyword);
 public record GetJobTitlesResponse(List<string> JobTitles);
