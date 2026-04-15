@@ -15,7 +15,7 @@ export interface JobProfile {
   MatchedKeywords: KeywordRule[] | null
   AlertOnAllMatchingJobs: boolean | null
   AlertOnHardMatchingJobs: boolean | null
-  Location: string | null
+  Locations: string[] | null
   MaxJobAgeDays: number | null
   BlockedLocations: string[] | null
   RejectedSeniorityLevels: string[] | null

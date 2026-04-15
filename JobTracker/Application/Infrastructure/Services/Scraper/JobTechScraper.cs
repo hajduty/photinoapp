@@ -32,7 +32,8 @@ public class JobTechScraper
         var response = await _httpClient.GetStringAsync(baseUrl);
         using var doc = JsonDocument.Parse(response);
 
-        var total = doc.RootElement.GetProperty("total").GetProperty("value").GetInt32();
+        var totalEl = doc.RootElement.GetProperty("total").GetProperty("value");
+        var total = totalEl.ValueKind == JsonValueKind.Number && totalEl.TryGetInt32(out var t) ? t : 0;
         var hits = doc.RootElement.GetProperty("hits").EnumerateArray();
 
         int consecutiveDuplicates = 0;

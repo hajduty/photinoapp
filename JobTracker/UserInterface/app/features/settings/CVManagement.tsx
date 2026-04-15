@@ -3,9 +3,7 @@
 import React, { useState } from 'react'
 import { Textarea } from '@mantine/core'
 import { IconChevronDown, IconChevronUp, IconFileText } from '@tabler/icons-react'
-import { sendPhotinoRequest } from '@/app/utils/photino'
-import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
-import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
+import { useUpdatePreferences } from '@/app/hooks/useSettings'
 import { JobProfile } from '@/app/types/settings/job-profile'
 
 interface CVManagementProps {
@@ -16,12 +14,12 @@ interface CVManagementProps {
 export default function CVManagement({ profile, onUpdate }: CVManagementProps) {
   const [expanded, setExpanded] = useState(false)
   const [cvContent, setCvContent] = useState(profile?.UserCV || '')
-  const [loading, setLoading] = useState(false)
+
+  const updatePreferences = useUpdatePreferences()
 
   const handleSave = async () => {
     try {
-      setLoading(true)
-      const request: UpdatePreferencesRequest = {
+      const response = await updatePreferences.mutateAsync({
         UserCV: cvContent,
         SelectedTagIds: null,
         YearsOfExperience: null,
@@ -29,15 +27,12 @@ export default function CVManagement({ profile, onUpdate }: CVManagementProps) {
         MatchedKeywords: null,
         AlertOnAllMatchingJobs: null,
         AlertOnHardMatchingJobs: null,
-        Location: null,
+        Locations: null,
         MaxJobAgeDays: null,
-      }
-      const response = await sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request)
+      })
       onUpdate(response.Profile)
     } catch (err) {
       console.error('Failed to update CV:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -79,8 +74,8 @@ export default function CVManagement({ profile, onUpdate }: CVManagementProps) {
             }}
           />
           <div className="flex justify-end mt-3">
-            <button onClick={handleSave} disabled={loading} className="btn-secondary text-sm">
-              {loading ? 'Saving...' : 'Save CV'}
+            <button onClick={handleSave} disabled={updatePreferences.isPending} className="btn-secondary text-sm">
+              {updatePreferences.isPending ? 'Saving...' : 'Save CV'}
             </button>
           </div>
         </div>

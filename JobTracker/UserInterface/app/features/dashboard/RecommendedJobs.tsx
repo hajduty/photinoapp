@@ -260,7 +260,7 @@ export default function RecommendedJobs({
                 <div className="flex items-center justify-between gap-2 mt-auto">
                   <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                     <IconLocation size={11} className="flex-shrink-0 text-neutral-600" />
-                    <span className="text-xs text-neutral-500 truncate">{job.Posting.Location}</span>
+                    <span className="text-xs text-neutral-500 truncate">{job.Posting.City ?? job.Posting.County ?? ''}</span>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {job.Tags.slice(0, 2).map((tag) => (

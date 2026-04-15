@@ -159,7 +159,7 @@ export default function TagManagement({ className }: TagManagementProps) {
   return (
     <div className={className}>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-semibold text-neutral-300">Tag Management</p>
+        <p className="text-sm font-semibold text-neutral-300">Tags</p>
         <button
           onClick={() => setCreateModalOpen(true)}
           className="btn-secondary text-sm flex items-center gap-2"

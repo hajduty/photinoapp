@@ -37,7 +37,8 @@ export default function JobSearch() {
     Page: currentPage + 1,
     PageSize: ITEMS_PER_PAGE,
     ActiveTagIds: filters.tags,
-    TimeSinceUpload: filters.date
+    TimeSinceUpload: filters.date,
+    Location: filters.location || null
   };
 
   const { data: jobPostings, isLoading, error } = useJobs(request);

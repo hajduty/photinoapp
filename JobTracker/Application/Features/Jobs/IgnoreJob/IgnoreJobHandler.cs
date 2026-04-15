@@ -99,11 +99,11 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         switch (reason)
         {
             case IgnoreReason.Location:
-                if (!string.IsNullOrWhiteSpace(posting.Location))
+                if (!string.IsNullOrWhiteSpace(posting.City))
                 {
                     profile.BlockedLocations ??= [];
-                    if (!profile.BlockedLocations.Contains(posting.Location, StringComparer.OrdinalIgnoreCase))
-                        profile.BlockedLocations.Add(posting.Location);
+                    if (!profile.BlockedLocations.Contains(posting.City, StringComparer.OrdinalIgnoreCase))
+                        profile.BlockedLocations.Add(posting.City);
                 }
                 break;
 
@@ -136,8 +136,8 @@ public class IgnoreJobHandler : RpcHandler<IgnoreJobRequest, IgnoreJobResponse>
         switch (reason)
         {
             case IgnoreReason.Location:
-                if (!string.IsNullOrWhiteSpace(posting.Location))
-                    profile.BlockedLocations?.RemoveAll(l => string.Equals(l, posting.Location, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(posting.City))
+                    profile.BlockedLocations?.RemoveAll(l => string.Equals(l, posting.City, StringComparison.OrdinalIgnoreCase));
                 break;
 
             case IgnoreReason.Experience:

@@ -8,21 +8,27 @@ public static class JobSearchHelper
 {
     public static Posting MapPosting(JsonElement hit)
     {
+        var (city, county, country, longitude, latitude) = GetAddress(hit);
         return new Posting
         {
             Id = ParseId(hit.GetProperty("id").GetString()),
             Title = hit.GetProperty("headline").GetString() ?? "",
             Description = GetDescription(hit),
             Company = hit.GetProperty("employer").GetProperty("name").GetString() ?? "",
-            Location = GetLocation(hit),
-            PostedDate = DateTime.Parse(hit.GetProperty("publication_date").GetString()),
+            City = city,
+            County = county,
+            Country = country,
+            Longitude = longitude,
+            Latitude = latitude,
+            PostedDate = DateTime.TryParse(hit.GetProperty("publication_date").GetString(), out var posted) ? posted : DateTime.UtcNow,
             Url = GetUrl(hit),
             OriginUrl = GetOriginUrl(hit),
             CompanyImage = hit.GetProperty("logo_url").GetString() ?? "",
             CreatedAt = DateTime.UtcNow,
-            LastApplicationDate = DateTime.Parse(hit.GetProperty("application_deadline").GetString()),
+            LastApplicationDate = DateTime.TryParse(hit.GetProperty("application_deadline").GetString(), out var deadline) ? deadline : DateTime.UtcNow,
             DescriptionFormatted = hit.GetProperty("description").GetProperty("text_formatted").GetString() ?? "",
-            YearsOfExperience = ExtractExperienceYears(GetDescription(hit), hit.GetProperty("headline").GetString() ?? "")
+            YearsOfExperience = ExtractExperienceYears(GetDescription(hit), hit.GetProperty("headline").GetString() ?? ""),
+            Source = "Arbetsförmedlingen"
         };
     }
 
@@ -33,16 +39,39 @@ public static class JobSearchHelper
         hit.GetProperty("description").GetProperty("text").GetString() ??
         hit.GetProperty("description").GetProperty("text_formatted").GetString() ?? "";
 
-    public static string GetLocation(JsonElement hit)
+    public static (string? city, string? county, string? country, double? longitude, double? latitude) GetAddress(JsonElement hit)
     {
         var addr = hit.GetProperty("workplace_address");
+
         var city = addr.GetProperty("city").GetString();
+
+        string? county = null;
+        if (addr.TryGetProperty("region", out var regionEl))
+            county = regionEl.GetString();
+
         var country = addr.GetProperty("country").GetString();
 
-        if (!string.IsNullOrEmpty(city) && !string.IsNullOrEmpty(country))
-            return $"{city}, {country}";
+        double? longitude = null;
+        double? latitude = null;
+        if (addr.TryGetProperty("coordinates", out var coordEl) && coordEl.ValueKind == JsonValueKind.Array)
+        {
+            var coords = coordEl.EnumerateArray().ToList();
+            if (coords.Count >= 2
+                && coords[0].ValueKind == JsonValueKind.Number
+                && coords[1].ValueKind == JsonValueKind.Number)
+            {
+                longitude = coords[0].GetDouble();
+                latitude = coords[1].GetDouble();
+            }
+        }
 
-        return city ?? country ?? "";
+        return (
+            string.IsNullOrWhiteSpace(city) ? null : city,
+            string.IsNullOrWhiteSpace(county) ? null : county,
+            string.IsNullOrWhiteSpace(country) ? null : country,
+            longitude,
+            latitude
+        );
     }
 
     public static string GetUrl(JsonElement hit) =>
@@ -137,7 +166,7 @@ public static class JobSearchHelper
             }
         }
 
-        // Title fallback — only if description yielded nothing
+        // Title fallback - only if description yielded nothing
         if (highest == null && !string.IsNullOrWhiteSpace(title))
         {
             var normalizedTitle = title.ToLowerInvariant();

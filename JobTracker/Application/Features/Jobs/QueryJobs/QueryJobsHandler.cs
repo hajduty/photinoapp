@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace JobTracker.Application.Features.JobSearch.GetJobs;
 
-public record QueryJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload);
+public record QueryJobsRequest(string Keyword, int Page, int PageSize, List<int> ActiveTagIds, DateTime? TimeSinceUpload, string? Location);
 
 public record QueryJobsResponse(List<ExtendedPosting> Postings, int Page, int PageSize, int TotalResults, int TotalPages, bool HasPreviousPage, bool HasNextPage);
 
@@ -55,6 +55,9 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
 
         if (req.TimeSinceUpload.HasValue)
             query = query.Where(p => p.PostedDate >= req.TimeSinceUpload.Value);
+
+        if (!string.IsNullOrEmpty(req.Location))
+            query = query.Where(p => EF.Functions.Like(p.City, req.Location) || EF.Functions.Like(p.County, req.Location));
 
         // Fetch tags and postings in parallel
         var allTagsTask = db.Tags.AsNoTracking().ToListAsync();
@@ -116,7 +119,11 @@ public class QueryJobsHandler : RpcHandler<QueryJobsRequest, QueryJobsResponse>
                     Id = p.Id,
                     Title = p.Title,
                     Company = p.Company,
-                    Location = p.Location,
+                    City = p.City,
+                    County = p.County,
+                    Country = p.Country,
+                    Longitude = p.Longitude,
+                    Latitude = p.Latitude,
                     PostedDate = p.PostedDate,
                     Description = descRaw[..Math.Min(descRaw.Length, 400)],
                     DescriptionFormatted = descFmt[..Math.Min(descFmt.Length, 400)],

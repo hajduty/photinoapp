@@ -77,7 +77,7 @@ public class EmbeddingProcessor
                 {
                     $"Title: {p.Title}",
                     $"Company: {p.Company}",
-                    $"Location: {p.Location}",
+                    $"Location: {string.Join(", ", new[] { p.City, p.County, p.Country }.Where(s => !string.IsNullOrWhiteSpace(s)))}",
                     $"Description: {p.Description}"
                 }.Where(s => !string.IsNullOrWhiteSpace(s)))).ToArray();
 

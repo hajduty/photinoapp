@@ -138,7 +138,7 @@ export default function ApplicationJobPosting({ application, onStatusChange, onD
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4 mb-4 text-xs sm:text-sm text-neutral-400">
                 <div className="flex items-center gap-2">
                   <IconLocation size={14} />
-                  <span className="truncate">{Posting.Location}</span>
+                  <span className="truncate">{Posting.City ?? Posting.County ?? ''}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <IconCalendarTime size={14} />
