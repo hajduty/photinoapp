@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Tag } from '../../types/tag/tag'
 import { TagsCombobox } from './TagsCombobox'
 import { useTags } from '../../hooks/useTags'
+import { useLocations } from '../../hooks/useJobs'
 
 interface FilterProps {
   onFilterChange: (filters: {
@@ -28,8 +29,8 @@ export default function Filter({ onFilterChange }: FilterProps) {
     tags: [],
   })
 
-  // Use TanStack Query hooks
   const { data: tags = [] } = useTags()
+  const { data: locations = [] } = useLocations()
 
   const handleStringFilterChange = (
     key: Exclude<keyof Filters, 'tags'>,
@@ -118,12 +119,11 @@ export default function Filter({ onFilterChange }: FilterProps) {
         <Select
           label="Location"
           placeholder="All Locations"
+          searchable
+          clearable
           data={[
-            { value: '', label: 'All Locations' },
-            { value: 'Stockholm', label: 'Stockholm' },
-            { value: 'Gothenburg', label: 'Gothenburg' },
-            { value: 'Malmö', label: 'Malmö' },
-            { value: 'Remote', label: 'Remote' },
+            ...(locations?.Cities?.length ? [{ group: 'Cities', items: locations.Cities.map(c => ({ value: c, label: c })) }] : []),
+            ...(locations?.Counties?.length ? [{ group: 'Counties', items: locations.Counties.map(c => ({ value: c, label: c })) }] : []),
           ]}
           value={filters.location}
           onChange={(value) =>

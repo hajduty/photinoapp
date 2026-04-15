@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  TextInput,
   MultiSelect,
   NumberInput,
   Switch,
@@ -11,14 +10,13 @@ import {
   Group,
 } from '@mantine/core'
 import { IconX } from '@tabler/icons-react'
-import { sendPhotinoRequest } from '@/app/utils/photino'
-import { UpdatePreferencesRequest } from '@/app/types/settings/update-preferences-request'
-import { UpdatePreferencesResponse } from '@/app/types/settings/update-preferences-response'
+import { useUpdatePreferences } from '@/app/hooks/useSettings'
 import { KeywordRule, KeywordScope } from '@/app/types/settings/keyword-rule'
 import { JobProfile } from '@/app/types/settings/job-profile'
 import { Tag } from '@/app/types/tag/tag'
 import { useTags } from '@/app/hooks/useTags'
 import { useRejectedTechKeywords } from '@/app/hooks/useRejectedTechKeywords'
+import { useLocations } from '@/app/hooks/useJobs'
 
 interface UserPreferencesProps {
   profile: JobProfile | null
@@ -156,25 +154,26 @@ function ScopedTagInput({
 }
 
 export default function UserPreferences({ profile, onUpdate }: UserPreferencesProps) {
-  const [loading, setLoading] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null)
   const [blockedKeywords, setBlockedKeywords] = useState<KeywordRule[]>([])
   const [matchedKeywords, setMatchedKeywords] = useState<KeywordRule[]>([])
   const [alertOnAllMatchingJobs, setAlertOnAllMatchingJobs] = useState(false)
   const [alertOnHardMatchingJobs, setAlertOnHardMatchingJobs] = useState(false)
-  const [location, setLocation] = useState('')
+  const [locations, setLocations] = useState<string[]>([])
   const [maxJobAgeDays, setMaxJobAgeDays] = useState<number | null>(null)
 
   const { data: tags = [] } = useTags()
+  const { data: availableLocations } = useLocations()
   const { rejectedKeywords, isLoadingRejectedKeywords, removeRejectedKeyword, updateRejectedTagScope } = useRejectedTechKeywords()
+  const updatePreferences = useUpdatePreferences()
 
   useEffect(() => {
     if (profile) {
       setYearsOfExperience(profile.YearsOfExperience)
       setAlertOnAllMatchingJobs(profile.AlertOnAllMatchingJobs ?? false)
       setAlertOnHardMatchingJobs(profile.AlertOnHardMatchingJobs ?? false)
-      setLocation(profile.Location ?? '')
+      setLocations(profile.Locations ?? [])
       setMaxJobAgeDays(profile.MaxJobAgeDays)
       setBlockedKeywords(profile.BlockedKeywords ?? [])
       setMatchedKeywords(profile.MatchedKeywords ?? [])
@@ -188,8 +187,7 @@ export default function UserPreferences({ profile, onUpdate }: UserPreferencesPr
 
   const handleSave = async () => {
     try {
-      setLoading(true)
-      const request: UpdatePreferencesRequest = {
+      const response = await updatePreferences.mutateAsync({
         UserCV: profile?.UserCV ?? null,
         SelectedTagIds: selectedTags.map(id => parseInt(id)),
         YearsOfExperience: yearsOfExperience,
@@ -197,15 +195,12 @@ export default function UserPreferences({ profile, onUpdate }: UserPreferencesPr
         MatchedKeywords: matchedKeywords,
         AlertOnAllMatchingJobs: alertOnAllMatchingJobs,
         AlertOnHardMatchingJobs: alertOnHardMatchingJobs,
-        Location: location || null,
+        Locations: locations.length > 0 ? locations : null,
         MaxJobAgeDays: maxJobAgeDays,
-      }
-      const response = await sendPhotinoRequest<UpdatePreferencesResponse>('settings.updatePreferences', request)
+      })
       onUpdate(response.Profile)
     } catch (err) {
       console.error('Failed to update preferences:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -233,11 +228,17 @@ export default function UserPreferences({ profile, onUpdate }: UserPreferencesPr
             />
           </div>
           <div>
-            <FieldLabel>Preferred Location</FieldLabel>
-            <TextInput
+            <FieldLabel>Preferred Locations</FieldLabel>
+            <MultiSelect
               placeholder="e.g. Stockholm"
-              value={location}
-              onChange={(e) => setLocation(e.currentTarget.value)}
+              value={locations}
+              onChange={setLocations}
+              data={[
+                ...(availableLocations?.Cities?.length ? [{ group: 'Cities', items: availableLocations.Cities.map(c => ({ value: c, label: c })) }] : []),
+                ...(availableLocations?.Counties?.length ? [{ group: 'Counties', items: availableLocations.Counties.map(c => ({ value: c, label: c })) }] : []),
+              ]}
+              searchable
+              nothingFoundMessage="No locations found"
               classNames={inputCls}
             />
           </div>
@@ -362,8 +363,8 @@ export default function UserPreferences({ profile, onUpdate }: UserPreferencesPr
           />
         </div>
         <div className="flex justify-end">
-          <button onClick={handleSave} disabled={loading} className="btn-secondary text-sm">
-            {loading ? 'Saving...' : 'Save Preferences'}
+          <button onClick={handleSave} disabled={updatePreferences.isPending} className="btn-secondary text-sm">
+            {updatePreferences.isPending ? 'Saving...' : 'Save Preferences'}
           </button>
         </div>
       </div>

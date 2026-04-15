@@ -9,4 +9,5 @@ export interface GetJobsRequest {
     PageSize: number;
     ActiveTagIds: number[];
     TimeSinceUpload: Date | null;
+    Location: string | null;
 }

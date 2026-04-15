@@ -4,7 +4,11 @@ export interface Posting {
   Description: string
   DescriptionFormatted: string
   Company: string
-  Location: string
+  City: string | null
+  County: string | null
+  Country: string | null
+  Longitude: number | null
+  Latitude: number | null
   PostedDate: Date
   Url: string
   OriginUrl: string

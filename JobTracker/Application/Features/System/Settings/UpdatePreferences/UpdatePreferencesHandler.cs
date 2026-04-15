@@ -15,7 +15,7 @@ public record UpdatePreferencesRequest(
     List<KeywordRule>? MatchedKeywords,
     bool? AlertOnAllMatchingJobs,
     bool? AlertOnHardMatchingJobs,
-    string? Location,
+    List<string>? Locations,
     int? MaxJobAgeDays
 );
 
@@ -50,7 +50,7 @@ public class UpdatePreferencesHandler : RpcHandler<UpdatePreferencesRequest, Upd
         profile.MatchedKeywords = request.MatchedKeywords;
         profile.AlertOnAllMatchingJobs = request.AlertOnAllMatchingJobs;
         profile.AlertOnHardMatchingJobs = request.AlertOnHardMatchingJobs;
-        profile.Location = request.Location;
+        profile.Locations = request.Locations;
         profile.MaxJobAgeDays = request.MaxJobAgeDays;
         profile.UserEmbedding = null; // invalidate cached embedding
 

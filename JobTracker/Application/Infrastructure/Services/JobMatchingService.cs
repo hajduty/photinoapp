@@ -176,9 +176,11 @@ public class JobMatchingService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(profile.Location))
+        if (profile.Locations?.Count > 0)
         {
-            if (!job.Location.Contains(profile.Location, StringComparison.OrdinalIgnoreCase))
+            if (!profile.Locations.Any(loc =>
+                (job.City?.Contains(loc, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (job.County?.Contains(loc, StringComparison.OrdinalIgnoreCase) ?? false)))
                 return false;
         }
 
@@ -186,7 +188,9 @@ public class JobMatchingService
         {
             foreach (var loc in profile.BlockedLocations)
             {
-                if (!string.IsNullOrWhiteSpace(loc) && job.Location.Contains(loc, StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(loc) &&
+                    ((job.City?.Contains(loc, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                     (job.County?.Contains(loc, StringComparison.OrdinalIgnoreCase) ?? false)))
                     return false;
             }
         }

@@ -84,7 +84,7 @@ export default function JobDetailsModal({
         <div className="flex justify-between text-sm">
           <div className="flex items-center gap-2 text-neutral-300">
             <IconLocation size={16} />
-            <span>{Posting.Location}</span>
+            <span>{[Posting.City, Posting.County].filter(Boolean).join(', ')}</span>
           </div>
           <div className="flex items-center gap-2 text-neutral-300">
             <IconCalendarTime size={16} />

@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Table,
   ActionIcon,
   Group,
   Modal,
   Switch,
-  TextInput,
+  Autocomplete,
   NumberInput,
   Loader,
   Select,
-  MultiSelect
+  MultiSelect,
+  TextInput
 } from '@mantine/core';
 import {
   IconPlus,
@@ -45,6 +46,9 @@ export default function TrackersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTracker, setEditingTracker] = useState<JobTracker | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [keywordSuggestions, setKeywordSuggestions] = useState<string[]>([]);
+  const [keywordLoading, setKeywordLoading] = useState(false);
+  const keywordDebounce = useRef<number>(-1);
 
   const [formData, setFormData] = useState<CreateJobTrackerRequest>({
     Keyword: '',
@@ -275,7 +279,7 @@ export default function TrackersPage() {
 
         <Modal
           opened={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => { setModalOpen(false); setKeywordSuggestions([]); }}
           title={editingTracker ? 'Edit Tracker' : 'New Tracker'}
           centered
           lockScroll={false}
@@ -285,15 +289,29 @@ export default function TrackersPage() {
             close: 'text-neutral-400 hover:text-white'
           }}
         >
-          <TextInput
+          <Autocomplete
             label="Keyword"
             placeholder="e.g. software developer"
             value={formData.Keyword}
-            onChange={(e) => setFormData({ ...formData, Keyword: e.currentTarget.value })}
+            data={keywordSuggestions}
+            rightSection={keywordLoading ? <Loader size={16} /> : null}
+            onChange={(val) => {
+              setFormData({ ...formData, Keyword: val });
+              window.clearTimeout(keywordDebounce.current);
+              if (!val) return setKeywordSuggestions([]);
+              keywordDebounce.current = window.setTimeout(async () => {
+                setKeywordLoading(true);
+                const response = await sendPhotinoRequest('jobs.getTitles', { keyword: val });
+                setKeywordSuggestions(response.JobTitles || []);
+                setKeywordLoading(false);
+              }, 300);
+            }}
             className="mb-4"
             classNames={{
               input: 'bg-neutral-800 border-neutral-700 text-neutral-200',
-              label: 'text-neutral-300'
+              label: 'text-neutral-300',
+              dropdown: 'bg-neutral-800 border-neutral-700',
+              option: 'text-neutral-200 hover:bg-neutral-700'
             }}
           />
 

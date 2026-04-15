@@ -8,6 +8,6 @@ export interface UpdatePreferencesRequest {
     MatchedKeywords: KeywordRule[] | null;
     AlertOnAllMatchingJobs: boolean | null;
     AlertOnHardMatchingJobs: boolean | null;
-    Location: string | null;
+    Locations: string[] | null;
     MaxJobAgeDays: number | null;
 }

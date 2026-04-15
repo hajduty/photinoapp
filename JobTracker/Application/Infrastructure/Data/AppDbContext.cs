@@ -117,6 +117,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<JobProfile>().Property(u => u.MatchedKeywords).HasColumnType("TEXT");
 
         modelBuilder.Entity<JobProfile>()
+            .Property(u => u.Locations)
+            .HasColumnName("Location")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => DeserializeStringList(v))
+            .Metadata.SetValueComparer(stringListComparer);
+        modelBuilder.Entity<JobProfile>().Property(u => u.Locations).HasColumnType("TEXT");
+
+        modelBuilder.Entity<JobProfile>()
             .Property(u => u.BlockedLocations)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
@@ -179,6 +188,20 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.PostingId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static List<string> DeserializeStringList(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json, JsonSerializerOptions.Default) ?? [];
+        }
+        catch
+        {
+            // Migration fallback: old data was a plain string, not a JSON array
+            return string.IsNullOrWhiteSpace(json) ? [] : [json];
+        }
     }
 
     private static List<KeywordRule> SafeDeserializeKeywordRules(string json)

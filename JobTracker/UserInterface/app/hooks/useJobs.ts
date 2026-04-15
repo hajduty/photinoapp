@@ -112,3 +112,16 @@ export const useGetIgnoredJobs = () => {
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
 };
+
+export interface LocationsResponse {
+  Cities: string[]
+  Counties: string[]
+}
+
+export const useLocations = () => {
+  return useQuery({
+    queryKey: ['locations'],
+    queryFn: () => sendPhotinoRequest<LocationsResponse>('jobs.getLocations', {}),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+};

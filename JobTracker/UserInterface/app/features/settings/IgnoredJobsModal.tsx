@@ -99,7 +99,7 @@ export default function IgnoredJobsSection() {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-neutral-400">
                           <span className="flex items-center gap-1">
                             <IconLocation size={11} />
-                            {job.Location}
+                            {job.City ?? job.County ?? ''}
                           </span>
                           <span className="flex items-center gap-1">
                             <IconCalendarTime size={11} />

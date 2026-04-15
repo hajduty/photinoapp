@@ -18,7 +18,7 @@ public class JobProfile
     public List<KeywordRule>? MatchedKeywords { get; set; }
     public bool? AlertOnAllMatchingJobs { get; set; }
     public bool? AlertOnHardMatchingJobs { get; set; }
-    public string? Location { get; set; }
+    public List<string>? Locations { get; set; }
     public int? MaxJobAgeDays { get; set; }
 
     // Aggregated from ignore actions
